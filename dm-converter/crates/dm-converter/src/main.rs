@@ -1,0 +1,656 @@
+// © TOMII, Tatsuru
+
+mod decorations;
+mod gpkg;
+mod maplibre;
+mod timing;
+
+use clap::{Args, Parser, Subcommand, ValueEnum};
+use dm_parser::{DmParser, ParseEvent, ParserConfig, display_source};
+use encoding_rs::Encoding;
+use gpkg::{GeoPackageWriter, LayerKey};
+use std::collections::{BTreeMap, BTreeSet};
+use std::fs::{self, File};
+use std::io::BufReader;
+use std::path::{Path, PathBuf};
+use std::process::ExitCode;
+use tempfile::Builder;
+use thiserror::Error;
+use timing::{ProgressDisplay, timed};
+
+#[derive(Debug, Parser)]
+#[command(
+    version,
+    about = "Convert DM files to GeoPackage or MapLibre output",
+    propagate_version = true
+)]
+struct Cli {
+    #[command(subcommand)]
+    command: Command,
+}
+
+#[derive(Debug, Subcommand)]
+enum Command {
+    /// Convert DM files to GeoPackage or MapLibre output
+    Convert(ConvertArgs),
+}
+
+#[derive(Debug, Args)]
+struct ConvertArgs {
+    /// Input DM file, DM directory, or generated GeoPackage
+    input: PathBuf,
+    /// Output GeoPackage path or MapLibre directory
+    output: PathBuf,
+    /// Output format
+    #[arg(long, value_enum, default_value_t = OutputFormat::Gpkg)]
+    format: OutputFormat,
+    /// MapLibre layer name
+    #[arg(long)]
+    layer_name: Option<String>,
+    /// DM text encoding
+    #[arg(long, default_value = "shift_jis", value_parser = parse_encoding)]
+    encoding: &'static Encoding,
+    /// Include only these DM classification codes
+    #[arg(long, value_delimiter = ',')]
+    include_codes: Vec<i64>,
+    /// Include only these geometry types
+    #[arg(long, value_delimiter = ',')]
+    include_types: Vec<GeometryType>,
+    /// Replace an existing output
+    #[arg(long)]
+    overwrite: bool,
+    /// Maximum number of features held before a writer flush
+    #[arg(long, default_value_t = 10_000, value_parser = parse_batch_size)]
+    batch_size: usize,
+    /// Generate auxiliary geometry layers
+    #[arg(long, default_value_t = true, action = clap::ArgAction::Set)]
+    decorations: bool,
+    /// Print progress to stderr
+    #[arg(long, default_value_t = true, action = clap::ArgAction::Set)]
+    progress: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+enum OutputFormat {
+    Gpkg,
+    Maplibre,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
+enum GeometryType {
+    Polygon,
+    Line,
+    Circle,
+    Arc,
+    Point,
+    Direction,
+    Text,
+}
+
+#[derive(Debug, Error)]
+enum AppError {
+    #[error("{0}")]
+    Input(String),
+    #[error("{0}")]
+    Conversion(String),
+    #[error("I/O error: {0}")]
+    Io(#[from] std::io::Error),
+    #[error(transparent)]
+    Parse(#[from] dm_parser::ParseError),
+    #[error(transparent)]
+    Writer(#[from] gpkg::WriterError),
+    #[error(transparent)]
+    MapLibre(#[from] maplibre::MapLibreError),
+}
+
+#[derive(Debug, Default)]
+struct RunSummary {
+    features: u64,
+    warnings: u64,
+    skipped: u64,
+    layers: u64,
+    tiles: u64,
+}
+
+fn main() -> ExitCode {
+    let cli = Cli::parse();
+    match cli.command {
+        Command::Convert(args) => run_conversion(args),
+    }
+}
+
+fn run_conversion(args: ConvertArgs) -> ExitCode {
+    let output = args.output.clone();
+    match run(&args) {
+        Ok(summary) => {
+            print_summary(&summary);
+            if summary.warnings > 0 {
+                ExitCode::from(3)
+            } else {
+                ExitCode::SUCCESS
+            }
+        }
+        Err(AppError::Input(message)) => {
+            eprintln!("input error: {message}");
+            ExitCode::from(2)
+        }
+        Err(AppError::MapLibre(maplibre::MapLibreError::Empty)) => {
+            eprintln!("input error: no supported MapLibre features remain");
+            ExitCode::from(2)
+        }
+        Err(error) => {
+            eprintln!("conversion error: {error}");
+            if args.format == OutputFormat::Gpkg && !is_gpkg(&args.input) {
+                cleanup_gpkg(&output);
+            }
+            ExitCode::from(1)
+        }
+    }
+}
+
+fn run(args: &ConvertArgs) -> Result<RunSummary, AppError> {
+    let input = &args.input;
+    let output = &args.output;
+    validate(args, input, output)?;
+    timing::mark_run_start();
+    timed("running conversion", || {
+        if is_gpkg(input) {
+            return run_maplibre_from_gpkg(args, output, input);
+        }
+        let files = discover_dm_files(input)?;
+        if files.is_empty() {
+            return Err(AppError::Input(format!(
+                "no .dm files found under {}",
+                input.display()
+            )));
+        }
+        match args.format {
+            OutputFormat::Gpkg => run_gpkg(args, output, &files),
+            OutputFormat::Maplibre => run_maplibre(args, output, &files),
+        }
+    })
+}
+
+fn run_gpkg(args: &ConvertArgs, output: &Path, files: &[PathBuf]) -> Result<RunSummary, AppError> {
+    let (keys, decoration_keys, discovery_warnings) =
+        timed("scanning input files", || discover_layers(args, files))?;
+    if keys.is_empty() {
+        return Err(AppError::Input(
+            "no supported features matched the selected filters".to_string(),
+        ));
+    }
+    if output.exists() {
+        fs::remove_file(output)?;
+    }
+    let mut writer = GeoPackageWriter::create(
+        output,
+        &keys,
+        &decoration_keys,
+        args.batch_size,
+        args.progress,
+    )?;
+    let mut summary = RunSummary::default();
+    let mut ids: BTreeMap<LayerKey, i64> = BTreeMap::new();
+    let mut decoration_ids: BTreeMap<gpkg::DecorationLayerKey, i64> = BTreeMap::new();
+    timed("converting input files to GeoPackage", || {
+        let mut progress = ProgressDisplay::new(args.progress);
+        for (index, file) in files.iter().enumerate() {
+            progress.progress(index + 1, files.len(), "convert");
+            for event in parser_for(file, args.encoding)? {
+                match event? {
+                    ParseEvent::Feature(feature) if included(args, &feature) => {
+                        let feature = *feature;
+                        let source_key = LayerKey::from_feature(&feature);
+                        let source_user_id = next_id(&mut ids, source_key.clone());
+                        if args.decorations {
+                            let source_layer = gpkg::layer_name(&source_key);
+                            for decoration in decorations::generate(
+                                &feature,
+                                &source_key,
+                                &source_layer,
+                                source_user_id,
+                            ) {
+                                let user_id = next_id(&mut decoration_ids, decoration.key.clone());
+                                writer.write_decoration(decoration, user_id)?;
+                            }
+                        }
+                        writer.write(feature, source_user_id)?;
+                        summary.features += 1;
+                    }
+                    ParseEvent::Warning(warning) => {
+                        record_warning(&mut progress, &mut summary, warning)
+                    }
+                    ParseEvent::Metadata(_) | ParseEvent::Feature(_) => {}
+                }
+            }
+        }
+        Ok::<(), AppError>(())
+    })?;
+    let counts = writer.finish()?;
+    summary.layers = counts.len() as u64;
+    if summary.warnings != discovery_warnings {
+        return Err(AppError::Conversion(
+            "input changed while conversion was running".to_string(),
+        ));
+    }
+    Ok(summary)
+}
+
+fn run_maplibre(
+    args: &ConvertArgs,
+    output: &Path,
+    files: &[PathBuf],
+) -> Result<RunSummary, AppError> {
+    let layer_name = args
+        .layer_name
+        .as_deref()
+        .expect("validated MapLibre layer name");
+    let parent = output.parent().unwrap_or_else(|| Path::new("."));
+    let temp = Builder::new().prefix(".dm-converter-").tempdir_in(parent)?;
+    let intermediate = temp.path().join("intermediate.gpkg");
+    let parser_summary = run_gpkg(args, &intermediate, files)?;
+    let summary = finish_maplibre(
+        args,
+        output,
+        layer_name,
+        temp,
+        &intermediate,
+        parser_summary,
+        true,
+    )?;
+    Ok(summary)
+}
+
+fn run_maplibre_from_gpkg(
+    args: &ConvertArgs,
+    output: &Path,
+    input: &Path,
+) -> Result<RunSummary, AppError> {
+    let layer_name = args
+        .layer_name
+        .as_deref()
+        .expect("validated MapLibre layer name");
+    let parent = output.parent().unwrap_or_else(|| Path::new("."));
+    let temp = Builder::new().prefix(".dm-converter-").tempdir_in(parent)?;
+    finish_maplibre(
+        args,
+        output,
+        layer_name,
+        temp,
+        input,
+        RunSummary::default(),
+        false,
+    )
+}
+
+fn finish_maplibre(
+    args: &ConvertArgs,
+    output: &Path,
+    layer_name: &str,
+    temp: tempfile::TempDir,
+    gpkg: &Path,
+    input_summary: RunSummary,
+    preserve_intermediate_gpkg: bool,
+) -> Result<RunSummary, AppError> {
+    let map_summary = timed("generating MapLibre output from GeoPackage", || {
+        maplibre::write_from_gpkg(temp.path(), layer_name, gpkg, args.progress)
+    })?;
+    for warning in &map_summary.warnings {
+        eprintln!("warning: {warning}");
+    }
+    if preserve_intermediate_gpkg {
+        preserve_gpkg(gpkg, temp.path(), layer_name)?;
+    }
+    replace_directory(temp, output, args.overwrite)?;
+    Ok(RunSummary {
+        features: map_summary.features,
+        warnings: input_summary.warnings + map_summary.warnings.len() as u64,
+        skipped: input_summary.skipped + map_summary.skipped,
+        layers: map_summary.layers,
+        tiles: map_summary.tiles,
+    })
+}
+
+fn preserve_gpkg(gpkg: &Path, output: &Path, layer_name: &str) -> Result<(), AppError> {
+    let preserved = output.join(format!("{layer_name}.gpkg"));
+    if gpkg != preserved {
+        fs::rename(gpkg, preserved)?;
+    }
+    Ok(())
+}
+
+fn replace_directory(
+    temp: tempfile::TempDir,
+    output: &Path,
+    overwrite: bool,
+) -> Result<(), AppError> {
+    let staged = temp.keep();
+    if !output.exists() {
+        fs::rename(staged, output)?;
+        return Ok(());
+    }
+    if !overwrite {
+        return Err(AppError::Input(format!(
+            "output already exists (use --overwrite): {}",
+            output.display()
+        )));
+    }
+    let backup = output.with_file_name(format!(
+        ".{}.backup",
+        output.file_name().unwrap_or_default().to_string_lossy()
+    ));
+    if backup.exists() {
+        fs::remove_dir_all(&backup)?;
+    }
+    fs::rename(output, &backup)?;
+    if let Err(error) = fs::rename(&staged, output) {
+        let _ = fs::rename(&backup, output);
+        let _ = fs::remove_dir_all(staged);
+        return Err(error.into());
+    }
+    fs::remove_dir_all(backup)?;
+    Ok(())
+}
+
+fn discover_layers(
+    args: &ConvertArgs,
+    files: &[PathBuf],
+) -> Result<(BTreeSet<LayerKey>, BTreeSet<gpkg::DecorationLayerKey>, u64), AppError> {
+    let mut keys = BTreeSet::new();
+    let mut decoration_keys = BTreeSet::new();
+    let mut warnings = 0;
+    let mut progress = ProgressDisplay::new(args.progress);
+    for (index, file) in files.iter().enumerate() {
+        progress.progress(index + 1, files.len(), "scan");
+        for event in parser_for(file, args.encoding)? {
+            match event? {
+                ParseEvent::Feature(feature) if included(args, &feature) => {
+                    let key = LayerKey::from_feature(&feature);
+                    keys.insert(key.clone());
+                    if args.decorations
+                        && let Some(decoration_key) =
+                            decorations::decoration_layer_key_for(&feature, &key)
+                    {
+                        decoration_keys.insert(decoration_key);
+                    }
+                }
+                ParseEvent::Warning(_) => warnings += 1,
+                ParseEvent::Metadata(_) | ParseEvent::Feature(_) => {}
+            }
+        }
+    }
+    Ok((keys, decoration_keys, warnings))
+}
+
+fn next_id<K: Ord>(ids: &mut BTreeMap<K, i64>, key: K) -> i64 {
+    *ids.entry(key).and_modify(|id| *id += 1).or_insert(1)
+}
+
+fn validate(args: &ConvertArgs, input: &Path, output: &Path) -> Result<(), AppError> {
+    if !input.exists() {
+        return Err(AppError::Input(format!(
+            "input does not exist: {}",
+            input.display()
+        )));
+    }
+    match args.format {
+        OutputFormat::Gpkg if is_gpkg(input) => {
+            return Err(AppError::Input(
+                "GeoPackage input requires --format maplibre".to_string(),
+            ));
+        }
+        OutputFormat::Gpkg if args.layer_name.is_some() => {
+            return Err(AppError::Input(
+                "--layer-name is only valid with --format maplibre".to_string(),
+            ));
+        }
+        OutputFormat::Maplibre => validate_layer_name(args.layer_name.as_deref())?,
+        OutputFormat::Gpkg => {}
+    }
+    if output.exists() {
+        let expected = match args.format {
+            OutputFormat::Gpkg => output.is_file(),
+            OutputFormat::Maplibre => output.is_dir(),
+        };
+        if !expected {
+            return Err(AppError::Input(format!(
+                "output has the wrong type: {}",
+                output.display()
+            )));
+        }
+        if !args.overwrite {
+            return Err(AppError::Input(format!(
+                "output already exists (use --overwrite): {}",
+                output.display()
+            )));
+        }
+    }
+    if let Some(parent) = output.parent()
+        && !parent.as_os_str().is_empty()
+        && !parent.is_dir()
+    {
+        return Err(AppError::Input(format!(
+            "output directory does not exist: {}",
+            parent.display()
+        )));
+    }
+    Ok(())
+}
+
+fn validate_layer_name(value: Option<&str>) -> Result<(), AppError> {
+    let value = value.ok_or_else(|| {
+        AppError::Input("--layer-name is required with --format maplibre".to_string())
+    })?;
+    if value.is_empty()
+        || value == "."
+        || value == ".."
+        || !value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_'))
+    {
+        return Err(AppError::Input(
+            "--layer-name may contain only ASCII letters, digits, '-' and '_'".to_string(),
+        ));
+    }
+    Ok(())
+}
+
+fn parser_for(
+    path: &Path,
+    encoding: &'static Encoding,
+) -> Result<DmParser<BufReader<File>>, AppError> {
+    let file = File::open(path)?;
+    Ok(DmParser::new(
+        BufReader::new(file),
+        display_source(path),
+        ParserConfig {
+            encoding,
+            plane_rectangular_zone_override: zone_from_filename(path),
+        },
+    ))
+}
+
+/// ファイル名（図郭割り番号を準用）の先頭2桁から平面直角座標系番号を導出する
+fn zone_from_filename(path: &Path) -> Option<u8> {
+    let stem = path.file_stem().and_then(|stem| stem.to_str())?;
+    stem.get(0..2)
+        .and_then(|prefix| prefix.parse::<u8>().ok())
+        .filter(|zone| (1..=19).contains(zone))
+}
+
+fn discover_dm_files(input: &Path) -> Result<Vec<PathBuf>, AppError> {
+    if input.is_file() {
+        return if is_dm(input) {
+            Ok(vec![input.to_path_buf()])
+        } else {
+            Err(AppError::Input(format!(
+                "input file does not have a .dm extension: {}",
+                input.display()
+            )))
+        };
+    }
+    let mut files = Vec::new();
+    let mut directories = vec![input.to_path_buf()];
+    while let Some(directory) = directories.pop() {
+        for entry in fs::read_dir(directory)? {
+            let path = entry?.path();
+            if path.is_dir() {
+                directories.push(path);
+            } else if is_dm(&path) {
+                files.push(path);
+            }
+        }
+    }
+    files.sort();
+    Ok(files)
+}
+
+fn is_dm(path: &Path) -> bool {
+    path.extension()
+        .and_then(|extension| extension.to_str())
+        .is_some_and(|extension| extension.eq_ignore_ascii_case("dm"))
+}
+
+fn is_gpkg(path: &Path) -> bool {
+    path.is_file()
+        && path
+            .extension()
+            .and_then(|extension| extension.to_str())
+            .is_some_and(|extension| extension.eq_ignore_ascii_case("gpkg"))
+}
+
+fn included(args: &ConvertArgs, feature: &dm_parser::Feature) -> bool {
+    (args.include_codes.is_empty() || args.include_codes.contains(&feature.dmcode))
+        && (args.include_types.is_empty()
+            || args
+                .include_types
+                .iter()
+                .any(|filter| type_matches(*filter, feature)))
+}
+
+fn type_matches(filter: GeometryType, feature: &dm_parser::Feature) -> bool {
+    matches!(
+        (filter, &feature.geometry),
+        (GeometryType::Polygon, dm_parser::Geometry::Polygon(_))
+            | (GeometryType::Line, dm_parser::Geometry::LineString(_))
+            | (GeometryType::Circle, dm_parser::Geometry::Circle { .. })
+            | (GeometryType::Arc, dm_parser::Geometry::Arc { .. })
+            | (GeometryType::Text, dm_parser::Geometry::TextPoint(_))
+    ) || matches!(
+        (&filter, &feature.geometry, feature.attributes.angle),
+        (GeometryType::Point, dm_parser::Geometry::Point(_), None)
+            | (
+                GeometryType::Direction,
+                dm_parser::Geometry::Point(_),
+                Some(_)
+            )
+    )
+}
+
+fn parse_encoding(value: &str) -> Result<&'static Encoding, String> {
+    Encoding::for_label(value.as_bytes()).ok_or_else(|| format!("unknown encoding: {value}"))
+}
+
+fn parse_batch_size(value: &str) -> Result<usize, String> {
+    let size = value
+        .parse::<usize>()
+        .map_err(|_| format!("invalid batch size: {value}"))?;
+    if size == 0 {
+        return Err("batch size must be greater than zero".to_string());
+    }
+    Ok(size)
+}
+
+fn record_warning(
+    progress: &mut ProgressDisplay,
+    summary: &mut RunSummary,
+    warning: dm_parser::ParseWarning,
+) {
+    summary.warnings += 1;
+    summary.skipped += u64::from(warning.skipped);
+    progress.message(format!(
+        "warning: line {}: {}",
+        warning.source_line, warning.message
+    ));
+}
+
+fn cleanup_gpkg(output: &Path) {
+    let _ = fs::remove_file(output);
+    let _ = fs::remove_file(format!("{}-wal", output.display()));
+    let _ = fs::remove_file(format!("{}-shm", output.display()));
+}
+
+fn print_summary(summary: &RunSummary) {
+    eprintln!(
+        "features: {}, warnings: {}, skipped: {}, layers: {}, tiles: {}",
+        summary.features, summary.warnings, summary.skipped, summary.layers, summary.tiles
+    );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_convert_subcommand_with_gpkg_defaults() {
+        let cli =
+            Cli::try_parse_from(["dm-converter", "convert", "input.dm", "output.gpkg"]).unwrap();
+        let Command::Convert(args) = cli.command;
+        assert_eq!(args.format, OutputFormat::Gpkg);
+        assert!(args.decorations);
+    }
+
+    #[test]
+    fn rejects_conversion_without_subcommand() {
+        assert!(Cli::try_parse_from(["dm-converter", "input.dm", "output.gpkg"]).is_err());
+    }
+
+    #[test]
+    fn derives_zone_from_filename_prefix() {
+        assert_eq!(zone_from_filename(Path::new("06PD102.dm")), Some(6));
+        assert_eq!(zone_from_filename(Path::new("19AB000.dm")), Some(19));
+        assert_eq!(zone_from_filename(Path::new("00AB000.dm")), None);
+        assert_eq!(zone_from_filename(Path::new("AB000.dm")), None);
+    }
+
+    #[test]
+    fn validates_maplibre_layer_names() {
+        assert!(validate_layer_name(Some("dm-sample_1")).is_ok());
+        assert!(validate_layer_name(Some("../sample")).is_err());
+        assert!(validate_layer_name(None).is_err());
+    }
+
+    #[test]
+    fn requires_maplibre_format_for_geopackage_input() {
+        let input = tempfile::Builder::new().suffix(".gpkg").tempfile().unwrap();
+        let args = ConvertArgs {
+            input: input.path().to_path_buf(),
+            output: input.path().with_extension("output.gpkg"),
+            format: OutputFormat::Gpkg,
+            layer_name: None,
+            encoding: encoding_rs::SHIFT_JIS,
+            include_codes: Vec::new(),
+            include_types: Vec::new(),
+            overwrite: false,
+            batch_size: 10_000,
+            decorations: true,
+            progress: true,
+        };
+        assert!(validate(&args, &args.input, &args.output).is_err());
+    }
+
+    #[test]
+    fn preserves_intermediate_gpkg_with_layer_name() {
+        let temp = tempfile::tempdir().unwrap();
+        let intermediate = temp.path().join("intermediate.gpkg");
+        fs::write(&intermediate, b"gpkg").unwrap();
+
+        preserve_gpkg(&intermediate, temp.path(), "dm-sample").unwrap();
+
+        assert!(!intermediate.exists());
+        assert_eq!(
+            fs::read(temp.path().join("dm-sample.gpkg")).unwrap(),
+            b"gpkg"
+        );
+    }
+}

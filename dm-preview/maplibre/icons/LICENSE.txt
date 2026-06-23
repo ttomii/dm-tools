@@ -1,0 +1,4 @@
+svgの画像データは
+https://github.com/yamamoto-ryuzo/Styles4DMinQGIS
+からデータを取ってきた。
+https://github.com/yamamoto-ryuzo/Styles4DMinQGIS内のsvgはCC0 - パブリックドメインであった。

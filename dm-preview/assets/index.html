@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>DM MapLibre Preview</title>
+  <link rel="stylesheet" href="./vendor/maplibre-gl.css">
+  <link rel="stylesheet" href="./assets/app.css">
+</head>
+<body>
+  <header>
+    <strong>DM MapLibre Preview</strong>
+    <select id="style"></select>
+    <button id="background" type="button">Background</button>
+    <label class="layer-toggle"><input type="checkbox" id="dm" checked> DM地物</label>
+    <label class="layer-toggle"><input type="checkbox" id="basemap" checked> 地理院地図(淡色)</label>
+    <span id="status">Loading...</span>
+  </header>
+  <main id="map"></main>
+  <aside id="sidebar">
+    <section id="feature-list-panel">
+      <div class="panel-heading">
+        <strong>地物一覧</strong>
+        <div class="feature-list-controls">
+          <select id="feature-kind" aria-label="図形種別">
+            <option value="">すべて</option>
+            <option value="point">点</option>
+            <option value="line">線</option>
+            <option value="polygon">面</option>
+            <option value="text">注記</option>
+          </select>
+          <select id="feature-layer" aria-label="レイヤ"></select>
+        </div>
+      </div>
+      <div id="feature-list-status"></div>
+      <ol id="feature-list"></ol>
+      <div id="feature-list-pager">
+        <button id="feature-prev" type="button">前へ</button>
+        <span id="feature-page"></span>
+        <button id="feature-next" type="button">次へ</button>
+      </div>
+    </section>
+    <section id="feature-details">
+      <div class="panel-heading">
+        <strong>地物プロパティ</strong>
+      </div>
+      <pre id="properties"></pre>
+    </section>
+  </aside>
+  <script src="./vendor/maplibre-gl.js"></script>
+  <script src="./vendor/pmtiles.js"></script>
+  <script src="./assets/app.js"></script>
+</body>
+</html>

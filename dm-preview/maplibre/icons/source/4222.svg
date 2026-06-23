@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="58" height="172" viewBox="0 0 58 172">
+  <path d="M 27.225 5.5 L 27.225 84.975 L 50.325 84.975" stroke="black" stroke-width="4.95" fill="none" stroke-linecap="square" stroke-linejoin="miter"/>
+  
+  <path d="M 15.675 9.405 L 27.225 2.475 L 38.775 9.405" stroke="black" stroke-width="4.95" fill="none" stroke-linecap="square" stroke-linejoin="miter"/>
+  
+  <path d="M 9.075 33.165 L 27.225 22.275 L 45.375 33.165" stroke="black" stroke-width="4.95" fill="none" stroke-linecap="square" stroke-linejoin="miter"/>
+  
+  <path d="M 2.475 56.925 L 27.225 42.075 L 51.975 56.925" stroke="black" stroke-width="4.95" fill="none" stroke-linecap="square" stroke-linejoin="miter"/>
+</svg>

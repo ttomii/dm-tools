@@ -1,0 +1,9 @@
+/target/
+/dm-converter/.cargo/config.toml
+/dm-converter/target/
+/dm-preview/node_modules/
+/dm-preview/maplibre/icons/png/
+/dm-preview/dist/
+*.gpkg
+*.gpkg-shm
+*.gpkg-wal

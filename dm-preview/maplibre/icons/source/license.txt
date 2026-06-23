@@ -1,0 +1,10 @@
+Icon source files in this directory include files from multiple sources.
+
+Some SVG icon files are based on data from Styles4DMinQGIS:
+https://github.com/yamamoto-ryuzo/Styles4DMinQGIS
+
+The SVG files in Styles4DMinQGIS are distributed under CC0 1.0 Universal
+(Public Domain Dedication).
+
+Some icon files were created or modified for this project and are not part of
+the original Styles4DMinQGIS distribution.

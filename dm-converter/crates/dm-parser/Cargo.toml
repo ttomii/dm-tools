@@ -1,0 +1,12 @@
+[package]
+name = "dm-parser"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+encoding_rs.workspace = true
+thiserror.workspace = true

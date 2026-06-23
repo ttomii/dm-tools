@@ -1,0 +1,25 @@
+[package]
+name = "dm-converter"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+chrono.workspace = true
+clap.workspace = true
+dm-parser = { path = "../dm-parser" }
+encoding_rs.workspace = true
+flate2.workspace = true
+geo.workspace = true
+pmtiles.workspace = true
+proj4rs.workspace = true
+prost.workspace = true
+rayon.workspace = true
+rusqlite.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tempfile.workspace = true
+thiserror.workspace = true
