@@ -85,27 +85,34 @@ test("server serves bundled maplibre style, sprite, and glyph assets", async (co
   assert.equal((await fetch(`${origin}/sprite@3x.png`)).status, 404);
 });
 
-test("server prefers static bundle assets from output directory", async (context) => {
+test("server serves style bundle assets from output directory", async (context) => {
   const root = await mkdtemp(path.join(os.tmpdir(), "dm-preview-"));
   context.after(() => rm(root, {recursive: true, force: true}));
   const output = path.join(root, "output");
-  await mkdir(path.join(output, "assets"), {recursive: true});
-  await mkdir(path.join(output, "vendor"), {recursive: true});
-  await mkdir(path.join(output, "maplibre"), {recursive: true});
-  await writeFile(path.join(output, "index.html"), "bundled preview");
-  await writeFile(path.join(output, "assets", "app.js"), "bundled app");
-  await writeFile(path.join(output, "vendor", "pmtiles.js"), "bundled pmtiles");
-  await writeFile(path.join(output, "maplibre", "style-2500.json"), "{}");
-  await writeFile(path.join(output, "pmtiles-manifest.json"), "{}");
-  const {server, url} = await startServer(output);
+  await mkdir(path.join(output, "sprite"), {recursive: true});
+  await mkdir(path.join(output, "glyphs", "Test Font"), {recursive: true});
+  await writeFile(path.join(output, "style.json"), "{}");
+  await writeFile(path.join(output, "sprite", "sprite.json"), "{}");
+  await writeFile(path.join(output, "glyphs", "Test Font", "0-255.pbf"), "pbf");
+  const manifest = {
+    version: 1,
+    layerName: "dm-sample",
+    pmtiles: "dm-sample.pmtiles",
+    levels: [2500],
+    sourceLayers: ["dm_7100_point"],
+    bounds: [130, 30, 140, 40],
+    center: [135, 35, 15],
+    styles: ["style.json"],
+  };
+  const {server, url} = await startServer(output, {manifest});
   context.after(() => server.close());
   const origin = new URL(url).origin;
 
-  assert.equal(await (await fetch(url)).text(), "bundled preview");
-  assert.equal(await (await fetch(`${origin}/preview/assets/app.js`)).text(), "bundled app");
-  assert.equal(await (await fetch(`${origin}/preview/vendor/pmtiles.js`)).text(), "bundled pmtiles");
-  assert.equal((await fetch(`${origin}/preview/maplibre/style-2500.json`)).status, 200);
-  assert.equal((await fetch(`${origin}/preview/pmtiles-manifest.json`)).status, 200);
+  assert.match(await (await fetch(url)).text(), /DM MapLibre Preview/);
+  assert.deepEqual(await (await fetch(`${origin}/preview/pmtiles-manifest.json`)).json(), manifest);
+  assert.equal(await (await fetch(`${origin}/preview/style.json`)).text(), "{}");
+  assert.equal((await fetch(`${origin}/preview/sprite.json`)).status, 200);
+  assert.equal((await fetch(`${origin}/preview/glyphs/Test%20Font/0-255.pbf`)).status, 200);
 });
 
 test("feature API reads paged GeoPackage features", async (context) => {

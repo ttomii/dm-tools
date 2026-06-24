@@ -55,6 +55,10 @@ const respond = async (request, response, root, options) => {
     return;
   }
   const pathname = requestPath(request.url);
+  if (normalizePreviewPath(pathname) === "/pmtiles-manifest.json" && options.manifest) {
+    sendJson(request, response, 200, options.manifest);
+    return;
+  }
   if (pathname === "/preview/api/features") {
     respondFeatures(request, response, options.featureStore);
     return;

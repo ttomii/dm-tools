@@ -51,7 +51,7 @@ dm-preview bundle PMTILES OUTPUT
 Node.jsパッケージがMapLibre出力ディレクトリをローカルHTTPサーバーで公開し、
 同梱のStyle・sprite・glyphとあわせて配信します。通常はブラウザを自動的に開きます。
 `--no-open`を指定すると、ブラウザを開かずURLだけを表示します。
-`bundle`はPMTiles、Style、sprite、glyph、プレビュー画面を配布用フォルダにまとめます。詳細は
+`bundle`はPMTiles、`style.json`、sprite、glyphを配布用フォルダにまとめます。詳細は
 [dm-preview README](dm-preview/README.md)を参照してください。
 
 ### 詳細資料

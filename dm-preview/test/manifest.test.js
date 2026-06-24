@@ -50,3 +50,34 @@ test("readManifest rejects symlinks escaping output", async (context) => {
   await symlink(outside, `${output}/dm-sample.pmtiles`);
   await assert.rejects(readManifest(output), /manifest path is not a file/);
 });
+
+test("readManifest derives preview manifest from style bundle", async (context) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "dm-preview-"));
+  context.after(() => rm(root, {recursive: true, force: true}));
+  const output = path.join(root, "output");
+  await mkdir(output);
+  await writeFile(path.join(output, "dm-sample.pmtiles"), "");
+  await writeFile(path.join(output, "style.json"), JSON.stringify({
+    version: 8,
+    name: "DM 2500",
+    metadata: {
+      "dm:map-level": 2500,
+      "dm:bounds": validManifest.bounds,
+      "dm:center": validManifest.center,
+      "dm:sourceLayers": validManifest.sourceLayers,
+    },
+    sources: {
+      dm: {type: "vector", url: "pmtiles://./dm-sample.pmtiles"},
+    },
+    layers: [],
+  }));
+
+  const {manifest} = await readManifest(output);
+  assert.deepEqual(manifest, {
+    ...validManifest,
+    layerName: "DM 2500",
+    pmtiles: "dm-sample.pmtiles",
+    levels: [2500],
+    styles: ["style.json"],
+  });
+});

@@ -1,18 +1,18 @@
-import {cp, mkdir, readFile, realpath, stat, writeFile} from "node:fs/promises";
+import {cp, mkdir, readFile, readdir, realpath, stat, writeFile} from "node:fs/promises";
 import path from "node:path";
-import {createDefaultAssetRoots, packagePath} from "./asset-roots.js";
+import {packagePath} from "./asset-roots.js";
 import {InputError, MANIFEST_FILENAME, parseManifest, resolveOutputPath} from "./manifest.js";
 
 export const createBundle = async (pmtiles, output) => {
   const source = await readSource(pmtiles);
   const destination = await prepareOutput(output);
   const pmtilesName = path.basename(source.pmtiles);
-  const manifest = {...source.manifest, pmtiles: pmtilesName};
+  const style = await createStyle(source.manifest, pmtilesName);
 
   await Promise.all([
     cp(source.pmtiles, path.join(destination, pmtilesName)),
-    writeFile(path.join(destination, MANIFEST_FILENAME), `${JSON.stringify(manifest, undefined, 2)}\n`),
-    copyPreviewAssets(destination),
+    writeFile(path.join(destination, "style.json"), `${JSON.stringify(style, undefined, 2)}\n`),
+    copyStyleAssets(destination),
   ]);
   return destination;
 };
@@ -33,24 +33,67 @@ const prepareOutput = async (output) => {
   await mkdir(output, {recursive: true});
   const metadata = await stat(output);
   if (!metadata.isDirectory()) throw new InputError(`output is not a directory: ${output}`);
+  if ((await readdir(output)).length) {
+    throw new InputError(`output directory must be empty: ${output}`);
+  }
   return realpath(output);
 };
 
-const copyPreviewAssets = async (destination) => {
-  const assets = createDefaultAssetRoots();
-  await mkdir(path.join(destination, "assets"), {recursive: true});
+const createStyle = async (manifest, pmtilesName) => {
+  if (manifest.levels.length !== 1) {
+    throw new InputError("bundle requires a manifest with exactly one level");
+  }
+  const style = await readJson(packagePath("maplibre", `style-${manifest.levels[0]}.json`));
+  return {
+    ...style,
+    metadata: {
+      ...style.metadata,
+      "dm:bounds": manifest.bounds,
+      "dm:center": manifest.center,
+      "dm:sourceLayers": manifest.sourceLayers,
+    },
+    sources: {
+      ...style.sources,
+      dm: {
+        ...style.sources.dm,
+        url: `pmtiles://./${pmtilesName}`,
+      },
+    },
+    sprite: "./sprite/sprite",
+    glyphs: "./glyphs/{fontstack}/{range}.pbf",
+  };
+};
+
+const copyStyleAssets = async (destination) => {
   await Promise.all([
-    cp(path.join(assets.appAssets, "index.html"), path.join(destination, "index.html")),
-    cp(path.join(assets.appAssets, "app.css"), path.join(destination, "assets", "app.css")),
-    cp(path.join(assets.appAssets, "app.js"), path.join(destination, "assets", "app.js")),
-    cp(packagePath("maplibre"), path.join(destination, "maplibre"), {recursive: true}),
-    copyVendorFiles(destination, assets.vendorFiles),
+    copySpriteFiles(destination),
+    copyGlyphFiles(packagePath("maplibre", "glyphs"), path.join(destination, "glyphs")),
   ]);
 };
 
-const copyVendorFiles = async (destination, vendorFiles) => {
-  await mkdir(path.join(destination, "vendor"), {recursive: true});
-  await Promise.all([...vendorFiles].map(([route, file]) => cp(file, path.join(destination, route))));
+const copySpriteFiles = async (destination) => {
+  const spriteRoot = path.join(destination, "sprite");
+  await mkdir(spriteRoot, {recursive: true});
+  await Promise.all(["sprite.json", "sprite.png", "sprite@2x.json", "sprite@2x.png"]
+    .map((file) => cp(packagePath("maplibre", "sprite", file), path.join(spriteRoot, file))));
+};
+
+const copyGlyphFiles = async (source, destination) => {
+  await mkdir(destination, {recursive: true});
+  const entries = await readdir(source, {withFileTypes: true});
+  await Promise.all(entries.map((entry) => copyGlyphEntry(source, destination, entry)));
+};
+
+const copyGlyphEntry = async (source, destination, entry) => {
+  const sourcePath = path.join(source, entry.name);
+  const destinationPath = path.join(destination, entry.name);
+  if (entry.isDirectory()) {
+    await copyGlyphFiles(sourcePath, destinationPath);
+    return;
+  }
+  if (entry.isFile() && entry.name.endsWith(".pbf")) {
+    await cp(sourcePath, destinationPath);
+  }
 };
 
 const requireFile = async (file, name) => {

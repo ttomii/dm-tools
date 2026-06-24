@@ -13,7 +13,15 @@ export class InputError extends Error {
 export const readManifest = async (output) => {
   const root = await requireDirectory(output);
   const manifestPath = path.join(root, MANIFEST_FILENAME);
-  const value = await readJson(manifestPath);
+  const value = await readJson(manifestPath).catch(async (error) => {
+    if (error.code === "ENOENT") return readJson(path.join(root, "style.json"));
+    throw error;
+  });
+  if (isStyle(value)) {
+    const manifest = parseStyleManifest(value);
+    await requireFile(root, manifest.pmtiles);
+    return {manifest, root};
+  }
   const manifest = parseManifest(value);
   await Promise.all(manifestPaths(manifest).map((relative) => requireFile(root, relative)));
   return {manifest, root};
@@ -56,7 +64,9 @@ const readJson = async (file) => {
   try {
     return JSON.parse(await readFile(file, "utf8"));
   } catch (error) {
-    throw new InputError(`manifest cannot be read: ${file}: ${error.message}`);
+    const wrapped = new InputError(`manifest cannot be read: ${file}: ${error.message}`);
+    wrapped.code = error.code;
+    throw wrapped;
   }
 };
 
@@ -136,3 +146,44 @@ const manifestPaths = (manifest) => [manifest.pmtiles];
 const isRecord = (value) => typeof value === "object" && Boolean(value) && !Array.isArray(value);
 
 const isWithin = (root, candidate) => candidate === root || candidate.startsWith(`${root}${path.sep}`);
+
+const isStyle = (value) => isRecord(value) && value.version === 8 && isRecord(value.sources);
+
+const parseStyleManifest = (style) => {
+  const dmSource = isRecord(style.sources.dm) ? style.sources.dm : undefined;
+  if (!dmSource) throw new InputError("style.json must contain a dm source");
+  const pmtiles = parsePmtilesUrl(dmSource.url);
+  const metadata = isRecord(style.metadata) ? style.metadata : {};
+  return {
+    version: 1,
+    layerName: typeof style.name === "string" && style.name ? style.name : "dm",
+    pmtiles,
+    levels: parseStyleLevels(metadata),
+    sourceLayers: parseStyleSourceLayers(style, metadata),
+    bounds: parseBounds(metadata["dm:bounds"]),
+    center: parseCenter(metadata["dm:center"]),
+    styles: ["style.json"],
+  };
+};
+
+const parsePmtilesUrl = (value) => {
+  if (typeof value !== "string" || !value.startsWith("pmtiles://")) {
+    throw new InputError("style.json dm source must use a pmtiles:// URL");
+  }
+  return parseRelativePath(value.slice("pmtiles://".length).replace(/^\.\//, ""), "pmtiles");
+};
+
+const parseStyleLevels = (metadata) => {
+  if (Number.isInteger(metadata["dm:map-level"])) return [metadata["dm:map-level"]];
+  return [2500];
+};
+
+const parseStyleSourceLayers = (style, metadata) => {
+  if (Array.isArray(metadata["dm:sourceLayers"])) {
+    return parseSourceLayers(metadata["dm:sourceLayers"]);
+  }
+  return parseSourceLayers([...new Set((style.layers ?? [])
+    .filter(isRecord)
+    .map((layer) => layer["source-layer"])
+    .filter((layer) => typeof layer === "string" && !layer.startsWith("dm_default_")))]);
+};

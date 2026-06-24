@@ -45,8 +45,11 @@ node ./dm-preview/bin/dm-preview.js bundle ./maplibre/dm.pmtiles ./public
 ```
 
 `PMTILES`と同じフォルダにある`pmtiles-manifest.json`を検証し、`OUTPUT`に
-PMTiles、manifest、`index.html`、`assets/`、`vendor/`、`maplibre/`を配置します。
-作成した`OUTPUT`をHTTPサーバーに配置すると、そのままMapLibreプレビューを配信できます。
+`style.json`、PMTiles、`sprite/`、`glyphs/`を配置します。
+`style.json`は同じフォルダにあるPMTiles、sprite、glyphsを相対参照します。
+作成した`OUTPUT`をHTTPサーバーに配置すると、MapLibre GL JSからそのまま参照できます。
+プレビュー画面の`index.html`、`assets/`、`vendor/`は出力しません。
+`OUTPUT`が既に存在する場合は空ディレクトリである必要があります。
 
 地物一覧API:
 

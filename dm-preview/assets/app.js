@@ -35,13 +35,14 @@ const APP_BASE = new URL(".", location.href);
   let currentFeaturePage = 1;
 
   const manifest = await fetch(resourceUrl("pmtiles-manifest.json")).then(checkResponse).then((response) => response.json());
-  for (const level of manifest.levels) {
+  const styles = manifest.styles ?? manifest.levels.map((level) => `maplibre/style-${level}.json`);
+  for (const styleUrl of styles) {
     const option = document.createElement("option");
-    option.value = resourceUrl(`maplibre/style-${level}.json`);
-    option.textContent = `Level ${level}`;
+    option.value = resourceUrl(styleUrl);
+    option.textContent = styleLabel(styleUrl, manifest);
     select.append(option);
   }
-  select.disabled = manifest.levels.length === 1;
+  select.disabled = styles.length === 1;
 
   const loadFeaturePage = async (page = 1) => {
     if (!featureLayerSelect.value) {
@@ -400,6 +401,12 @@ function toGeoJsonFeature(feature) {
 function checkResponse(response) {
   if (!response.ok) throw new Error(`${response.status} ${response.url}`);
   return response;
+}
+
+function styleLabel(styleUrl, manifest) {
+  const level = /^maplibre\/style-(\d+)\.json$/.exec(styleUrl)?.[1]
+    ?? (manifest.styles?.length === 1 ? manifest.levels[0] : undefined);
+  return level ? `Level ${level}` : styleUrl;
 }
 
 function resourceUrl(relativePath) {

@@ -23,6 +23,12 @@ export const createDefaultAssetRoots = () => ({
 });
 
 export const createOutputAssetRoots = (root) => {
+  if (existsSync(path.join(root, "style.json"))) {
+    return {
+      ...createDefaultAssetRoots(),
+      maplibreAssets: root,
+    };
+  }
   if (!existsSync(path.join(root, "index.html"))) return createDefaultAssetRoots();
   return {
     appAssets: path.join(root, "assets"),
