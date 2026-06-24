@@ -20,12 +20,14 @@ npm install --prefix ./dm-preview
 リポジトリルートから`node`で起動します。
 
 ```bash
-node ./dm-preview/bin/dm-preview.js OUTPUT [--no-open]
+node ./dm-preview/bin/dm-preview.js preview OUTPUT [--no-open]
+node ./dm-preview/bin/dm-preview.js bundle PMTILES OUTPUT
 ```
 
-`OUTPUT`は実行時のカレントディレクトリを基準に解決します。
-StyleやマップアセットはCLI自身のファイル位置から解決するため、
-起動ディレクトリに依存しません。
+`preview`の`OUTPUT`は実行時のカレントディレクトリを基準に解決します。
+通常のプレビューでは、StyleやマップアセットはCLI自身のファイル位置から解決するため、
+起動ディレクトリに依存しません。`bundle`で作成した配布フォルダを渡した場合は、
+そのフォルダ内のStyleやマップアセットを優先して表示します。
 
 `OUTPUT/pmtiles-manifest.json`とPMTilesを検証し、出力ディレクトリを
 `127.0.0.1`の空きポートで配信します。PMTilesのRangeリクエストに対応します。
@@ -35,6 +37,16 @@ StyleやマップアセットはCLI自身のファイル位置から解決する
 MapLibreのStyle・sprite・glyphは本パッケージに同梱した`maplibre/`を配信します。
 出力ディレクトリにはこれらを含めず、Rust側`dm-converter`はPMTilesと
 `pmtiles-manifest.json`のみを生成します。
+
+配布用の静的ファイル一式を作成する場合は`bundle`を使います。
+
+```bash
+node ./dm-preview/bin/dm-preview.js bundle ./maplibre/dm.pmtiles ./public
+```
+
+`PMTILES`と同じフォルダにある`pmtiles-manifest.json`を検証し、`OUTPUT`に
+PMTiles、manifest、`index.html`、`assets/`、`vendor/`、`maplibre/`を配置します。
+作成した`OUTPUT`をHTTPサーバーに配置すると、そのままMapLibreプレビューを配信できます。
 
 地物一覧API:
 

@@ -1,27 +1,11 @@
-import {createReadStream, existsSync} from "node:fs";
+import {createReadStream} from "node:fs";
 import {realpath, stat} from "node:fs/promises";
 import {createServer as createHttpServer} from "node:http";
 import path from "node:path";
 import {pipeline} from "node:stream/promises";
-import {fileURLToPath} from "node:url";
+import {createDefaultAssetRoots, createOutputAssetRoots} from "./asset-roots.js";
 import {ApiInputError, GpkgFeatureStore} from "./gpkg-features.js";
 
-const PACKAGE_ROOT = (() => {
-  const isBunCompiled = process.argv[1]?.includes("~BUN") || process.argv[1]?.includes("$bunfs");
-  if (isBunCompiled) return path.dirname(path.resolve(process.execPath));
-  return path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-})();
-const APP_ASSETS = path.join(PACKAGE_ROOT, "assets");
-const MAPLIBRE_ASSETS = path.join(PACKAGE_ROOT, "maplibre");
-const resolveVendor = (pkg, file) => {
-  const fromVendor = path.join(PACKAGE_ROOT, "vendor", file);
-  return existsSync(fromVendor) ? fromVendor : path.join(PACKAGE_ROOT, "node_modules", pkg, "dist", file);
-};
-const VENDOR_FILES = new Map([
-  ["/preview/vendor/maplibre-gl.js", resolveVendor("maplibre-gl", "maplibre-gl.js")],
-  ["/preview/vendor/maplibre-gl.css", resolveVendor("maplibre-gl", "maplibre-gl.css")],
-  ["/preview/vendor/pmtiles.js", resolveVendor("pmtiles", "pmtiles.js")],
-]);
 const SPRITE_FILES = new Set([
   "/sprite.json",
   "/sprite.png",
@@ -31,9 +15,14 @@ const SPRITE_FILES = new Set([
 
 export const startServer = async (output, options = {}) => {
   const root = await realpath(output);
+  const assetRoots = options.assetRoots ?? createOutputAssetRoots(root);
   const featureStore = options.manifest ? await GpkgFeatureStore.create(root, options.manifest).catch((error) => error) : undefined;
+  const effectiveOptions = {...assetRoots, ...options, featureStore};
+  if (options.appAssets && !options.indexHtml) {
+    effectiveOptions.indexHtml = path.join(options.appAssets, "index.html");
+  }
   const server = createHttpServer((request, response) => {
-    respond(request, response, root, {...options, featureStore}).catch((error) => {
+    respond(request, response, root, effectiveOptions).catch((error) => {
       console.error(`preview server error: ${error.message}`);
       if (!response.headersSent) response.writeHead(500);
       response.end();
@@ -122,27 +111,34 @@ const sendJson = (request, response, status, value) => {
 };
 
 const resolveFile = async (pathname, root, options) => {
-  const appAssets = options.appAssets ?? APP_ASSETS;
-  const vendorFiles = options.vendorFiles ?? VENDOR_FILES;
-  const maplibreAssets = options.maplibreAssets ?? MAPLIBRE_ASSETS;
+  const normalized = normalizePreviewPath(pathname);
+  const defaults = createDefaultAssetRoots();
+  const appAssets = options.appAssets ?? defaults.appAssets;
+  const indexHtml = options.indexHtml ?? path.join(appAssets, "index.html");
+  const vendorFiles = options.vendorFiles ?? defaults.vendorFiles;
+  const maplibreAssets = options.maplibreAssets ?? defaults.maplibreAssets;
   if (pathname === "/" || pathname === "/preview" || pathname === "/preview/") {
-    return path.join(appAssets, "index.html");
+    return indexHtml;
   }
-  if (pathname === "/preview/assets/app.js" || pathname === "/preview/assets/app.css") {
-    return path.join(appAssets, path.basename(pathname));
+  if (normalized === "/assets/app.js" || normalized === "/assets/app.css") {
+    return path.join(appAssets, path.basename(normalized));
   }
-  if (vendorFiles.has(pathname)) return vendorFiles.get(pathname);
-  if (pathname.startsWith("/maplibre/")) {
-    return secureFile(maplibreAssets, pathname.slice("/maplibre".length));
+  if (vendorFiles.has(normalized)) return vendorFiles.get(normalized);
+  if (normalized.startsWith("/maplibre/")) {
+    return secureFile(maplibreAssets, normalized.slice("/maplibre".length));
   }
-  if (SPRITE_FILES.has(pathname)) {
-    return secureFile(path.join(maplibreAssets, "sprite"), pathname);
+  if (SPRITE_FILES.has(normalized)) {
+    return secureFile(path.join(maplibreAssets, "sprite"), normalized);
   }
-  if (pathname.startsWith("/glyphs/")) {
-    return secureFile(path.join(maplibreAssets, "glyphs"), pathname.slice("/glyphs".length));
+  if (normalized.startsWith("/glyphs/")) {
+    return secureFile(path.join(maplibreAssets, "glyphs"), normalized.slice("/glyphs".length));
   }
-  return secureFile(root, pathname);
+  return secureFile(root, normalized);
 };
+
+const normalizePreviewPath = (pathname) => pathname.startsWith("/preview/")
+  ? pathname.slice("/preview".length)
+  : pathname;
 
 const secureFile = async (root, pathname) => {
   if (!pathname.startsWith("/") || pathname.includes("\\")) return undefined;

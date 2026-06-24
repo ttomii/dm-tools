@@ -15,7 +15,7 @@
     "THIRD_PARTY_LICENSES"
   ],
   "scripts": {
-    "check": "node --check bin/dm-preview.js && node --check src/main.js && node --check src/manifest.js && node --check src/open-browser.js && node --check src/server.js && node --check src/gpkg-features.js && node --check assets/app.js && node --check scripts/generate-maplibre-assets.mjs",
+    "check": "node --check bin/dm-preview.js && node --check src/asset-roots.js && node --check src/bundle.js && node --check src/main.js && node --check src/manifest.js && node --check src/open-browser.js && node --check src/server.js && node --check src/gpkg-features.js && node --check assets/app.js && node --check scripts/generate-maplibre-assets.mjs",
     "test": "node --test",
     "generate:maplibre-assets": "node scripts/generate-maplibre-assets.mjs",
     "build": "bun build --compile bin/dm-preview.js --outfile dist/dm-preview && node scripts/build.mjs"

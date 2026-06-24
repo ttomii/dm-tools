@@ -13,6 +13,7 @@ const DEFAULT_SOURCE_LAYERS = {
   dm_default_point: "point",
   dm_default_polygon: "polygon",
 };
+const APP_BASE = new URL(".", location.href);
 
 (async () => {
   const status = document.getElementById("status");
@@ -33,10 +34,10 @@ const DEFAULT_SOURCE_LAYERS = {
   let dark = false;
   let currentFeaturePage = 1;
 
-  const manifest = await fetch("/pmtiles-manifest.json").then(checkResponse).then((response) => response.json());
+  const manifest = await fetch(resourceUrl("pmtiles-manifest.json")).then(checkResponse).then((response) => response.json());
   for (const level of manifest.levels) {
     const option = document.createElement("option");
-    option.value = `/maplibre/style-${level}.json`;
+    option.value = resourceUrl(`maplibre/style-${level}.json`);
     option.textContent = `Level ${level}`;
     select.append(option);
   }
@@ -48,7 +49,7 @@ const DEFAULT_SOURCE_LAYERS = {
       return;
     }
     featureListStatus.textContent = "読み込み中...";
-    const url = new URL("/preview/api/features", location.origin);
+    const url = new URL("api/features", APP_BASE);
     url.searchParams.set("layer", featureLayerSelect.value);
     url.searchParams.set("page", String(page));
     url.searchParams.set("pageSize", String(FEATURE_PAGE_SIZE));
@@ -70,9 +71,9 @@ const DEFAULT_SOURCE_LAYERS = {
       ? {center: map.getCenter().toArray(), zoom: map.getZoom()}
       : getInitialCamera(manifest.center);
     const style = await fetch(select.value).then(checkResponse).then((response) => response.json());
-    style.sources.dm.url = `pmtiles://${location.origin}${outputUrl(manifest.pmtiles)}`;
-    style.sprite = `${location.origin}/sprite`;
-    style.glyphs = `${location.origin}/glyphs/{fontstack}/{range}.pbf`;
+    style.sources.dm.url = `pmtiles://${resourceUrl(manifest.pmtiles)}`;
+    style.sprite = resourceUrl("sprite");
+    style.glyphs = `${resourceUrl("glyphs")}/{fontstack}/{range}.pbf`;
     style.layers = expandDefaultStyleLayers(style.layers, manifest.sourceLayers ?? []);
     style.sources.gsi = {
       type: "raster",
@@ -401,8 +402,8 @@ function checkResponse(response) {
   return response;
 }
 
-function outputUrl(relativePath) {
-  return `/${relativePath.split("/").map(encodeURIComponent).join("/")}`;
+function resourceUrl(relativePath) {
+  return new URL(relativePath.split("/").map(encodeURIComponent).join("/"), APP_BASE).toString();
 }
 
 function getInitialCamera(fallback) {

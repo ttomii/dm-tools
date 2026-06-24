@@ -69,17 +69,43 @@ test("server serves bundled maplibre style, sprite, and glyph assets", async (co
   const style = await fetch(`${origin}/maplibre/style-2500.json`);
   assert.equal(style.status, 200);
   assert.match(style.headers.get("content-type"), /application\/json/);
+  assert.equal((await fetch(`${origin}/preview/maplibre/style-2500.json`)).status, 200);
 
   assert.equal((await fetch(`${origin}/sprite.json`)).status, 200);
+  assert.equal((await fetch(`${origin}/preview/sprite.json`)).status, 200);
   assert.equal((await fetch(`${origin}/sprite.png`)).status, 200);
 
   const glyph = await fetch(`${origin}/glyphs/${encodeURIComponent(fontstack)}/0-255.pbf`);
   assert.equal(glyph.status, 200);
   assert.equal(glyph.headers.get("content-type"), "application/x-protobuf");
+  assert.equal((await fetch(`${origin}/preview/glyphs/${encodeURIComponent(fontstack)}/0-255.pbf`)).status, 200);
 
   assert.equal((await fetch(`${origin}/maplibre/%2e%2e/secret`)).status, 404);
   assert.equal((await fetch(`${origin}/glyphs/%2e%2e/secret`)).status, 404);
   assert.equal((await fetch(`${origin}/sprite@3x.png`)).status, 404);
+});
+
+test("server prefers static bundle assets from output directory", async (context) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "dm-preview-"));
+  context.after(() => rm(root, {recursive: true, force: true}));
+  const output = path.join(root, "output");
+  await mkdir(path.join(output, "assets"), {recursive: true});
+  await mkdir(path.join(output, "vendor"), {recursive: true});
+  await mkdir(path.join(output, "maplibre"), {recursive: true});
+  await writeFile(path.join(output, "index.html"), "bundled preview");
+  await writeFile(path.join(output, "assets", "app.js"), "bundled app");
+  await writeFile(path.join(output, "vendor", "pmtiles.js"), "bundled pmtiles");
+  await writeFile(path.join(output, "maplibre", "style-2500.json"), "{}");
+  await writeFile(path.join(output, "pmtiles-manifest.json"), "{}");
+  const {server, url} = await startServer(output);
+  context.after(() => server.close());
+  const origin = new URL(url).origin;
+
+  assert.equal(await (await fetch(url)).text(), "bundled preview");
+  assert.equal(await (await fetch(`${origin}/preview/assets/app.js`)).text(), "bundled app");
+  assert.equal(await (await fetch(`${origin}/preview/vendor/pmtiles.js`)).text(), "bundled pmtiles");
+  assert.equal((await fetch(`${origin}/preview/maplibre/style-2500.json`)).status, 200);
+  assert.equal((await fetch(`${origin}/preview/pmtiles-manifest.json`)).status, 200);
 });
 
 test("feature API reads paged GeoPackage features", async (context) => {
