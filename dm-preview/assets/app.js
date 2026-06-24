@@ -373,6 +373,28 @@ function addHighlightLayers(map) {
       "circle-opacity": 0.42,
     },
   });
+  map.addLayer({
+    id: "dm-highlight-point-direction",
+    type: "symbol",
+    source: HIGHLIGHT_SOURCE_ID,
+    filter: ["in", ["geometry-type"], ["literal", ["Point", "MultiPoint"]]],
+    layout: {
+      "text-field": "▶",
+      "text-size": 10,
+      "text-anchor": "left",
+      "text-offset": [0.65, 0],
+      "text-allow-overlap": true,
+      "text-ignore-placement": true,
+      "text-keep-upright": false,
+      "text-rotation-alignment": "map",
+      "text-rotate": ["coalesce", ["get", "ROTATION"], 0],
+    },
+    paint: {
+      "text-color": "rgba(0, 95, 153, 0.55)",
+      "text-halo-color": "rgba(255, 255, 255, 0.65)",
+      "text-halo-width": 0.75,
+    },
+  });
 }
 
 function getClickedDmFeature(map, point) {
@@ -394,8 +416,13 @@ function toGeoJsonFeature(feature) {
   return {
     type: "Feature",
     geometry: feature.geometry,
-    properties: feature.properties ?? {},
+    properties: normalizeHighlightProperties(feature.properties ?? {}),
   };
+}
+
+function normalizeHighlightProperties(properties) {
+  if ("ROTATION" in properties || !properties.ANGLE) return properties;
+  return {...properties, ROTATION: properties.ANGLE};
 }
 
 function checkResponse(response) {
