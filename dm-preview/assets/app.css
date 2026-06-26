@@ -36,5 +36,8 @@ header { grid-column: 1 / 3; }
 .feature-list-title { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .feature-list-meta { display: block; margin-top: .15rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #666; font-size: 12px; }
 #feature-list-pager { display: flex; align-items: center; justify-content: center; gap: .75rem; padding: .5rem; border-top: 1px solid #ddd; background: #f8f8f8; }
-#feature-details { min-height: 0; overflow: hidden; display: grid; grid-template-rows: auto minmax(0, 1fr); }
+#feature-details { min-height: 0; overflow: hidden; display: grid; grid-template-rows: auto auto minmax(0, 1fr); }
+#hit-results { min-height: 0; overflow: hidden; display: grid; grid-template-rows: auto minmax(0, 1fr); border-bottom: 1px solid #ddd; }
+#hit-list-status { padding: .45rem .75rem; color: #555; border-bottom: 1px solid #eee; }
+#hit-list { min-height: 0; overflow: auto; margin: 0; padding: 0; list-style: none; }
 #properties { min-height: 0; overflow: auto; margin: 0; padding: .75rem; white-space: pre-wrap; }

@@ -28,6 +28,8 @@ const APP_BASE = new URL(".", location.href);
   const featurePage = document.getElementById("feature-page");
   const featurePrev = document.getElementById("feature-prev");
   const featureNext = document.getElementById("feature-next");
+  const hitListStatus = document.getElementById("hit-list-status");
+  const hitList = document.getElementById("hit-list");
   const styleEditorStatus = document.getElementById("style-editor-status");
   const styleSave = document.getElementById("style-save");
   const styleLayerSelect = document.getElementById("style-layer");
@@ -110,8 +112,14 @@ const APP_BASE = new URL(".", location.href);
       status.textContent = `z${map.getZoom().toFixed(2)} center ${center.lng.toFixed(6)},${center.lat.toFixed(6)} cursor ${event.lngLat.lng.toFixed(6)},${event.lngLat.lat.toFixed(6)}`;
     });
     map.on("click", (event) => {
-      const feature = getClickedDmFeature(map, event.point);
-      setSelectedFeature(map, properties, feature);
+      const features = getClickedDmFeatures(map, event.point);
+      renderHitFeatures({
+        features,
+        list: hitList,
+        status: hitListStatus,
+        onSelect: (feature) => selectHitFeature(map, properties, feature),
+      });
+      setSelectedFeature(map, properties, features[0] ? toGeoJsonFeature(features[0]) : undefined);
     });
     await loadFeaturePage(1).catch((error) => {
       featureListStatus.textContent = String(error);
@@ -726,14 +734,36 @@ function addHighlightLayers(map) {
   });
 }
 
-function getClickedDmFeature(map, point) {
+function selectHitFeature(map, properties, feature) {
+  const geoJsonFeature = toGeoJsonFeature(feature);
+  setSelectedFeature(map, properties, geoJsonFeature);
+  moveToFeature(map, feature);
+}
+
+function renderHitFeatures({features, list, status, onSelect}) {
+  if (!features.length) {
+    clearHitFeatures(list, status);
+    return;
+  }
+  list.replaceChildren(...features.map((feature) => createFeatureListItem(feature, onSelect)));
+  const firstSelected = list.querySelector(".feature-list-item");
+  if (firstSelected) firstSelected.classList.add("selected");
+  status.textContent = features.length === 1 ? "1件" : `${features.length}件重なっています`;
+}
+
+function clearHitFeatures(list, status) {
+  list.replaceChildren();
+  status.textContent = "クリックした位置の重なり";
+}
+
+function getClickedDmFeatures(map, point) {
   const layers = map
     .getStyle()
     .layers
     .filter((layer) => layer.source === "dm" && map.getLayoutProperty(layer.id, "visibility") !== "none")
     .map((layer) => layer.id);
-  if (layers.length === 0) return;
-  return map.queryRenderedFeatures(point, {layers})[0];
+  if (layers.length === 0) return [];
+  return map.queryRenderedFeatures(point, {layers});
 }
 
 function setHighlightedFeature(map, feature) {
