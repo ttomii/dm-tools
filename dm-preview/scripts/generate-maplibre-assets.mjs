@@ -9,6 +9,7 @@ const iconSource = path.join(assetRoot, "icons/source");
 const iconPng = path.join(assetRoot, "icons/png");
 const spriteRoot = path.join(assetRoot, "sprite");
 const selectedSpriteIds = process.argv.slice(2).map((value) => toSpriteId(value));
+const sdfSpread = 8;
 const spriteOrder = [
   "dm-3503", "dm-3504", "dm-3507", "dm-3509", "dm-3510", "dm-3511",
   "dm-3514", "dm-3515", "dm-3516", "dm-3519", "dm-3521", "dm-3522",
@@ -119,6 +120,7 @@ function renderIcon(source, output, width, height) {
   const renderedSource = isSvg
     ? normalizeSvg(source, output)
     : source;
+  const renderedOutput = `${output}.rendered.png`;
   const args = [
     renderedSource, "-background", "none", "-resize", `${width}x${height}>`,
     "-gravity", "center", "-extent", `${width}x${height}`,
@@ -126,11 +128,57 @@ function renderIcon(source, output, width, height) {
   if (isSvg) {
     args.push("-transparent", "white");
   }
-  args.push(output);
+  args.push(renderedOutput);
   execFileSync("convert", args);
+  writeSdfIcon(renderedOutput, output, width, height);
+  rmSync(renderedOutput, {force: true});
   if (renderedSource !== source) {
     rmSync(renderedSource, {force: true});
   }
+}
+
+function writeSdfIcon(source, output, width, height) {
+  const alpha = execFileSync("convert", [source, "-alpha", "extract", "-depth", "8", "gray:-"]);
+  if (alpha.length !== width * height) {
+    throw new Error(`unexpected alpha size for ${source}: ${alpha.length}`);
+  }
+  const pixels = Buffer.alloc(width * height * 4);
+  for (let index = 0; index < alpha.length; index++) {
+    const sdfAlpha = signedDistanceAlpha(alpha, width, height, index);
+    const offset = index * 4;
+    pixels[offset] = 255;
+    pixels[offset + 1] = 255;
+    pixels[offset + 2] = 255;
+    pixels[offset + 3] = sdfAlpha;
+  }
+  execFileSync("convert", ["-size", `${width}x${height}`, "-depth", "8", "rgba:-", output], {input: pixels});
+}
+
+function signedDistanceAlpha(alpha, width, height, index) {
+  const x = index % width;
+  const y = Math.floor(index / width);
+  const inside = alpha[index] >= 128;
+  let nearest = sdfSpread * sdfSpread;
+  for (let dy = -sdfSpread; dy <= sdfSpread; dy++) {
+    for (let dx = -sdfSpread; dx <= sdfSpread; dx++) {
+      const distance = dx * dx + dy * dy;
+      if (distance >= nearest) continue;
+      if (isInside(alpha, width, height, x + dx, y + dy) !== inside) {
+        nearest = distance;
+      }
+    }
+  }
+  const signed = (inside ? 1 : -1) * Math.sqrt(nearest);
+  return clampByte(Math.round(128 + (signed * 127) / sdfSpread));
+}
+
+function isInside(alpha, width, height, x, y) {
+  if (x < 0 || y < 0 || x >= width || y >= height) return false;
+  return alpha[(y * width) + x] >= 128;
+}
+
+function clampByte(value) {
+  return Math.max(0, Math.min(255, value));
 }
 
 function normalizeSvg(source, output) {
@@ -164,7 +212,7 @@ function generateSprite(images, ratio, output) {
     }
     const centeredY = y + Math.floor((cell - imageHeight) / 2);
     execFileSync("convert", [canvas, rendered, "-geometry", `+${x}+${centeredY}`, "-composite", canvas]);
-    atlasIndex[image.id] = {width: imageWidth, height: imageHeight, x, y: centeredY, pixelRatio: ratio};
+    atlasIndex[image.id] = {width: imageWidth, height: imageHeight, x, y: centeredY, pixelRatio: ratio, sdf: true};
     x += imageWidth;
     const next = images[position + 1];
     if (imageWidth !== cell && next && !customSizes.has(next.id)) {
@@ -186,7 +234,9 @@ function updateSprite(images, ratio, output) {
     renderIcon(image.source, rendered, frame.width, frame.height);
     clearSpriteFrame(canvas, frame);
     execFileSync("convert", [canvas, rendered, "-geometry", `+${frame.x}+${frame.y}`, "-composite", canvas]);
+    atlasIndex[image.id] = {...frame, sdf: true};
   }
+  writeFileSync(`${output}.json`, `${JSON.stringify(atlasIndex, undefined, 2)}\n`);
 }
 
 function clearSpriteFrame(canvas, frame) {
