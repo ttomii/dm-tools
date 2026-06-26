@@ -656,5 +656,12 @@
     "x": 384,
     "y": 576,
     "pixelRatio": 2
+  },
+  "dm-7304": {
+    "width": 64,
+    "height": 64,
+    "x": 448,
+    "y": 576,
+    "pixelRatio": 2
   }
 }
