@@ -14,7 +14,10 @@ export const startServer = async (output, options = {}) => {
   const root = await realpath(output);
   const assetRoots = options.assetRoots ?? createOutputAssetRoots(root);
   const featureStore = options.manifest
-    ? await GpkgFeatureStore.create(root, options.manifest, {projectGeometry: options.projectGeometry}).catch((error) => error)
+    ? await GpkgFeatureStore.create(root, options.manifest, {
+      databaseAdapter: options.databaseAdapter,
+      projectGeometry: options.projectGeometry,
+    }).catch((error) => error)
     : undefined;
   const effectiveOptions = {...assetRoots, ...options, featureStore};
   if (options.appAssets && !options.indexHtml) {

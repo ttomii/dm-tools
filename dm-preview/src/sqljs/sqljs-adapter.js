@@ -22,3 +22,10 @@ export const queryRows = (database, sql, params = []) => {
     statement.free();
   }
 };
+
+export const countRows = (database, tableName) => {
+  const result = database.exec(`SELECT COUNT(*) AS count FROM ${quoteIdentifier(tableName)}`);
+  return result[0]?.values[0]?.[0] ?? 0;
+};
+
+const quoteIdentifier = (identifier) => `"${identifier.replaceAll("\"", "\"\"")}"`;

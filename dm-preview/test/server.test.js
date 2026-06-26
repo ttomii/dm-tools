@@ -6,6 +6,7 @@ import {test} from "node:test";
 import initSqlJs from "sql.js";
 import {projectGeometry} from "../src/proj4/gpkg-projection.js";
 import {parseRange, startServer} from "../src/server.js";
+import * as databaseAdapter from "../src/sqljs/sqljs-adapter.js";
 
 test("parseRange supports explicit, open, and suffix ranges", () => {
   assert.deepEqual(parseRange("bytes=10-19", 100), {start: 10, end: 19, status: 206});
@@ -109,7 +110,7 @@ test("server serves style bundle assets from output directory", async (context) 
     center: [135, 35, 15],
     styles: ["style.json"],
   };
-  const {server, url} = await startServer(output, {manifest, projectGeometry});
+  const {server, url} = await startServer(output, {databaseAdapter, manifest, projectGeometry});
   context.after(() => server.close());
   const origin = new URL(url).origin;
 
@@ -231,7 +232,7 @@ test("feature API reads paged GeoPackage features", async (context) => {
     layerName: "dm-sample",
     sourceLayers: ["dm_7100_point"],
   };
-  const {server, url} = await startServer(output, {manifest, projectGeometry});
+  const {server, url} = await startServer(output, {databaseAdapter, manifest, projectGeometry});
   context.after(() => server.close());
   const origin = new URL(url).origin;
 
@@ -255,6 +256,7 @@ test("feature API rejects invalid query values", async (context) => {
   await mkdir(output);
   await writeFeatureGpkg(path.join(output, "dm-sample.gpkg"));
   const {server, url} = await startServer(output, {
+    databaseAdapter,
     manifest: {layerName: "dm-sample", sourceLayers: ["dm_7100_point"]},
     projectGeometry,
   });

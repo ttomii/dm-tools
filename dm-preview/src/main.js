@@ -3,6 +3,7 @@ import {openBrowser} from "./node/open-browser.js";
 import {readManifest} from "./node/manifest.js";
 import {projectGeometry} from "./proj4/gpkg-projection.js";
 import {startServer} from "./server.js";
+import * as databaseAdapter from "./sqljs/sqljs-adapter.js";
 
 export const main = async (args) => {
   const options = parseArguments(args);
@@ -20,7 +21,7 @@ export const main = async (args) => {
     return;
   }
   const {manifest, root} = await readManifest(options.output);
-  const {server, url} = await startServer(root, {manifest, projectGeometry});
+  const {server, url} = await startServer(root, {databaseAdapter, manifest, projectGeometry});
   console.log(url);
   if (!options.noOpen) {
     await openBrowser(url).catch((error) => {
