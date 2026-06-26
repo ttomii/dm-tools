@@ -2,7 +2,7 @@ import {createReadStream} from "node:fs";
 import {realpath, stat} from "node:fs/promises";
 import path from "node:path";
 import {pipeline} from "node:stream/promises";
-import {createDefaultAssetRoots} from "../asset-roots.js";
+import {createDefaultAssetRoots} from "./asset-roots.js";
 
 const ROOT_SPRITE_FILES = new Set([
   "/sprite.json",

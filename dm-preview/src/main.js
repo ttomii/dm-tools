@@ -1,6 +1,6 @@
-import {createBundle} from "./bundle.js";
-import {openBrowser} from "./open-browser.js";
-import {readManifest} from "./manifest.js";
+import {createBundle} from "./node/bundle.js";
+import {openBrowser} from "./node/open-browser.js";
+import {readManifest} from "./node/manifest.js";
 import {startServer} from "./server.js";
 
 export const main = async (args) => {

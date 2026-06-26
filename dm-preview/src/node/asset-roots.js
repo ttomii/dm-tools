@@ -5,7 +5,7 @@ import {fileURLToPath} from "node:url";
 export const PACKAGE_ROOT = (() => {
   const isBunCompiled = process.argv[1]?.includes("~BUN") || process.argv[1]?.includes("$bunfs");
   if (isBunCompiled) return path.dirname(path.resolve(process.execPath));
-  return path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+  return path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 })();
 
 export const packagePath = (...parts) => path.join(PACKAGE_ROOT, ...parts);

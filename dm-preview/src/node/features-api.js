@@ -1,4 +1,4 @@
-import {ApiInputError} from "../gpkg-features.js";
+import {ApiInputError} from "./gpkg-features.js";
 import {sendJson} from "./http-response.js";
 
 export const FEATURES_PATH = "/preview/api/features";

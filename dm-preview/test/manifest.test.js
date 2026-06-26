@@ -3,7 +3,7 @@ import {mkdir, mkdtemp, rm, symlink, writeFile} from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import {test} from "node:test";
-import {parseManifest, readManifest} from "../src/manifest.js";
+import {parseManifest, readManifest} from "../src/node/manifest.js";
 
 const validManifest = {
   version: 1,

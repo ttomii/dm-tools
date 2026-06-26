@@ -3,7 +3,7 @@ import {mkdir, mkdtemp, readFile, rm, stat, writeFile} from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import {test} from "node:test";
-import {createBundle} from "../src/bundle.js";
+import {createBundle} from "../src/node/bundle.js";
 
 const manifest = {
   version: 1,
