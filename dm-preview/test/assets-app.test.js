@@ -1,48 +1,14 @@
 import assert from "node:assert/strict";
-import {readFile} from "node:fs/promises";
 import {test} from "node:test";
-import vm from "node:vm";
+import {compareLayerName, expandDefaultStyleLayers, getDmSourceLayers, getSourceLayerKind} from "../src/core/dm-source-layers.js";
+import {featureMeta, featureTitle} from "../src/core/feature-labels.js";
+import {featureCenter, geometryBounds, normalizeHighlightProperties, toGeoJsonFeature} from "../src/core/geometry.js";
+import {getCoords, getInitialCamera, getScale, getScaleByZoom, getZoomByScale} from "../src/core/map-scale.js";
+import {styleLabel} from "../src/core/style-transform.js";
 
 const plain = (value) => JSON.parse(JSON.stringify(value));
 
-const loadAppHelpers = async () => {
-  const source = await readFile(new URL("../assets/app.js", import.meta.url), "utf8");
-  const iifeStart = source.indexOf("(async () =>");
-  const helpersStart = source.indexOf("function setupFeatureLayerOptions");
-  assert.notEqual(iifeStart, -1);
-  assert.notEqual(helpersStart, -1);
-  const sandbox = {
-    URL,
-    location: {href: "http://localhost/preview/?coords=139.75,35.68&scale=2500"},
-  };
-  vm.createContext(sandbox);
-  vm.runInContext(`
-${source.slice(0, iifeStart)}
-${source.slice(helpersStart)}
-globalThis.dmPreviewApp = {
-  compareLayerName,
-  expandDefaultStyleLayers,
-  featureCenter,
-  featureMeta,
-  featureTitle,
-  geometryBounds,
-  getCoords,
-  getDmSourceLayers,
-  getInitialCamera,
-  getScale,
-  getScaleByZoom,
-  getSourceLayerKind,
-  getZoomByScale,
-  normalizeHighlightProperties,
-  styleLabel,
-  toGeoJsonFeature,
-};
-`, sandbox);
-  return sandbox.dmPreviewApp;
-};
-
-test("assets app expands default style layers for every matching source layer", async () => {
-  const app = await loadAppHelpers();
+test("core expands default style layers for every matching source layer", () => {
   const layers = [
     {
       id: "background",
@@ -63,7 +29,7 @@ test("assets app expands default style layers for every matching source layer", 
     },
   ];
 
-  assert.deepEqual(plain(app.expandDefaultStyleLayers(layers, [
+  assert.deepEqual(plain(expandDefaultStyleLayers(layers, [
     "dm_7101_line",
     "dm_7102_line",
     "dm_9999_line",
@@ -89,8 +55,7 @@ test("assets app expands default style layers for every matching source layer", 
   ]);
 });
 
-test("assets app derives sorted DM source layers and feature labels", async () => {
-  const app = await loadAppHelpers();
+test("core derives sorted DM source layers and feature labels", () => {
   const style = {
     layers: [
       {id: "not-dm", source: "osm"},
@@ -100,9 +65,10 @@ test("assets app derives sorted DM source layers and feature labels", async () =
     ],
   };
 
-  assert.deepEqual(plain(app.getDmSourceLayers(style)), ["dm_2_line", "dm_10_line"]);
-  assert.equal(app.getSourceLayerKind("dm_1234_text_deco_line"), "line");
-  assert.equal(app.getSourceLayerKind("dm_1234_text"), "text");
+  assert.deepEqual(plain(getDmSourceLayers(style)), ["dm_2_line", "dm_10_line"]);
+  assert.equal(getSourceLayerKind("dm_1234_text_deco_line"), "line");
+  assert.equal(getSourceLayerKind("dm_1234_text"), "text");
+  assert.equal(compareLayerName("dm_2_line", "dm_10_line"), -1);
 
   const feature = {
     id: 15,
@@ -114,12 +80,11 @@ test("assets app derives sorted DM source layers and feature labels", async () =
       DMFILE: "sample.dm",
     },
   };
-  assert.equal(app.featureTitle(feature), "USER_ID U-001 道路");
-  assert.equal(app.featureMeta(feature), "dm_2_line / ID 15 / DMCODE 2101 / sample.dm");
+  assert.equal(featureTitle(feature), "USER_ID U-001 道路");
+  assert.equal(featureMeta(feature), "dm_2_line / ID 15 / DMCODE 2101 / sample.dm");
 });
 
-test("assets app calculates geometry bounds, centers, and highlight properties", async () => {
-  const app = await loadAppHelpers();
+test("core calculates geometry bounds, centers, and highlight properties", () => {
   const geometry = {
     type: "MultiPolygon",
     coordinates: [
@@ -128,14 +93,14 @@ test("assets app calculates geometry bounds, centers, and highlight properties",
     ],
   };
 
-  assert.deepEqual(plain(app.geometryBounds(geometry)), [139.1, 35.1, 140.2, 36.2]);
-  assert.deepEqual(plain(app.featureCenter(geometry)), [139.64999999999998, 35.650000000000006]);
-  assert.deepEqual(plain(app.normalizeHighlightProperties({ANGLE: 45, NAME: "point"})), {
+  assert.deepEqual(plain(geometryBounds(geometry)), [139.1, 35.1, 140.2, 36.2]);
+  assert.deepEqual(plain(featureCenter(geometry)), [139.64999999999998, 35.650000000000006]);
+  assert.deepEqual(plain(normalizeHighlightProperties({ANGLE: 45, NAME: "point"})), {
     ANGLE: 45,
     NAME: "point",
     ROTATION: 45,
   });
-  assert.deepEqual(plain(app.toGeoJsonFeature({
+  assert.deepEqual(plain(toGeoJsonFeature({
     id: 3,
     geometry: {type: "Point", coordinates: [139.75, 35.68]},
     properties: {ANGLE: 90},
@@ -147,18 +112,17 @@ test("assets app calculates geometry bounds, centers, and highlight properties",
   });
 });
 
-test("assets app reads camera parameters and converts map scale", async () => {
-  const app = await loadAppHelpers();
+test("core reads camera parameters and converts map scale", () => {
   const url = new URL("http://localhost/preview/?coords=139.75,35.68&scale=2500");
-  const zoom = app.getZoomByScale(2500, 35.68);
+  const zoom = getZoomByScale(2500, 35.68);
 
-  assert.deepEqual(plain(app.getCoords(url)), [139.75, 35.68]);
-  assert.equal(app.getScale(url), 2500);
-  assert.deepEqual(plain(app.getInitialCamera([140, 36, 10])), {
+  assert.deepEqual(plain(getCoords(url)), [139.75, 35.68]);
+  assert.equal(getScale(url), 2500);
+  assert.deepEqual(plain(getInitialCamera(url, [140, 36, 10])), {
     center: [139.75, 35.68],
     zoom,
   });
-  assert.equal(app.getScaleByZoom(zoom, 35.68), 2500);
-  assert.equal(app.styleLabel("maplibre/style-2500.json", {levels: [500, 2500]}), "Level 2500");
-  assert.equal(app.styleLabel("custom.json", {levels: [1000], styles: ["custom.json"]}), "Level 1000");
+  assert.equal(getScaleByZoom(zoom, 35.68), 2500);
+  assert.equal(styleLabel("maplibre/style-2500.json", {levels: [500, 2500]}), "Level 2500");
+  assert.equal(styleLabel("custom.json", {levels: [1000], styles: ["custom.json"]}), "Level 1000");
 });

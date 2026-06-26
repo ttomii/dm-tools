@@ -25,10 +25,12 @@ test("server handles output files, ranges, methods, and traversal", async (conte
   const assets = path.join(root, "assets");
   await mkdir(output);
   await mkdir(assets);
+  await mkdir(path.join(assets, "core"));
   await writeFile(`${output}/sample.pmtiles`, "0123456789");
   await writeFile(`${assets}/index.html`, "preview");
   await writeFile(`${assets}/app.js`, "");
   await writeFile(`${assets}/app.css`, "");
+  await writeFile(path.join(assets, "core", "dm-source-layers.js"), "");
   const {server, url} = await startServer(output, {appAssets: assets, vendorFiles: new Map()});
   context.after(() => server.close());
   const origin = new URL(url).origin;
@@ -42,6 +44,8 @@ test("server handles output files, ranges, methods, and traversal", async (conte
   assert.equal((await fetch(`${origin}/sample.pmtiles`, {method: "POST"})).status, 405);
   assert.equal((await fetch(`${origin}/missing`)).status, 404);
   assert.equal((await fetch(`${origin}/%2e%2e/secret`)).status, 404);
+  assert.equal((await fetch(`${origin}/preview/assets/core/dm-source-layers.js`)).status, 200);
+  assert.equal((await fetch(`${origin}/preview/assets/core/%2e%2e/secret`)).status, 404);
   assert.equal(await (await fetch(url)).text(), "preview");
 });
 

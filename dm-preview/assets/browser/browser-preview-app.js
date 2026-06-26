@@ -1,0 +1,362 @@
+import {editableColorProperties, editableKinds, editableLayers, toHexColor} from "../core/style-editing.js";
+import {createBundledStyle, createRuntimeStyle, styleLabel} from "../core/style-transform.js";
+import {getInitialCamera, getScaleByZoom} from "../core/map-scale.js";
+import {toGeoJsonFeature} from "../core/geometry.js";
+import {createApiClient} from "./api-client.js";
+import {
+  addHighlightLayers,
+  clearFeatureList,
+  getClickedDmFeatures,
+  renderFeatureList,
+  renderHitFeatures,
+  selectHitFeature,
+  selectListedFeature,
+  setHighlightedFeature,
+  setSelectedFeature,
+  setupFeatureLayerOptions,
+} from "./feature-panel.js";
+import {recolorSpriteIcon, spritePayload} from "./sprite-editor.js";
+
+const FEATURE_PAGE_SIZE = 50;
+
+export const createBrowserPreviewApp = ({document, location, history, maplibregl, pmtiles, fetch}) => {
+  const elements = resolveElements(document);
+  const appBase = new URL(".", location.href);
+  const api = createApiClient({appBase, fetch});
+  const state = {
+    map: undefined,
+    dark: false,
+    currentFeaturePage: 1,
+    currentBaseStyle: undefined,
+    styleEditorState: {writable: false, editableLayers: []},
+    spriteState: undefined,
+    styleDirty: false,
+    activeDetailTab: "style-editor",
+  };
+
+  const setDetailTab = (tab) => {
+    state.activeDetailTab = tab;
+    const isStyleEditor = tab === "style-editor";
+    const isFeatureDetails = tab === "feature-details";
+    elements.styleEditorPanel.hidden = !isStyleEditor;
+    elements.featureDetailsPanel.hidden = !isFeatureDetails;
+    elements.tabStyleEditor.setAttribute("aria-selected", String(isStyleEditor));
+    elements.tabFeatureDetails.setAttribute("aria-selected", String(isFeatureDetails));
+  };
+
+  const runtimeLayerIds = (id) => state.map.getStyle().layers
+    .filter((layer) => layer.id === id || layer.id.startsWith(`${id}-`))
+    .map((layer) => layer.id);
+
+  const baseLayer = (id) => state.currentBaseStyle?.layers?.find((layer) => layer.id === id);
+  const baseLayerForRuntime = (id) => state.currentBaseStyle?.layers?.find((layer) => layer.id === id || id.startsWith(`${layer.id}-`));
+
+  const renderSelectedStyleLayer = () => {
+    const layer = baseLayer(elements.styleLayerSelect.value);
+    if (!layer) return;
+    elements.styleLayerVisible.checked = layer.layout?.visibility !== "none";
+    const property = editableColorProperties(layer)[0];
+    elements.styleLayerColor.disabled = !state.styleEditorState.writable || !property;
+    elements.styleLayerColor.value = property && property !== "icon-image"
+      ? toHexColor(layer.paint?.[property]) ?? "#000000"
+      : "#000000";
+  };
+
+  const renderStyleEditor = () => {
+    const layers = state.styleEditorState.editableLayers ?? [];
+    elements.styleLayerSelect.replaceChildren(...layers.map((layer) => {
+      const option = document.createElement("option");
+      option.value = layer.id;
+      option.textContent = layer.id;
+      return option;
+    }));
+    elements.styleLayerSelect.disabled = layers.length === 0;
+    for (const [kind, input] of Object.entries(elements.styleKindInputs)) {
+      input.disabled = !state.styleEditorState.writable || !layers.some((layer) => layer.colorKind === kind);
+    }
+    elements.styleLayerVisible.disabled = !state.styleEditorState.writable || layers.length === 0;
+    elements.styleLayerColor.disabled = !state.styleEditorState.writable || layers.length === 0;
+    elements.styleSave.disabled = !state.styleEditorState.writable || !state.styleDirty;
+    elements.styleEditorStatus.textContent = state.styleEditorState.writable ? "保存できます" : "保存できません";
+    renderSelectedStyleLayer();
+  };
+
+  const markStyleDirty = () => {
+    state.styleDirty = true;
+    elements.styleSave.disabled = !state.styleEditorState.writable;
+    elements.styleEditorStatus.textContent = "未保存の変更があります";
+  };
+
+  const applyLayerColor = async (id, color, dirty = true) => {
+    setDetailTab("style-editor");
+    const layer = baseLayer(id);
+    if (!layer) return;
+    const properties = editableColorProperties(layer);
+    if (properties.includes("icon-image")) {
+      const result = await recolorSpriteIcon({
+        iconId: layer.layout["icon-image"],
+        color,
+        map: state.map,
+        spriteState: state.spriteState,
+        resourceUrl: api.resourceUrl,
+      });
+      state.spriteState = result.spriteState;
+      layer.layout["icon-image"] = result.iconId;
+      for (const layerId of runtimeLayerIds(id)) {
+        state.map.setLayoutProperty(layerId, "icon-image", result.iconId);
+      }
+    } else {
+      layer.paint = {...layer.paint};
+      for (const property of properties) {
+        layer.paint[property] = color;
+        for (const layerId of runtimeLayerIds(id)) {
+          state.map.setPaintProperty(layerId, property, color);
+        }
+      }
+    }
+    if (dirty) markStyleDirty();
+  };
+
+  const applyKindColor = async (kind, color) => {
+    setDetailTab("style-editor");
+    for (const layer of state.styleEditorState.editableLayers.filter((candidate) => candidate.colorKind === kind)) {
+      await applyLayerColor(layer.id, color, false);
+    }
+    markStyleDirty();
+  };
+
+  const applyLayerVisibility = (id, visible) => {
+    setDetailTab("style-editor");
+    const layer = baseLayer(id);
+    if (!layer) return;
+    layer.layout = {...layer.layout, visibility: visible ? "visible" : "none"};
+    for (const layerId of runtimeLayerIds(id)) {
+      state.map.setLayoutProperty(layerId, "visibility", elements.dmToggle.checked && visible ? "visible" : "none");
+    }
+    markStyleDirty();
+  };
+
+  const loadStyleEditorState = async () => {
+    state.styleEditorState = await api.styleEditorState();
+    if (state.styleEditorState.style) {
+      state.currentBaseStyle = state.styleEditorState.style;
+    } else {
+      state.styleEditorState = {
+        ...state.styleEditorState,
+        editableKinds: editableKinds(state.currentBaseStyle),
+        editableLayers: editableLayers(state.currentBaseStyle),
+      };
+    }
+    state.styleDirty = false;
+    renderStyleEditor();
+  };
+
+  const saveStyleEditor = async (manifest) => {
+    setDetailTab("style-editor");
+    elements.styleEditorStatus.textContent = "保存中...";
+    const style = createBundledStyle(state.currentBaseStyle, manifest);
+    const sprites = state.spriteState?.dirty ? await spritePayload(state.spriteState) : undefined;
+    await api.saveStyleEditorState({style, sprites});
+    state.currentBaseStyle = style;
+    state.styleEditorState.style = style;
+    state.styleDirty = false;
+    if (state.spriteState) state.spriteState.dirty = false;
+    renderStyleEditor();
+    elements.styleEditorStatus.textContent = "保存しました";
+  };
+
+  const loadFeaturePage = async (page = 1) => {
+    if (!elements.featureLayerSelect.value) {
+      clearFeatureList(elements.featureList, elements.featureListStatus, elements.featurePage, elements.featurePrev, elements.featureNext);
+      return;
+    }
+    elements.featureListStatus.textContent = "読み込み中...";
+    const result = await api.features({
+      layer: elements.featureLayerSelect.value,
+      page,
+      pageSize: FEATURE_PAGE_SIZE,
+    });
+    state.currentFeaturePage = result.page;
+    renderFeatureList({
+      result,
+      list: elements.featureList,
+      status: elements.featureListStatus,
+      page: elements.featurePage,
+      prev: elements.featurePrev,
+      next: elements.featureNext,
+      onSelect: (feature) => {
+        setDetailTab("feature-details");
+        selectListedFeature(state.map, elements.properties, feature);
+      },
+    });
+  };
+
+  const loadStyle = async (manifest) => {
+    const camera = state.map
+      ? {center: state.map.getCenter().toArray(), zoom: state.map.getZoom()}
+      : getInitialCamera(new URL(location.href), manifest.center);
+    state.currentBaseStyle = await api.style(elements.select.value);
+    const runtimeStyle = createRuntimeStyle(state.currentBaseStyle, manifest, {
+      basemapVisible: elements.basemap.checked,
+      dmVisible: elements.dmToggle.checked,
+      resourceUrl: api.resourceUrl,
+    });
+    if (state.map) state.map.remove();
+    state.map = new maplibregl.Map({
+      container: "map",
+      style: runtimeStyle,
+      center: camera.center,
+      zoom: camera.zoom,
+      maxZoom: 24,
+    });
+    setupFeatureLayerOptions(elements.featureLayerSelect, runtimeStyle, elements.featureKindSelect.value);
+    await loadStyleEditorState().catch((error) => {
+      elements.styleEditorStatus.textContent = String(error);
+      elements.styleSave.disabled = true;
+    });
+    state.map.addControl(new maplibregl.NavigationControl());
+    state.map.on("load", () => addHighlightLayers(state.map));
+    state.map.on("moveend", () => updateMapParameters(location, history, state.map));
+    state.map.on("mousemove", (event) => updateStatus(elements.status, state.map, event));
+    state.map.on("click", (event) => {
+      const features = getClickedDmFeatures(state.map, event.point);
+      setDetailTab("feature-details");
+      renderHitFeatures({
+        features,
+        list: elements.hitList,
+        status: elements.hitListStatus,
+        onSelect: (feature) => {
+          setDetailTab("feature-details");
+          selectHitFeature(state.map, elements.properties, feature);
+        },
+      });
+      setSelectedFeature(state.map, elements.properties, features[0] ? toGeoJsonFeature(features[0]) : undefined);
+    });
+    await loadFeaturePage(1).catch((error) => {
+      elements.featureListStatus.textContent = String(error);
+      elements.featureList.replaceChildren();
+    });
+  };
+
+  const wireEvents = (manifest) => {
+    elements.select.addEventListener("change", () => loadStyle(manifest));
+    for (const [kind, input] of Object.entries(elements.styleKindInputs)) {
+      input.addEventListener("input", () => {
+        applyKindColor(kind, input.value).catch((error) => {
+          elements.styleEditorStatus.textContent = String(error);
+        });
+      });
+    }
+    elements.styleLayerSelect.addEventListener("change", renderSelectedStyleLayer);
+    elements.styleLayerVisible.addEventListener("change", () => applyLayerVisibility(elements.styleLayerSelect.value, elements.styleLayerVisible.checked));
+    elements.styleLayerColor.addEventListener("input", () => {
+      applyLayerColor(elements.styleLayerSelect.value, elements.styleLayerColor.value).catch((error) => {
+        elements.styleEditorStatus.textContent = String(error);
+      });
+    });
+    elements.styleSave.addEventListener("click", () => {
+      saveStyleEditor(manifest).catch((error) => {
+        elements.styleEditorStatus.textContent = String(error);
+      });
+    });
+    elements.tabStyleEditor.addEventListener("click", () => setDetailTab("style-editor"));
+    elements.tabFeatureDetails.addEventListener("click", () => setDetailTab("feature-details"));
+    elements.featureKindSelect.addEventListener("change", () => {
+      setupFeatureLayerOptions(elements.featureLayerSelect, state.map.getStyle(), elements.featureKindSelect.value);
+      loadFeaturePage(1).catch((error) => {
+        elements.featureListStatus.textContent = String(error);
+        elements.featureList.replaceChildren();
+      });
+    });
+    elements.featureLayerSelect.addEventListener("change", () => loadFeaturePage(1).catch((error) => {
+      elements.featureListStatus.textContent = String(error);
+      elements.featureList.replaceChildren();
+    }));
+    elements.featurePrev.addEventListener("click", () => loadFeaturePage(state.currentFeaturePage - 1).catch((error) => {
+      elements.featureListStatus.textContent = String(error);
+    }));
+    elements.featureNext.addEventListener("click", () => loadFeaturePage(state.currentFeaturePage + 1).catch((error) => {
+      elements.featureListStatus.textContent = String(error);
+    }));
+    elements.background.addEventListener("click", () => {
+      state.dark = !state.dark;
+      state.map.setPaintProperty("background", "background-color", state.dark ? "#20242a" : "#ffffff");
+    });
+    elements.basemap.addEventListener("change", () => {
+      state.map.setLayoutProperty("gsi-pale", "visibility", elements.basemap.checked ? "visible" : "none");
+    });
+    elements.dmToggle.addEventListener("change", () => {
+      for (const layer of state.map.getStyle().layers) {
+        if (layer.source !== "dm") continue;
+        const baseVisibility = baseLayerForRuntime(layer.id)?.layout?.visibility ?? "visible";
+        state.map.setLayoutProperty(layer.id, "visibility", elements.dmToggle.checked ? baseVisibility : "none");
+      }
+      if (!elements.dmToggle.checked) setHighlightedFeature(state.map);
+    });
+  };
+
+  const start = async () => {
+    const protocol = new pmtiles.Protocol();
+    maplibregl.addProtocol("pmtiles", protocol.tile);
+    const manifest = await api.manifest();
+    const styles = manifest.styles ?? manifest.levels.map((level) => `maplibre/style-${level}.json`);
+    for (const styleUrl of styles) {
+      const option = document.createElement("option");
+      option.value = api.resourceUrl(styleUrl);
+      option.textContent = styleLabel(styleUrl, manifest);
+      elements.select.append(option);
+    }
+    elements.select.disabled = styles.length === 1;
+    wireEvents(manifest);
+    setDetailTab(state.activeDetailTab);
+    await loadStyle(manifest);
+  };
+
+  return {start};
+};
+
+const resolveElements = (document) => ({
+  status: document.getElementById("status"),
+  select: document.getElementById("style"),
+  background: document.getElementById("background"),
+  basemap: document.getElementById("basemap"),
+  dmToggle: document.getElementById("dm"),
+  properties: document.getElementById("properties"),
+  featureKindSelect: document.getElementById("feature-kind"),
+  featureLayerSelect: document.getElementById("feature-layer"),
+  featureList: document.getElementById("feature-list"),
+  featureListStatus: document.getElementById("feature-list-status"),
+  featurePage: document.getElementById("feature-page"),
+  featurePrev: document.getElementById("feature-prev"),
+  featureNext: document.getElementById("feature-next"),
+  hitListStatus: document.getElementById("hit-list-status"),
+  hitList: document.getElementById("hit-list"),
+  tabStyleEditor: document.getElementById("tab-style-editor"),
+  tabFeatureDetails: document.getElementById("tab-feature-details"),
+  styleEditorPanel: document.getElementById("style-editor"),
+  featureDetailsPanel: document.getElementById("feature-details"),
+  styleEditorStatus: document.getElementById("style-editor-status"),
+  styleSave: document.getElementById("style-save"),
+  styleLayerSelect: document.getElementById("style-layer"),
+  styleLayerVisible: document.getElementById("style-layer-visible"),
+  styleLayerColor: document.getElementById("style-layer-color"),
+  styleKindInputs: {
+    icon: document.getElementById("style-kind-icon"),
+    line: document.getElementById("style-kind-line"),
+    polygon: document.getElementById("style-kind-polygon"),
+    text: document.getElementById("style-kind-text"),
+  },
+});
+
+const updateStatus = (status, map, event) => {
+  const center = map.getCenter();
+  status.textContent = `z${map.getZoom().toFixed(2)} center ${center.lng.toFixed(6)},${center.lat.toFixed(6)} cursor ${event.lngLat.lng.toFixed(6)},${event.lngLat.lat.toFixed(6)}`;
+};
+
+const updateMapParameters = (location, history, map) => {
+  const center = map.getCenter();
+  const url = new URL(location.href);
+  url.searchParams.set("coords", `${center.lng},${center.lat}`);
+  url.searchParams.set("scale", String(getScaleByZoom(map.getZoom(), center.lat)));
+  history.replaceState("", "", url);
+};
