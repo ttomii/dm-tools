@@ -471,6 +471,33 @@ test("code 7303 renders as a one point two millimeter outer circle", () => {
   }
 });
 
+test("code 7304 uses the bundled point symbol", () => {
+  const cases = [
+    [STYLE_500, 500, 0.0129368, 6.6236672],
+    [STYLE_1000, 1000, 0.0129368, 6.6236672],
+    [STYLE_2500, 2500, 0.064684, 33.118336],
+    [STYLE_5000, 5000, 0.064684, 33.118336],
+  ];
+  for (const [style, level, atZoom15, atZoom24] of cases) {
+    const id = `dm-7304-point-${level}-symbol`;
+    const layer = byId(style, id);
+    assert.equal(layer.type, "symbol", id);
+    assert.equal(layer["source-layer"], "dm_7304_point", id);
+    assert.equal(layer.layout["icon-image"], "dm-7304", id);
+    assert.equal(layer.layout["icon-allow-overlap"], true, id);
+    assert.deepEqual(layer.layout["icon-rotate"], ["coalesce", ["get", "ROTATION"], 0], id);
+    assert.deepEqual(layer.layout["icon-size"], [
+      "interpolate",
+      ["exponential", 2],
+      ["zoom"],
+      15,
+      atZoom15,
+      24,
+      atZoom24,
+    ]);
+  }
+});
+
 test("code 6217 uses a rotating point symbol", () => {
   for (const [style, level] of STYLES) {
     const id = `dm-6217-point-${level}-symbol`;

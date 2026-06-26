@@ -8257,6 +8257,46 @@
       }
     },
     {
+      "id": "dm-7304-point-2500-symbol",
+      "source": "dm",
+      "source-layer": "dm_7304_point",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        2500
+      ],
+      "type": "symbol",
+      "layout": {
+        "icon-image": "dm-7304",
+        "icon-rotate": [
+          "coalesce",
+          [
+            "get",
+            "ROTATION"
+          ],
+          0
+        ],
+        "icon-allow-overlap": true,
+        "icon-size": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          15,
+          0.064684,
+          24,
+          33.118336
+        ]
+      }
+    },
+    {
       "id": "dm-7305-point-2500-symbol",
       "source": "dm",
       "source-layer": "dm_7305_point",

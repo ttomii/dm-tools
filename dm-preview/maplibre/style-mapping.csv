@@ -216,6 +216,7 @@ LEVEL,DMCODE,GEOM,SLD_FILE,STYLE_LAYER_ID,SPRITE_ID,DECORATION,STATUS,NOTE
 2500,7301,point,DM_7301.sld,dm-7301-point-2500-symbol,dm-7301,,supported,
 2500,7302,point,DM_7302.sld,dm-7302-point-2500-symbol,dm-7302,,supported,
 2500,7303,point,DM_7303.sld,dm-7303-point-2500-symbol,dm-7303,,supported,unfilled concentric 0.3 mm and 1.2 mm circles with 0.2 mm stroke
+2500,7304,point,DM_7304.sld,dm-7304-point-2500-symbol,dm-7304,,supported,
 2500,7305,point,DM_7305.sld,dm-7305-point-2500-symbol,dm-7305,,supported,
 2500,7308,point,DM_7308.sld,dm-7308-point-2500-symbol,dm-7308,,supported,
 2500,7311,point,DM_7311.sld,dm-7311-point-2500-symbol,,,supported,unfilled 0.3 mm circle with 0.2 mm stroke
@@ -432,6 +433,7 @@ LEVEL,DMCODE,GEOM,SLD_FILE,STYLE_LAYER_ID,SPRITE_ID,DECORATION,STATUS,NOTE
 5000,7301,point,DM_7301.sld,dm-7301-point-5000-symbol,dm-7301,,supported,
 5000,7302,point,DM_7302.sld,dm-7302-point-5000-symbol,dm-7302,,supported,
 5000,7303,point,DM_7303.sld,dm-7303-point-5000-symbol,dm-7303,,supported,unfilled concentric 0.3 mm and 1.2 mm circles with 0.2 mm stroke
+5000,7304,point,DM_7304.sld,dm-7304-point-5000-symbol,dm-7304,,supported,
 5000,7305,point,DM_7305.sld,dm-7305-point-5000-symbol,dm-7305,,supported,
 5000,7308,point,DM_7308.sld,dm-7308-point-5000-symbol,dm-7308,,supported,
 5000,7311,point,DM_7311.sld,dm-7311-point-5000-symbol,,,supported,unfilled 0.3 mm circle with 0.2 mm stroke
