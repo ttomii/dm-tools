@@ -581,13 +581,16 @@ function createText(tag, className, text) {
 
 function featureTitle(feature) {
   const text = feature.properties.TEXT ? ` ${feature.properties.TEXT}` : "";
-  return `USER_ID ${feature.properties.USER_ID ?? feature.fid}${text}`;
+  return `USER_ID ${feature.properties.USER_ID ?? feature.id ?? feature.fid}${text}`;
 }
 
 function featureMeta(feature) {
+  const featureId = feature.id ?? feature.fid;
   const dmcode = feature.properties.DMCODE ?? feature.properties.SRC_DMCODE ?? "";
   const dmfile = feature.properties.DMFILE ?? feature.properties.SRC_DMFILE ?? "";
-  return [feature.sourceLayer, dmcode && `DMCODE ${dmcode}`, dmfile].filter(Boolean).join(" / ");
+  return [feature.sourceLayer, featureId !== undefined && `ID ${featureId}`, dmcode && `DMCODE ${dmcode}`, dmfile]
+    .filter(Boolean)
+    .join(" / ");
 }
 
 function selectListedFeature(map, properties, feature) {
@@ -599,17 +602,21 @@ function selectListedFeature(map, properties, feature) {
 function setSelectedFeature(map, properties, feature) {
   setHighlightedFeature(map, feature);
   properties.textContent = feature
-    ? JSON.stringify({sourceLayer: feature.sourceLayer, properties: feature.properties}, undefined, 2)
+    ? JSON.stringify({sourceLayer: feature.sourceLayer, id: feature.id, properties: feature.properties}, undefined, 2)
     : "";
 }
 
 function moveToFeature(map, feature) {
-  const [west, south, east, north] = feature.bbox;
+  const bounds = feature.bbox ?? geometryBounds(feature.geometry);
+  if (!bounds) return;
+  const [west, south, east, north] = bounds;
   if (west !== east || south !== north) {
     map.fitBounds([[west, south], [east, north]], {padding: 96, maxZoom: 20});
     return;
   }
-  map.flyTo({center: feature.center, zoom: Math.max(map.getZoom(), 18)});
+  const center = feature.center ?? featureCenter(feature.geometry);
+  if (!center) return;
+  map.flyTo({center, zoom: Math.max(map.getZoom(), 18)});
 }
 
 function expandDefaultStyleLayers(layers, sourceLayers) {
@@ -803,9 +810,56 @@ function setHighlightedFeature(map, feature) {
 function toGeoJsonFeature(feature) {
   return {
     type: "Feature",
+    id: feature.id,
     geometry: feature.geometry,
     properties: normalizeHighlightProperties(feature.properties ?? {}),
   };
+}
+
+function geometryBounds(geometry) {
+  if (!geometry) return undefined;
+  const points = [];
+  collectGeometryPoints(geometry, points);
+  if (points.length === 0) return undefined;
+  let west = points[0][0];
+  let south = points[0][1];
+  let east = points[0][0];
+  let north = points[0][1];
+  for (const [x, y] of points) {
+    west = Math.min(west, x);
+    south = Math.min(south, y);
+    east = Math.max(east, x);
+    north = Math.max(north, y);
+  }
+  return [west, south, east, north];
+}
+
+function featureCenter(geometry) {
+  const bounds = geometryBounds(geometry);
+  if (!bounds) return undefined;
+  const [west, south, east, north] = bounds;
+  return [(west + east) / 2, (south + north) / 2];
+}
+
+function collectGeometryPoints(geometry, points) {
+  if (!geometry) return;
+  if (geometry.type === "Point") {
+    points.push(geometry.coordinates);
+    return;
+  }
+  if (geometry.type === "MultiPoint" || geometry.type === "LineString") {
+    points.push(...geometry.coordinates);
+    return;
+  }
+  if (geometry.type === "MultiLineString" || geometry.type === "Polygon") {
+    for (const ringOrLine of geometry.coordinates) points.push(...ringOrLine);
+    return;
+  }
+  if (geometry.type === "MultiPolygon") {
+    for (const polygon of geometry.coordinates) {
+      for (const ring of polygon) points.push(...ring);
+    }
+  }
 }
 
 function normalizeHighlightProperties(properties) {
