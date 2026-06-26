@@ -7,24 +7,24 @@ import {
   parseGpkgTable,
   toFeature,
 } from "../core/gpkg-feature-policy.js";
-import {projectGeometry} from "./gpkg-projection.js";
 import {openDatabase, queryRows} from "./sqljs-adapter.js";
 
 export {ApiInputError};
 
 export class GpkgFeatureStore {
-  static async create(root, manifest) {
+  static async create(root, manifest, options = {}) {
     const gpkg = gpkgPath(root, manifest.layerName);
     await stat(gpkg).catch(() => {
       throw new ApiInputError(`GeoPackage is missing: ${path.basename(gpkg)}`, 404);
     });
     const database = await openDatabase(await readFile(gpkg));
-    return new GpkgFeatureStore(database, readLayers(database, manifest.sourceLayers ?? []));
+    return new GpkgFeatureStore(database, readLayers(database, manifest.sourceLayers ?? []), options);
   }
 
-  constructor(database, layers) {
+  constructor(database, layers, options) {
     this.database = database;
     this.layers = layers;
+    this.projectGeometry = options.projectGeometry ?? identityProjection;
   }
 
   search(query) {
@@ -32,7 +32,7 @@ export class GpkgFeatureStore {
     const tables = this.layers.get(layer);
     if (!tables?.length) throw new ApiInputError(`unknown layer: ${layer}`, 404);
     const total = tables.reduce((sum, table) => sum + countRows(this.database, table.tableName), 0);
-    const features = readPage(this.database, tables, (page - 1) * pageSize, pageSize);
+    const features = readPage(this.database, tables, (page - 1) * pageSize, pageSize, this.projectGeometry);
     return {layer, page, pageSize, total, features};
   }
 }
@@ -68,7 +68,7 @@ const countRows = (database, tableName) => {
   return result[0]?.values[0]?.[0] ?? 0;
 };
 
-const readPage = (database, tables, offset, limit) => {
+const readPage = (database, tables, offset, limit, projectGeometry) => {
   const features = [];
   let remainingOffset = offset;
   for (const table of tables) {
@@ -78,14 +78,14 @@ const readPage = (database, tables, offset, limit) => {
       continue;
     }
     const needed = limit - features.length;
-    features.push(...readFeatures(database, table, remainingOffset, needed));
+    features.push(...readFeatures(database, table, remainingOffset, needed, projectGeometry));
     remainingOffset = 0;
     if (features.length >= limit) break;
   }
   return features;
 };
 
-const readFeatures = (database, table, offset, limit) => queryRows(
+const readFeatures = (database, table, offset, limit, projectGeometry) => queryRows(
   database,
   `SELECT * FROM ${quoteIdentifier(table.tableName)} ORDER BY fid LIMIT ? OFFSET ?`,
   [limit, offset],
@@ -95,3 +95,5 @@ const readFeatures = (database, table, offset, limit) => queryRows(
 });
 
 const quoteIdentifier = (identifier) => `"${identifier.replaceAll("\"", "\"\"")}"`;
+
+const identityProjection = (geometry) => geometry;

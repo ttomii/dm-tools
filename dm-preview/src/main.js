@@ -1,6 +1,7 @@
 import {createBundle} from "./node/bundle.js";
 import {openBrowser} from "./node/open-browser.js";
 import {readManifest} from "./node/manifest.js";
+import {projectGeometry} from "./proj4/gpkg-projection.js";
 import {startServer} from "./server.js";
 
 export const main = async (args) => {
@@ -19,7 +20,7 @@ export const main = async (args) => {
     return;
   }
   const {manifest, root} = await readManifest(options.output);
-  const {server, url} = await startServer(root, {manifest});
+  const {server, url} = await startServer(root, {manifest, projectGeometry});
   console.log(url);
   if (!options.noOpen) {
     await openBrowser(url).catch((error) => {
