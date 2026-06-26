@@ -30,6 +30,10 @@ const APP_BASE = new URL(".", location.href);
   const featureNext = document.getElementById("feature-next");
   const hitListStatus = document.getElementById("hit-list-status");
   const hitList = document.getElementById("hit-list");
+  const tabStyleEditor = document.getElementById("tab-style-editor");
+  const tabFeatureDetails = document.getElementById("tab-feature-details");
+  const styleEditorPanel = document.getElementById("style-editor");
+  const featureDetailsPanel = document.getElementById("feature-details");
   const styleEditorStatus = document.getElementById("style-editor-status");
   const styleSave = document.getElementById("style-save");
   const styleLayerSelect = document.getElementById("style-layer");
@@ -51,6 +55,7 @@ const APP_BASE = new URL(".", location.href);
   let styleEditorState = {writable: false, editableLayers: []};
   let spriteState;
   let styleDirty = false;
+  let activeDetailTab = "style-editor";
 
   const manifest = await fetch(resourceUrl("pmtiles-manifest.json")).then(checkResponse).then((response) => response.json());
   const styles = manifest.styles ?? manifest.levels.map((level) => `maplibre/style-${level}.json`);
@@ -81,7 +86,10 @@ const APP_BASE = new URL(".", location.href);
       page: featurePage,
       prev: featurePrev,
       next: featureNext,
-      onSelect: (feature) => selectListedFeature(map, properties, feature),
+      onSelect: (feature) => {
+        setDetailTab("feature-details");
+        selectListedFeature(map, properties, feature);
+      },
     });
   };
 
@@ -113,11 +121,15 @@ const APP_BASE = new URL(".", location.href);
     });
     map.on("click", (event) => {
       const features = getClickedDmFeatures(map, event.point);
+      setDetailTab("feature-details");
       renderHitFeatures({
         features,
         list: hitList,
         status: hitListStatus,
-        onSelect: (feature) => selectHitFeature(map, properties, feature),
+        onSelect: (feature) => {
+          setDetailTab("feature-details");
+          selectHitFeature(map, properties, feature);
+        },
       });
       setSelectedFeature(map, properties, features[0] ? toGeoJsonFeature(features[0]) : undefined);
     });
@@ -196,6 +208,16 @@ const APP_BASE = new URL(".", location.href);
     renderSelectedStyleLayer();
   };
 
+  const setDetailTab = (tab) => {
+    activeDetailTab = tab;
+    const isStyleEditor = tab === "style-editor";
+    const isFeatureDetails = tab === "feature-details";
+    styleEditorPanel.hidden = !isStyleEditor;
+    featureDetailsPanel.hidden = !isFeatureDetails;
+    tabStyleEditor.setAttribute("aria-selected", String(isStyleEditor));
+    tabFeatureDetails.setAttribute("aria-selected", String(isFeatureDetails));
+  };
+
   const renderSelectedStyleLayer = () => {
     const layer = baseLayer(styleLayerSelect.value);
     if (!layer) return;
@@ -216,6 +238,7 @@ const APP_BASE = new URL(".", location.href);
   };
 
   const applyKindColor = async (kind, color) => {
+    setDetailTab("style-editor");
     for (const layer of styleEditorState.editableLayers.filter((candidate) => candidate.colorKind === kind)) {
       await applyLayerColor(layer.id, color, false);
     }
@@ -223,6 +246,7 @@ const APP_BASE = new URL(".", location.href);
   };
 
   const applyLayerColor = async (id, color, dirty = true) => {
+    setDetailTab("style-editor");
     const layer = baseLayer(id);
     if (!layer) return;
     const properties = editableColorProperties(layer);
@@ -246,6 +270,7 @@ const APP_BASE = new URL(".", location.href);
   };
 
   const applyLayerVisibility = (id, visible) => {
+    setDetailTab("style-editor");
     const layer = baseLayer(id);
     if (!layer) return;
     layer.layout = {...layer.layout, visibility: visible ? "visible" : "none"};
@@ -256,6 +281,7 @@ const APP_BASE = new URL(".", location.href);
   };
 
   const saveStyleEditor = async () => {
+    setDetailTab("style-editor");
     styleEditorStatus.textContent = "保存中...";
     const style = createBundledStyle(currentBaseStyle, manifest);
     const sprites = spriteState?.dirty ? await spritePayload(spriteState) : undefined;
@@ -457,6 +483,8 @@ const APP_BASE = new URL(".", location.href);
       styleEditorStatus.textContent = String(error);
     });
   });
+  tabStyleEditor.addEventListener("click", () => setDetailTab("style-editor"));
+  tabFeatureDetails.addEventListener("click", () => setDetailTab("feature-details"));
   featureKindSelect.addEventListener("change", () => {
     setupFeatureLayerOptions(featureLayerSelect, map.getStyle(), featureKindSelect.value);
     loadFeaturePage(1).catch((error) => {
@@ -489,6 +517,7 @@ const APP_BASE = new URL(".", location.href);
     }
     if (!dmToggle.checked) setHighlightedFeature(map);
   });
+  setDetailTab(activeDetailTab);
   await loadStyle();
 })().catch((error) => {
   document.getElementById("status").textContent = String(error);

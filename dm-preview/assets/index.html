@@ -18,26 +18,6 @@
   </header>
   <main id="map"></main>
   <aside id="sidebar">
-    <section id="style-editor">
-      <div class="panel-heading">
-        <strong>スタイル編集</strong>
-        <button id="style-save" type="button" disabled>保存</button>
-      </div>
-      <div id="style-editor-status">読み込み中...</div>
-      <div class="style-editor-controls">
-        <div class="style-kind-controls" aria-label="種別ごとの色変更">
-          <label>アイコン <input type="color" id="style-kind-icon" value="#000000"></label>
-          <label>ライン <input type="color" id="style-kind-line" value="#000000"></label>
-          <label>ポリゴン <input type="color" id="style-kind-polygon" value="#000000"></label>
-          <label>テキスト <input type="color" id="style-kind-text" value="#000000"></label>
-        </div>
-        <div class="style-layer-controls">
-          <select id="style-layer" aria-label="編集レイヤ"></select>
-          <label class="layer-toggle"><input type="checkbox" id="style-layer-visible" checked> 表示</label>
-          <input type="color" id="style-layer-color" value="#000000" aria-label="レイヤ色">
-        </div>
-      </div>
-    </section>
     <section id="feature-list-panel">
       <div class="panel-heading">
         <strong>地物一覧</strong>
@@ -60,15 +40,38 @@
         <button id="feature-next" type="button">次へ</button>
       </div>
     </section>
-    <section id="feature-details">
-      <div class="panel-heading">
-        <strong>地物プロパティ</strong>
+    <section id="detail-panel">
+      <div id="detail-tabs" role="tablist" aria-label="表示切り替え">
+        <button id="tab-style-editor" type="button" role="tab" aria-selected="true">スタイル編集</button>
+        <button id="tab-feature-details" type="button" role="tab" aria-selected="false">地物プロパティ</button>
       </div>
-      <div id="hit-results">
-        <div id="hit-list-status">クリックした位置の重なり</div>
-        <ol id="hit-list"></ol>
-      </div>
-      <pre id="properties"></pre>
+      <section id="style-editor" class="detail-tab-panel">
+        <div class="panel-heading">
+          <strong>スタイル編集</strong>
+          <button id="style-save" type="button" disabled>保存</button>
+        </div>
+        <div id="style-editor-status">読み込み中...</div>
+        <div class="style-editor-controls">
+          <div class="style-kind-controls" aria-label="種別ごとの色変更">
+            <label>アイコン <input type="color" id="style-kind-icon" value="#000000"></label>
+            <label>ライン <input type="color" id="style-kind-line" value="#000000"></label>
+            <label>ポリゴン <input type="color" id="style-kind-polygon" value="#000000"></label>
+            <label>テキスト <input type="color" id="style-kind-text" value="#000000"></label>
+          </div>
+          <div class="style-layer-controls">
+            <select id="style-layer" aria-label="編集レイヤ"></select>
+            <label class="layer-toggle"><input type="checkbox" id="style-layer-visible" checked> 表示</label>
+            <input type="color" id="style-layer-color" value="#000000" aria-label="レイヤ色">
+          </div>
+        </div>
+      </section>
+      <section id="feature-details" class="detail-tab-panel" hidden>
+        <div id="hit-results">
+          <div id="hit-list-status">クリックした位置の重なり</div>
+          <ol id="hit-list"></ol>
+        </div>
+        <pre id="properties"></pre>
+      </section>
     </section>
   </aside>
   <script src="./vendor/maplibre-gl.js"></script>
