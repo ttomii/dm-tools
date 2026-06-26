@@ -41,20 +41,6 @@ const assertApprox = (actual, expected, id) => {
   assert.ok(Math.abs(actual - expected) < 1e-9, `${id}: ${actual} != ${expected}`);
 };
 
-test("sprite icons are SDF colorable", () => {
-  for (const [id, frame] of Object.entries(SPRITE)) {
-    assert.equal(frame.sdf, true, id);
-  }
-});
-
-test("fixed icon symbol layers have an editable icon color", () => {
-  for (const [style] of ALL_STYLES) {
-    for (const layer of style.layers.filter((candidate) => candidate.type === "symbol" && candidate.layout?.["icon-image"])) {
-      assert.equal(layer.paint?.["icon-color"], "#000000", layer.id);
-    }
-  }
-});
-
 test("fixed styles are version 8 with a single dm vector source", () => {
   for (const [style] of STYLES) {
     assert.equal(style.version, 8);
@@ -456,9 +442,9 @@ test("codes 5105, 7201, and 7211 render as two millimeter centered text symbols"
     }
   }
 
-  assert.deepEqual(SPRITE["dm-5105"], {width: 32, height: 32, x: 32, y: 256, pixelRatio: 1, sdf: true});
-  assert.deepEqual(SPRITE["dm-7201"], {width: 64, height: 32, x: 64, y: 256, pixelRatio: 1, sdf: true});
-  assert.deepEqual(SPRITE["dm-7211"], {width: 64, height: 32, x: 160, y: 256, pixelRatio: 1, sdf: true});
+  assert.deepEqual(SPRITE["dm-5105"], {width: 32, height: 32, x: 32, y: 256, pixelRatio: 1});
+  assert.deepEqual(SPRITE["dm-7201"], {width: 64, height: 32, x: 64, y: 256, pixelRatio: 1});
+  assert.deepEqual(SPRITE["dm-7211"], {width: 64, height: 32, x: 160, y: 256, pixelRatio: 1});
 });
 
 test("code 7303 renders as a one point two millimeter outer circle", () => {
@@ -866,7 +852,7 @@ test("line layers remain visible one zoom below five hundredths of a millimeter"
 });
 
 test("flow direction symbol is a five millimeter rotated arrow", () => {
-  assert.deepEqual(SPRITE["dm-5241"], {width: 40, height: 8, x: 0, y: 300, pixelRatio: 1, sdf: true});
+  assert.deepEqual(SPRITE["dm-5241"], {width: 40, height: 8, x: 0, y: 300, pixelRatio: 1});
   const cases = [
     [STYLE_2500, 2500, 0.1617093333375, 82.7951786688],
     [STYLE_5000, 5000, 0.323418666675, 165.5903573376],
@@ -891,7 +877,7 @@ test("flow direction symbol is a five millimeter rotated arrow", () => {
 });
 
 test("code 5228 is a rotating one point five millimeter symbol", () => {
-  assert.deepEqual(SPRITE["dm-5228"], {width: 48, height: 16, x: 40, y: 296, pixelRatio: 1, sdf: true});
+  assert.deepEqual(SPRITE["dm-5228"], {width: 48, height: 16, x: 40, y: 296, pixelRatio: 1});
   const cases = [
     [STYLE_2500, 2500, 0.040427333334375, 20.6987946672],
     [STYLE_5000, 5000, 0.08085466666875, 41.3975893344],

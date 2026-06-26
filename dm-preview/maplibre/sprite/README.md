@@ -13,6 +13,6 @@ npm run generate:maplibre-assets -- 6216
 ```
 
 The script converts SVG/BMP/PNG sources with ImageMagick and creates
-deterministic 1x and 2x SDF atlases in filename order. Sources smaller than
-their sprite frame are centered without upscaling. Sprite source licensing is
+deterministic 1x and 2x atlases in filename order. Sources smaller than their
+sprite frame are centered without upscaling. Sprite source licensing is
 recorded in `icons/LICENSE.txt`.
