@@ -34,7 +34,8 @@ export const createRuntimeStyle = (baseStyle, manifest, options) => {
   return style;
 };
 
-export const createBundledStyle = (style, manifest) => {
+export const createBundledStyle = (style, manifest, options = {}) => {
+  const pmtiles = options.pmtiles ?? manifest.pmtiles;
   const bundled = structuredClone(style);
   bundled.metadata = {
     ...bundled.metadata,
@@ -46,7 +47,7 @@ export const createBundledStyle = (style, manifest) => {
     ...bundled.sources,
     dm: {
       ...bundled.sources.dm,
-      url: `pmtiles://./${manifest.pmtiles}`,
+      url: `pmtiles://./${pmtiles}`,
     },
   };
   bundled.sprite = "./sprite/sprite";

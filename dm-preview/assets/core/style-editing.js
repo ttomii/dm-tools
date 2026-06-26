@@ -46,4 +46,16 @@ export const colorKind = (layer) => {
 
 export const toHexColor = (value) => typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value) ? value : undefined;
 
+export const findLayerById = (style, id) => style?.layers?.find((layer) => layer.id === id);
+
+export const findBaseLayerForRuntime = (style, id) => style?.layers?.find((layer) => layer.id === id || id.startsWith(`${layer.id}-`));
+
+export const runtimeLayerIds = (style, id) => style.layers
+  .filter((layer) => layer.id === id || layer.id.startsWith(`${id}-`))
+  .map((layer) => layer.id);
+
+export const layerVisibility = (layer) => layer?.layout?.visibility === "none" ? "none" : "visible";
+
+export const runtimeVisibility = ({dmVisible, layerVisible}) => dmVisible && layerVisible ? "visible" : "none";
+
 const isRecord = (value) => typeof value === "object" && Boolean(value) && !Array.isArray(value);

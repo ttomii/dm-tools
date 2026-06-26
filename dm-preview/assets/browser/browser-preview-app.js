@@ -1,4 +1,14 @@
-import {editableColorProperties, editableKinds, editableLayers, toHexColor} from "../core/style-editing.js";
+import {
+  editableColorProperties,
+  editableKinds,
+  editableLayers,
+  findBaseLayerForRuntime,
+  findLayerById,
+  layerVisibility,
+  runtimeLayerIds,
+  runtimeVisibility,
+  toHexColor,
+} from "../core/style-editing.js";
 import {createBundledStyle, createRuntimeStyle, styleLabel} from "../core/style-transform.js";
 import {getInitialCamera, getScaleByZoom} from "../core/map-scale.js";
 import {toGeoJsonFeature} from "../core/geometry.js";
@@ -44,17 +54,13 @@ export const createBrowserPreviewApp = ({document, location, history, maplibregl
     elements.tabFeatureDetails.setAttribute("aria-selected", String(isFeatureDetails));
   };
 
-  const runtimeLayerIds = (id) => state.map.getStyle().layers
-    .filter((layer) => layer.id === id || layer.id.startsWith(`${id}-`))
-    .map((layer) => layer.id);
-
-  const baseLayer = (id) => state.currentBaseStyle?.layers?.find((layer) => layer.id === id);
-  const baseLayerForRuntime = (id) => state.currentBaseStyle?.layers?.find((layer) => layer.id === id || id.startsWith(`${layer.id}-`));
+  const getRuntimeLayerIds = (id) => runtimeLayerIds(state.map.getStyle(), id);
+  const baseLayer = (id) => findLayerById(state.currentBaseStyle, id);
 
   const renderSelectedStyleLayer = () => {
     const layer = baseLayer(elements.styleLayerSelect.value);
     if (!layer) return;
-    elements.styleLayerVisible.checked = layer.layout?.visibility !== "none";
+    elements.styleLayerVisible.checked = layerVisibility(layer) !== "none";
     const property = editableColorProperties(layer)[0];
     elements.styleLayerColor.disabled = !state.styleEditorState.writable || !property;
     elements.styleLayerColor.value = property && property !== "icon-image"
@@ -102,14 +108,14 @@ export const createBrowserPreviewApp = ({document, location, history, maplibregl
       });
       state.spriteState = result.spriteState;
       layer.layout["icon-image"] = result.iconId;
-      for (const layerId of runtimeLayerIds(id)) {
+      for (const layerId of getRuntimeLayerIds(id)) {
         state.map.setLayoutProperty(layerId, "icon-image", result.iconId);
       }
     } else {
       layer.paint = {...layer.paint};
       for (const property of properties) {
         layer.paint[property] = color;
-        for (const layerId of runtimeLayerIds(id)) {
+        for (const layerId of getRuntimeLayerIds(id)) {
           state.map.setPaintProperty(layerId, property, color);
         }
       }
@@ -130,8 +136,8 @@ export const createBrowserPreviewApp = ({document, location, history, maplibregl
     const layer = baseLayer(id);
     if (!layer) return;
     layer.layout = {...layer.layout, visibility: visible ? "visible" : "none"};
-    for (const layerId of runtimeLayerIds(id)) {
-      state.map.setLayoutProperty(layerId, "visibility", elements.dmToggle.checked && visible ? "visible" : "none");
+    for (const layerId of getRuntimeLayerIds(id)) {
+      state.map.setLayoutProperty(layerId, "visibility", runtimeVisibility({dmVisible: elements.dmToggle.checked, layerVisible: visible}));
     }
     markStyleDirty();
   };
@@ -288,7 +294,7 @@ export const createBrowserPreviewApp = ({document, location, history, maplibregl
     elements.dmToggle.addEventListener("change", () => {
       for (const layer of state.map.getStyle().layers) {
         if (layer.source !== "dm") continue;
-        const baseVisibility = baseLayerForRuntime(layer.id)?.layout?.visibility ?? "visible";
+        const baseVisibility = layerVisibility(findBaseLayerForRuntime(state.currentBaseStyle, layer.id));
         state.map.setLayoutProperty(layer.id, "visibility", elements.dmToggle.checked ? baseVisibility : "none");
       }
       if (!elements.dmToggle.checked) setHighlightedFeature(state.map);

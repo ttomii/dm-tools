@@ -1,7 +1,9 @@
 import {cp, mkdir, readFile, readdir, realpath, stat, writeFile} from "node:fs/promises";
 import path from "node:path";
+import {InputError, MANIFEST_FILENAME, parseManifest} from "../core/manifest-policy.js";
+import {createBundledStyle} from "../core/style-transform.js";
 import {packagePath} from "./asset-roots.js";
-import {InputError, MANIFEST_FILENAME, parseManifest, resolveOutputPath} from "./manifest.js";
+import {resolveOutputPath} from "./manifest.js";
 
 export const createBundle = async (pmtiles, output) => {
   const source = await readSource(pmtiles);
@@ -44,24 +46,7 @@ const createStyle = async (manifest, pmtilesName) => {
     throw new InputError("bundle requires a manifest with exactly one level");
   }
   const style = await readJson(packagePath("maplibre", `style-${manifest.levels[0]}.json`));
-  return {
-    ...style,
-    metadata: {
-      ...style.metadata,
-      "dm:bounds": manifest.bounds,
-      "dm:center": manifest.center,
-      "dm:sourceLayers": manifest.sourceLayers,
-    },
-    sources: {
-      ...style.sources,
-      dm: {
-        ...style.sources.dm,
-        url: `pmtiles://./${pmtilesName}`,
-      },
-    },
-    sprite: "./sprite/sprite",
-    glyphs: "./glyphs/{fontstack}/{range}.pbf",
-  };
+  return createBundledStyle(style, manifest, {pmtiles: pmtilesName});
 };
 
 const copyStyleAssets = async (destination) => {

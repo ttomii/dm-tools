@@ -1,7 +1,8 @@
+import {baseIconId, recoloredSpriteId, recolorSpritePixels} from "../core/sprite-recolor.js";
+
 export const recolorSpriteIcon = async ({iconId, color, map, spriteState, resourceUrl}) => {
   const state = spriteState ?? await loadSpriteState(resourceUrl);
-  const hex = color.replace("#", "").toLowerCase();
-  const recoloredId = `${baseIconId(iconId)}__color_${hex}`;
+  const recoloredId = recoloredSpriteId(iconId, color);
   if (!state.sprite.json[recoloredId]) {
     addRecoloredSpriteFrame(state.sprite, iconId, recoloredId, color);
     addRecoloredSpriteFrame(state.sprite2x, iconId, recoloredId, color);
@@ -42,18 +43,7 @@ const loadSpriteSheet = async (resourceUrl, name) => {
 const addRecoloredSpriteFrame = (sheet, iconId, recoloredId, color) => {
   const frame = sheet.json[baseIconId(iconId)];
   if (!frame) throw new Error(`missing sprite frame ${iconId}`);
-  const source = sheet.context.getImageData(frame.x, frame.y, frame.width, frame.height);
-  const [red, green, blue] = hexToRgb(color);
-  for (let offset = 0; offset < source.data.length; offset += 4) {
-    const alpha = source.data[offset + 3];
-    if (alpha === 0) continue;
-    const brightness = (source.data[offset] + source.data[offset + 1] + source.data[offset + 2]) / 3;
-    const coverage = Math.round(alpha * (255 - brightness) / 255);
-    source.data[offset] = red;
-    source.data[offset + 1] = green;
-    source.data[offset + 2] = blue;
-    source.data[offset + 3] = coverage;
-  }
+  const source = recolorSpritePixels(sheet.context.getImageData(frame.x, frame.y, frame.width, frame.height), color);
   const y = sheet.canvas.height;
   const nextCanvas = document.createElement("canvas");
   nextCanvas.width = sheet.canvas.width;
@@ -78,15 +68,6 @@ const loadImage = (url) => new Promise((resolve, reject) => {
   image.onerror = reject;
   image.src = url;
 });
-
-const baseIconId = (iconId) => iconId.replace(/__color_[0-9a-f]{6}$/i, "");
-
-const hexToRgb = (color) => {
-  const match = /^#?([0-9a-f]{6})$/i.exec(color);
-  if (!match) throw new Error(`invalid color ${color}`);
-  const value = Number.parseInt(match[1], 16);
-  return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
-};
 
 const checkResponse = (response) => {
   if (!response.ok) throw new Error(`${response.status} ${response.url}`);
