@@ -1,5 +1,5 @@
 import {createReadStream} from "node:fs";
-import {realpath, stat} from "node:fs/promises";
+import {cp, mkdir, readFile, realpath, stat, writeFile} from "node:fs/promises";
 import {createServer as createHttpServer} from "node:http";
 import path from "node:path";
 import {pipeline} from "node:stream/promises";
@@ -11,6 +11,14 @@ const SPRITE_FILES = new Set([
   "/sprite.png",
   "/sprite@2x.json",
   "/sprite@2x.png",
+]);
+const STYLE_EDITOR_PATH = "/preview/api/style-editor/state";
+const STYLE_EDITOR_BODY_LIMIT = 20 * 1024 * 1024;
+const STYLE_EDITOR_SPRITE_FILES = new Set([
+  "sprite.json",
+  "sprite.png",
+  "sprite@2x.json",
+  "sprite@2x.png",
 ]);
 
 export const startServer = async (output, options = {}) => {
@@ -49,12 +57,16 @@ export const parseRange = (header, length) => {
 };
 
 const respond = async (request, response, root, options) => {
+  const pathname = requestPath(request.url);
+  if (pathname === STYLE_EDITOR_PATH) {
+    await respondStyleEditor(request, response, root, options);
+    return;
+  }
   if (!["GET", "HEAD"].includes(request.method)) {
     response.writeHead(405, {Allow: "GET, HEAD"});
     response.end();
     return;
   }
-  const pathname = requestPath(request.url);
   if (normalizePreviewPath(pathname) === "/pmtiles-manifest.json" && options.manifest) {
     sendJson(request, response, 200, options.manifest);
     return;
@@ -70,6 +82,180 @@ const respond = async (request, response, root, options) => {
     return;
   }
   await sendFile(request, response, file);
+};
+
+const respondStyleEditor = async (request, response, root, options) => {
+  if (request.method === "GET" || request.method === "HEAD") {
+    await respondStyleEditorState(request, response, root);
+    return;
+  }
+  if (request.method === "PUT") {
+    await updateStyleEditorState(request, response, root, options);
+    return;
+  }
+  response.writeHead(405, {Allow: "GET, HEAD, PUT"});
+  response.end();
+};
+
+const respondStyleEditorState = async (request, response, root) => {
+  const stylePath = path.join(root, "style.json");
+  let style;
+  try {
+    style = JSON.parse(await readFile(stylePath, "utf8"));
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      sendJson(request, response, 200, {writable: true, style: null, editableKinds: [], editableLayers: []});
+      return;
+    }
+    sendJson(request, response, 500, {error: `style.json cannot be read: ${error.message}`});
+    return;
+  }
+  sendJson(request, response, 200, {
+    writable: true,
+    style,
+    editableKinds: editableKinds(style),
+    editableLayers: editableLayers(style),
+  });
+};
+
+const updateStyleEditorState = async (request, response, root, options) => {
+  const stylePath = path.join(root, "style.json");
+  try {
+    const metadata = await stat(stylePath);
+    if (!metadata.isFile()) {
+      sendJson(request, response, 409, {error: "style.json is not writable"});
+      return;
+    }
+  } catch (error) {
+    if (error.code !== "ENOENT") {
+      sendJson(request, response, 500, {error: `style.json cannot be checked: ${error.message}`});
+      return;
+    }
+  }
+  let body;
+  try {
+    body = JSON.parse(await readBody(request, STYLE_EDITOR_BODY_LIMIT));
+  } catch (error) {
+    sendJson(request, response, 400, {error: error.message});
+    return;
+  }
+  if (!isStyle(body.style)) {
+    sendJson(request, response, 400, {error: "style must be a MapLibre Style v8 object"});
+    return;
+  }
+  if (body.sprites !== undefined && !isRecord(body.sprites)) {
+    sendJson(request, response, 400, {error: "sprites must be an object"});
+    return;
+  }
+  try {
+    await writeFile(stylePath, `${JSON.stringify(body.style, undefined, 2)}\n`);
+    if (body.sprites) {
+      await writeSpriteFiles(root, body.sprites);
+    } else {
+      await copyStyleAssetDirectory(root, options.maplibreAssets, "sprite");
+    }
+    await copyStyleAssetDirectory(root, options.maplibreAssets, "glyphs");
+  } catch (error) {
+    sendJson(request, response, 500, {error: `style editor save failed: ${error.message}`});
+    return;
+  }
+  sendJson(request, response, 200, {ok: true});
+};
+
+const copyStyleAssetDirectory = async (root, maplibreAssets, name) => {
+  if (!maplibreAssets) return;
+  const source = path.join(maplibreAssets, name);
+  const destination = path.join(root, name);
+  if (await exists(destination)) return;
+  const sourceReal = await realpath(source).catch(() => undefined);
+  if (!sourceReal) return;
+  if (sourceReal === root || sourceReal.startsWith(`${root}${path.sep}`)) return;
+  await cp(sourceReal, destination, {recursive: true});
+};
+
+const exists = async (file) => stat(file).then(() => true, () => false);
+
+const editableKinds = (style) => [...new Set(editableLayers(style).flatMap((layer) => layer.colorKind ? [layer.colorKind] : []))];
+
+const editableLayers = (style) => (Array.isArray(style.layers) ? style.layers : [])
+  .filter((layer) => isRecord(layer) && layer.source === "dm" && typeof layer.id === "string")
+  .map((layer) => {
+    const colorProperties = editableColorProperties(layer);
+    return {
+      id: layer.id,
+      sourceLayer: layer["source-layer"],
+      type: layer.type,
+      colorKind: colorKind(layer),
+      colorProperties,
+      visibility: layer.layout?.visibility === "none" ? "none" : "visible",
+      editableColor: colorProperties.length > 0,
+      editableVisibility: true,
+    };
+  })
+  .filter((layer) => layer.editableColor || layer.editableVisibility);
+
+const editableColorProperties = (layer) => {
+  if (layer.type === "symbol" && layer.layout?.["icon-image"]) return ["icon-image"];
+  if (layer.type === "symbol" && layer.layout?.["text-field"] && layer.paint?.["text-color"] !== undefined) return ["text-color"];
+  if (layer.type === "line" && layer.paint?.["line-color"] !== undefined) return ["line-color"];
+  if (layer.type === "circle" && layer.paint?.["circle-color"] !== undefined) return ["circle-color"];
+  if (layer.type === "fill") {
+    return ["fill-color", "fill-outline-color"].filter((property) => layer.paint?.[property] !== undefined);
+  }
+  return [];
+};
+
+const colorKind = (layer) => {
+  const sourceKind = sourceLayerKind(layer["source-layer"]);
+  if (layer.type === "symbol" && layer.layout?.["icon-image"]) return "icon";
+  if (layer.type === "symbol" && layer.layout?.["text-field"]) return "text";
+  if (layer.type === "circle") return "icon";
+  if (layer.type === "line") return sourceKind === "polygon" ? "polygon" : "line";
+  if (layer.type === "fill") return "polygon";
+  return undefined;
+};
+
+const sourceLayerKind = (sourceLayer) => {
+  const match = /^dm_(?:default|\d+)_(point|line|polygon|text)(?:_deco_(point|line|polygon))?$/.exec(sourceLayer ?? "");
+  return match?.[2] ?? match?.[1];
+};
+
+const readBody = (request, limit) => new Promise((resolve, reject) => {
+  const chunks = [];
+  let size = 0;
+  request.on("data", (chunk) => {
+    size += chunk.length;
+    if (size > limit) {
+      reject(new Error("request body is too large"));
+      request.destroy();
+      return;
+    }
+    chunks.push(chunk);
+  });
+  request.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
+  request.on("error", reject);
+});
+
+const writeSpriteFiles = async (root, sprites) => {
+  const spriteRoot = path.join(root, "sprite");
+  await mkdir(spriteRoot, {recursive: true});
+  for (const [file, value] of Object.entries(sprites)) {
+    if (!STYLE_EDITOR_SPRITE_FILES.has(file)) throw new Error(`unsupported sprite file: ${file}`);
+    const output = path.join(spriteRoot, file);
+    if (file.endsWith(".json")) {
+      if (!isRecord(value)) throw new Error(`${file} must be an object`);
+      await writeFile(output, `${JSON.stringify(value, undefined, 2)}\n`);
+    } else {
+      if (typeof value !== "string") throw new Error(`${file} must be a data URL`);
+      await writeFile(output, decodePngDataUrl(value));
+    }
+  }
+};
+
+const decodePngDataUrl = (value) => {
+  const match = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/.exec(value);
+  if (!match) throw new Error("sprite PNG must be a PNG data URL");
+  return Buffer.from(match[1], "base64");
 };
 
 const requestPath = (url) => {
@@ -197,6 +383,10 @@ const parseInteger = (value) => {
 };
 
 const isWithin = (root, candidate) => candidate === root || candidate.startsWith(`${root}${path.sep}`);
+
+const isRecord = (value) => typeof value === "object" && Boolean(value) && !Array.isArray(value);
+
+const isStyle = (value) => isRecord(value) && value.version === 8 && isRecord(value.sources);
 
 const mimeType = (file) => ({
   ".css": "text/css; charset=utf-8",

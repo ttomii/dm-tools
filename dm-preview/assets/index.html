@@ -18,6 +18,26 @@
   </header>
   <main id="map"></main>
   <aside id="sidebar">
+    <section id="style-editor">
+      <div class="panel-heading">
+        <strong>スタイル編集</strong>
+        <button id="style-save" type="button" disabled>保存</button>
+      </div>
+      <div id="style-editor-status">読み込み中...</div>
+      <div class="style-editor-controls">
+        <div class="style-kind-controls" aria-label="種別ごとの色変更">
+          <label>アイコン <input type="color" id="style-kind-icon" value="#000000"></label>
+          <label>ライン <input type="color" id="style-kind-line" value="#000000"></label>
+          <label>ポリゴン <input type="color" id="style-kind-polygon" value="#000000"></label>
+          <label>テキスト <input type="color" id="style-kind-text" value="#000000"></label>
+        </div>
+        <div class="style-layer-controls">
+          <select id="style-layer" aria-label="編集レイヤ"></select>
+          <label class="layer-toggle"><input type="checkbox" id="style-layer-visible" checked> 表示</label>
+          <input type="color" id="style-layer-color" value="#000000" aria-label="レイヤ色">
+        </div>
+      </div>
+    </section>
     <section id="feature-list-panel">
       <div class="panel-heading">
         <strong>地物一覧</strong>

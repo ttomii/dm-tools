@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import {mkdir, mkdtemp, rm, writeFile} from "node:fs/promises";
+import {mkdir, mkdtemp, readFile, rm, writeFile} from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import {test} from "node:test";
@@ -113,6 +113,106 @@ test("server serves style bundle assets from output directory", async (context) 
   assert.equal(await (await fetch(`${origin}/preview/style.json`)).text(), "{}");
   assert.equal((await fetch(`${origin}/preview/sprite.json`)).status, 200);
   assert.equal((await fetch(`${origin}/preview/glyphs/Test%20Font/0-255.pbf`)).status, 200);
+});
+
+test("style editor API reads and writes bundled style assets", async (context) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "dm-preview-"));
+  context.after(() => rm(root, {recursive: true, force: true}));
+  const output = path.join(root, "output");
+  await mkdir(path.join(output, "sprite"), {recursive: true});
+  const style = {
+    version: 8,
+    sources: {dm: {type: "vector", url: "pmtiles://./dm.pmtiles"}},
+    layers: [
+      {
+        id: "dm-1000-line-2500-line",
+        type: "line",
+        source: "dm",
+        "source-layer": "dm_1000_line",
+        paint: {"line-color": "#000000"},
+      },
+      {
+        id: "dm-3001-polygon-2500-outline",
+        type: "line",
+        source: "dm",
+        "source-layer": "dm_3001_polygon",
+        paint: {"line-color": "#000000"},
+      },
+      {
+        id: "dm-default-point-2500-symbol",
+        type: "circle",
+        source: "dm",
+        "source-layer": "dm_default_point",
+        paint: {"circle-color": "#000000"},
+      },
+    ],
+  };
+  await writeFile(path.join(output, "style.json"), JSON.stringify(style));
+  await writeFile(path.join(output, "sprite", "sprite.json"), "{}");
+  await writeFile(path.join(output, "sprite", "sprite@2x.json"), "{}");
+  await writeFile(path.join(output, "sprite", "sprite.png"), "png");
+  await writeFile(path.join(output, "sprite", "sprite@2x.png"), "png2x");
+  const {server, url} = await startServer(output);
+  context.after(() => server.close());
+  const origin = new URL(url).origin;
+
+  const state = await fetch(`${origin}/preview/api/style-editor/state`);
+  assert.equal(state.status, 200);
+  const body = await state.json();
+  assert.equal(body.writable, true);
+  assert.deepEqual(body.editableKinds, ["line", "polygon", "icon"]);
+  assert.equal(body.editableLayers[0].id, "dm-1000-line-2500-line");
+  assert.equal(body.editableLayers[1].colorKind, "polygon");
+  assert.equal(body.editableLayers[2].colorKind, "icon");
+
+  const nextStyle = {...style, name: "edited"};
+  const save = await fetch(`${origin}/preview/api/style-editor/state`, {
+    method: "PUT",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      style: nextStyle,
+      sprites: {
+        "sprite.json": {"dm-test": {width: 1, height: 1, x: 0, y: 0, pixelRatio: 1}},
+        "sprite.png": "data:image/png;base64,cG5n",
+      },
+    }),
+  });
+  assert.equal(save.status, 200);
+  assert.equal(JSON.parse(await readFile(path.join(output, "style.json"), "utf8")).name, "edited");
+  assert.deepEqual(JSON.parse(await readFile(path.join(output, "sprite", "sprite.json"), "utf8")), {
+    "dm-test": {width: 1, height: 1, x: 0, y: 0, pixelRatio: 1},
+  });
+  assert.equal(await readFile(path.join(output, "sprite", "sprite.png"), "utf8"), "png");
+});
+
+test("style editor API creates bundled style assets on first save", async (context) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "dm-preview-"));
+  context.after(() => rm(root, {recursive: true, force: true}));
+  const output = path.join(root, "output");
+  const maplibre = path.join(root, "maplibre");
+  await mkdir(output);
+  await mkdir(path.join(maplibre, "sprite"), {recursive: true});
+  await mkdir(path.join(maplibre, "glyphs", "Test Font"), {recursive: true});
+  await writeFile(path.join(maplibre, "sprite", "sprite.json"), "{}");
+  await writeFile(path.join(maplibre, "sprite", "sprite.png"), "png");
+  await writeFile(path.join(maplibre, "glyphs", "Test Font", "0-255.pbf"), "pbf");
+  const {server, url} = await startServer(output, {maplibreAssets: maplibre, vendorFiles: new Map()});
+  context.after(() => server.close());
+  const origin = new URL(url).origin;
+
+  const state = await fetch(`${origin}/preview/api/style-editor/state`);
+  assert.equal(state.status, 200);
+  assert.equal((await state.json()).writable, true);
+
+  const save = await fetch(`${origin}/preview/api/style-editor/state`, {
+    method: "PUT",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({style: {version: 8, sources: {dm: {type: "vector", url: "pmtiles://./dm.pmtiles"}}, layers: []}}),
+  });
+  assert.equal(save.status, 200);
+  assert.equal(JSON.parse(await readFile(path.join(output, "style.json"), "utf8")).version, 8);
+  assert.equal(await readFile(path.join(output, "sprite", "sprite.png"), "utf8"), "png");
+  assert.equal(await readFile(path.join(output, "glyphs", "Test Font", "0-255.pbf"), "utf8"), "pbf");
 });
 
 test("feature API reads paged GeoPackage features", async (context) => {

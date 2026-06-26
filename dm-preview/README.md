@@ -51,6 +51,30 @@ node ./dm-preview/bin/dm-preview.js bundle ./maplibre/dm.pmtiles ./public
 プレビュー画面の`index.html`、`assets/`、`vendor/`は出力しません。
 `OUTPUT`が既に存在する場合は空ディレクトリである必要があります。
 
+### スタイル編集
+
+`OUTPUT`を`preview`で開いた場合、プレビュー画面からDMスタイルを編集できます。
+`bundle`で作成した`OUTPUT`では既存の`style.json`を更新します。通常のプレビューで
+パッケージ同梱Styleを参照している場合は、保存時に`OUTPUT/style.json`と
+不足している`sprite/`、`glyphs/`を作成します。
+
+編集対象はMapLibre Style内のDMレイヤです。アイコン、ライン、ポリゴン、
+テキストの種別単位で色を一括変更できます。レイヤ単位では色と表示・非表示を
+変更できます。アイコン色は通常のPNG spriteを維持し、色変更後のsprite IDを
+追加して`layout.icon-image`へ適用します。
+
+保存時は`OUTPUT/style.json`を作成または更新します。アイコン色を変更した場合は、
+あわせて`OUTPUT/sprite/sprite.json`、`OUTPUT/sprite/sprite.png`、
+`OUTPUT/sprite/sprite@2x.json`、`OUTPUT/sprite/sprite@2x.png`を更新します。
+更新後の`OUTPUT`を再度`preview`で指定すると、保存済みのStyleとspriteが適用されます。
+
+スタイル編集API:
+
+```text
+GET /preview/api/style-editor/state
+PUT /preview/api/style-editor/state
+```
+
 地物一覧API:
 
 ```text
