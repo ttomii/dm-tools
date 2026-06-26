@@ -276,7 +276,10 @@ const APP_BASE = new URL(".", location.href);
     if (layer.type === "symbol" && layer.layout?.["icon-image"]) return ["icon-image"];
     if (layer.type === "symbol" && layer.layout?.["text-field"] && layer.paint?.["text-color"] !== undefined) return ["text-color"];
     if (layer.type === "line" && layer.paint?.["line-color"] !== undefined) return ["line-color"];
-    if (layer.type === "circle" && layer.paint?.["circle-color"] !== undefined) return ["circle-color"];
+    if (layer.type === "circle") {
+      if (layer.paint?.["circle-stroke-color"] !== undefined) return ["circle-stroke-color"];
+      if (layer.paint?.["circle-color"] !== undefined) return ["circle-color"];
+    }
     if (layer.type === "fill") {
       return ["fill-color", "fill-outline-color"].filter((property) => layer.paint?.[property] !== undefined);
     }
@@ -372,10 +375,14 @@ const APP_BASE = new URL(".", location.href);
     const source = sheet.context.getImageData(frame.x, frame.y, frame.width, frame.height);
     const [red, green, blue] = hexToRgb(color);
     for (let offset = 0; offset < source.data.length; offset += 4) {
-      if (source.data[offset + 3] === 0) continue;
+      const alpha = source.data[offset + 3];
+      if (alpha === 0) continue;
+      const brightness = (source.data[offset] + source.data[offset + 1] + source.data[offset + 2]) / 3;
+      const coverage = Math.round(alpha * (255 - brightness) / 255);
       source.data[offset] = red;
       source.data[offset + 1] = green;
       source.data[offset + 2] = blue;
+      source.data[offset + 3] = coverage;
     }
     const y = sheet.canvas.height;
     const nextCanvas = document.createElement("canvas");

@@ -143,7 +143,7 @@ test("style editor API reads and writes bundled style assets", async (context) =
         type: "circle",
         source: "dm",
         "source-layer": "dm_default_point",
-        paint: {"circle-color": "#000000"},
+        paint: {"circle-color": "rgba(0, 0, 0, 0)", "circle-stroke-color": "#000000"},
       },
     ],
   };
@@ -164,6 +164,7 @@ test("style editor API reads and writes bundled style assets", async (context) =
   assert.equal(body.editableLayers[0].id, "dm-1000-line-2500-line");
   assert.equal(body.editableLayers[1].colorKind, "polygon");
   assert.equal(body.editableLayers[2].colorKind, "icon");
+  assert.deepEqual(body.editableLayers[2].colorProperties, ["circle-stroke-color"]);
 
   const nextStyle = {...style, name: "edited"};
   const save = await fetch(`${origin}/preview/api/style-editor/state`, {

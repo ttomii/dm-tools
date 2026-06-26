@@ -198,7 +198,10 @@ const editableColorProperties = (layer) => {
   if (layer.type === "symbol" && layer.layout?.["icon-image"]) return ["icon-image"];
   if (layer.type === "symbol" && layer.layout?.["text-field"] && layer.paint?.["text-color"] !== undefined) return ["text-color"];
   if (layer.type === "line" && layer.paint?.["line-color"] !== undefined) return ["line-color"];
-  if (layer.type === "circle" && layer.paint?.["circle-color"] !== undefined) return ["circle-color"];
+  if (layer.type === "circle") {
+    if (layer.paint?.["circle-stroke-color"] !== undefined) return ["circle-stroke-color"];
+    if (layer.paint?.["circle-color"] !== undefined) return ["circle-color"];
+  }
   if (layer.type === "fill") {
     return ["fill-color", "fill-outline-color"].filter((property) => layer.paint?.[property] !== undefined);
   }
