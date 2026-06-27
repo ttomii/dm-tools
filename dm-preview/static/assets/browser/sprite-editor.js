@@ -8,9 +8,11 @@ export const recolorSpriteIcon = async ({iconId, color, map, spriteState, resour
     addRecoloredSpriteFrame(state.sprite2x, iconId, recoloredId, color);
     state.dirty = true;
   }
-  const runtimeFrame = state.sprite.json[recoloredId];
-  const imageData = state.sprite.context.getImageData(runtimeFrame.x, runtimeFrame.y, runtimeFrame.width, runtimeFrame.height);
-  if (!map.hasImage(recoloredId)) map.addImage(recoloredId, imageData);
+  if (!map.hasImage(recoloredId)) {
+    const runtimeFrame = state.sprite.json[recoloredId];
+    const imageData = state.sprite.context.getImageData(runtimeFrame.x, runtimeFrame.y, runtimeFrame.width, runtimeFrame.height);
+    map.addImage(recoloredId, imageData);
+  }
   return {spriteState: state, iconId: recoloredId};
 };
 

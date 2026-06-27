@@ -92,6 +92,14 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
     elements.styleEditorStatus.textContent = "未保存の変更があります";
   };
 
+  const isLayerIconColor = (id) => {
+    const layer = baseLayer(id);
+    return Boolean(layer && editableColorProperties(layer).includes("icon-image"));
+  };
+
+  const isKindIconColor = (kind) => state.styleEditorState.editableLayers
+    .some((layer) => layer.colorKind === kind && isLayerIconColor(layer.id));
+
   const applyLayerColor = async (id, color, dirty = true) => {
     setDetailTab("style-editor");
     const layer = baseLayer(id);
@@ -244,25 +252,37 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
   };
 
   const wireEvents = (manifest) => {
+    const paintColorScheduler = createLatestAsyncScheduler({
+      delay: 16,
+      onError: (error) => {
+        elements.styleEditorStatus.textContent = String(error);
+      },
+    });
+    const iconColorScheduler = createLatestAsyncScheduler({
+      delay: 180,
+      onError: (error) => {
+        elements.styleEditorStatus.textContent = String(error);
+      },
+    });
     elements.select.addEventListener("change", () => loadStyle(manifest));
     for (const [kind, input] of Object.entries(elements.styleKindInputs)) {
       input.addEventListener("input", () => {
-        applyKindColor(kind, input.value).catch((error) => {
-          elements.styleEditorStatus.textContent = String(error);
-        });
+        const scheduler = isKindIconColor(kind) ? iconColorScheduler : paintColorScheduler;
+        scheduler.schedule(() => applyKindColor(kind, input.value));
       });
     }
     elements.styleLayerSelect.addEventListener("change", renderSelectedStyleLayer);
     elements.styleLayerVisible.addEventListener("change", () => applyLayerVisibility(elements.styleLayerSelect.value, elements.styleLayerVisible.checked));
     elements.styleLayerColor.addEventListener("input", () => {
-      applyLayerColor(elements.styleLayerSelect.value, elements.styleLayerColor.value).catch((error) => {
-        elements.styleEditorStatus.textContent = String(error);
-      });
+      const scheduler = isLayerIconColor(elements.styleLayerSelect.value) ? iconColorScheduler : paintColorScheduler;
+      scheduler.schedule(() => applyLayerColor(elements.styleLayerSelect.value, elements.styleLayerColor.value));
     });
     elements.styleSave.addEventListener("click", () => {
-      saveStyleEditor(manifest).catch((error) => {
-        elements.styleEditorStatus.textContent = String(error);
-      });
+      Promise.all([paintColorScheduler.flush(), iconColorScheduler.flush()])
+        .then(() => saveStyleEditor(manifest))
+        .catch((error) => {
+          elements.styleEditorStatus.textContent = String(error);
+        });
     });
     elements.tabStyleEditor.addEventListener("click", () => setDetailTab("style-editor"));
     elements.tabFeatureDetails.addEventListener("click", () => setDetailTab("feature-details"));
@@ -331,4 +351,54 @@ const updateMapParameters = (location, history, map) => {
   url.searchParams.set("coords", `${center.lng},${center.lat}`);
   url.searchParams.set("scale", String(getScaleByZoom(map.getZoom(), center.lat)));
   history.replaceState("", "", url);
+};
+
+const createLatestAsyncScheduler = ({delay, onError}) => {
+  let latestTask = undefined;
+  let timer = undefined;
+  let running = false;
+  let queuedWhileRunning = false;
+  let activeTask = Promise.resolve();
+
+  const requestRun = () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      void runLatest();
+    }, delay);
+  };
+
+  const runLatest = async () => {
+    if (running) {
+      queuedWhileRunning = true;
+      return activeTask;
+    }
+    const task = latestTask;
+    if (!task) return;
+    running = true;
+    activeTask = (async () => {
+      try {
+        await task();
+      } catch (error) {
+        onError(error);
+      } finally {
+        running = false;
+        if (queuedWhileRunning && latestTask !== task) {
+          queuedWhileRunning = false;
+          await runLatest();
+        }
+      }
+    })();
+    return activeTask;
+  };
+
+  return {
+    flush: () => {
+      clearTimeout(timer);
+      return runLatest();
+    },
+    schedule: (task) => {
+      latestTask = task;
+      requestRun();
+    },
+  };
 };
