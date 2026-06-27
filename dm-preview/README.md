@@ -3,6 +3,8 @@
 `dm-converter`が生成したMapLibre出力をプレビューするNode.js CLIです。
 MapLibre出力ディレクトリ、preview、bundle、スタイル編集の共通説明は
 [MapLibre出力とプレビュー](../docs/maplibre-preview.md)を参照してください。
+ファイル構成は[dm-previewファイル構成](docs/structure.md)を
+参照してください。
 
 ## Requirements
 
@@ -59,9 +61,9 @@ MapLibre spriteを再生成する場合はImageMagickが必要です。
 npm run generate:maplibre-assets
 ```
 
-このコマンドは`maplibre/icons/source/`配下のSVG/BMP/PNGから
-`maplibre/icons/png/`、`maplibre/icons/icon-mapping.csv`、
-`maplibre/sprite/sprite.png`、`maplibre/sprite/sprite@2x.png`を
+このコマンドは`static/maplibre/icons/source/`配下のSVG/BMP/PNGから
+`static/maplibre/icons/png/`、`static/maplibre/icons/icon-mapping.csv`、
+`static/maplibre/sprite/sprite.png`、`static/maplibre/sprite/sprite@2x.png`を
 再生成します。
 
 変更したアイコンだけを既存spriteの同じ位置へ差分更新する場合は、

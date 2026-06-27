@@ -11,7 +11,7 @@ import {
 } from "../../src/core/sprite-policy.js";
 
 export const generateMaplibreAssets = ({packageRoot, selectedValues}) => {
-  const assetRoot = path.join(packageRoot, "maplibre");
+  const assetRoot = path.join(packageRoot, "static", "maplibre");
   const iconSource = path.join(assetRoot, "icons/source");
   const iconPng = path.join(assetRoot, "icons/png");
   const spriteRoot = path.join(assetRoot, "sprite");

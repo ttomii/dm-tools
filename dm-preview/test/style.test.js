@@ -7,7 +7,7 @@ import {fileURLToPath} from "node:url";
 // These tests pin the fixed MapLibre Style documents shipped in maplibre/ to the
 // DM rendering specification. They were ported from the Rust crate when style
 // generation moved to this Node package; the numeric expectations are the spec.
-const MAPLIBRE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "maplibre");
+const MAPLIBRE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "static", "maplibre");
 const readJson = (relative) => JSON.parse(readFileSync(path.join(MAPLIBRE, relative), "utf8"));
 
 const STYLE_2500 = readJson("style-2500.json");

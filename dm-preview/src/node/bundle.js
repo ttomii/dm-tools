@@ -45,14 +45,14 @@ const createStyle = async (manifest, pmtilesName) => {
   if (manifest.levels.length !== 1) {
     throw new InputError("bundle requires a manifest with exactly one level");
   }
-  const style = await readJson(packagePath("maplibre", `style-${manifest.levels[0]}.json`));
+  const style = await readJson(packagePath("static", "maplibre", `style-${manifest.levels[0]}.json`));
   return createBundledStyle(style, manifest, {pmtiles: pmtilesName});
 };
 
 const copyStyleAssets = async (destination) => {
   await Promise.all([
     copySpriteFiles(destination),
-    copyGlyphFiles(packagePath("maplibre", "glyphs"), path.join(destination, "glyphs")),
+    copyGlyphFiles(packagePath("static", "maplibre", "glyphs"), path.join(destination, "glyphs")),
   ]);
 };
 
@@ -60,7 +60,7 @@ const copySpriteFiles = async (destination) => {
   const spriteRoot = path.join(destination, "sprite");
   await mkdir(spriteRoot, {recursive: true});
   await Promise.all(["sprite.json", "sprite.png", "sprite@2x.json", "sprite@2x.png"]
-    .map((file) => cp(packagePath("maplibre", "sprite", file), path.join(spriteRoot, file))));
+    .map((file) => cp(packagePath("static", "maplibre", "sprite", file), path.join(spriteRoot, file))));
 };
 
 const copyGlyphFiles = async (source, destination) => {

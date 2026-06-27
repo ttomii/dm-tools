@@ -57,6 +57,7 @@ Node.jsパッケージがMapLibre出力ディレクトリをローカルHTTPサ�
 
 - [共通資料](docs/README.md)
 - [MapLibre出力とプレビュー](docs/maplibre-preview.md)
+- [dm-previewファイル構成](dm-preview/docs/structure.md)
 - [変換仕様](dm-converter/docs/conversion-specification.md)
 - [第三者ライセンス](dm-converter/docs/third-party-licenses.md)
 

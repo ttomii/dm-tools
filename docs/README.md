@@ -8,3 +8,4 @@ dm-tools全体に関わる資料です。
 
 - [dm-converter 変換仕様](../dm-converter/docs/conversion-specification.md)
 - [dm-preview README](../dm-preview/README.md)
+- [dm-previewファイル構成](../dm-preview/docs/structure.md)

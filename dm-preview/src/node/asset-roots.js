@@ -16,9 +16,9 @@ export const resolveVendorFile = (pkg, file) => {
 };
 
 export const createDefaultAssetRoots = () => ({
-  appAssets: packagePath("assets"),
-  indexHtml: packagePath("assets", "index.html"),
-  maplibreAssets: packagePath("maplibre"),
+  appAssets: packagePath("static", "assets"),
+  indexHtml: packagePath("static", "assets", "index.html"),
+  maplibreAssets: packagePath("static", "maplibre"),
   vendorFiles: createVendorFiles(resolveVendorFile),
 });
 

@@ -354,7 +354,7 @@ MapLibreの時計回り回転角へ変換した値です。
 ### Styleとアセット
 
 固定Style JSON（`style-2500.json`、`style-5000.json`）、sprite、glyphは
-Nodeパッケージ`../dm-preview/maplibre/`に同梱します。Rust側`dm-converter`は
+Nodeパッケージ`../dm-preview/static/maplibre/`に同梱します。Rust側`dm-converter`は
 これらを生成・出力しません。SLDから実行時生成もしません。
 
 Style・sprite・glyph・MapLibre GL JSはPreviewパッケージが配信し、変換結果へは

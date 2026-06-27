@@ -7,15 +7,14 @@
     "dm-preview": "./bin/dm-preview.js"
   },
   "files": [
-    "assets",
     "bin",
-    "maplibre",
+    "static",
     "src",
     "LICENSE",
     "THIRD_PARTY_LICENSES"
   ],
   "scripts": {
-    "check": "find bin src assets scripts -name '*.js' -o -name '*.mjs' | xargs -n1 node --check",
+    "check": "find bin src static scripts -name '*.js' -o -name '*.mjs' | xargs -n1 node --check",
     "test": "node --test",
     "generate:maplibre-assets": "node scripts/generate-maplibre-assets.mjs",
     "build": "bun build --compile bin/dm-preview.js --outfile dist/dm-preview && node scripts/build.mjs"
