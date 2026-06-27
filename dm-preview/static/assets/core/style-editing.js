@@ -46,6 +46,41 @@ export const colorKind = (layer) => {
 
 export const toHexColor = (value) => typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value) ? value : undefined;
 
+export const annotationTextField = () => ["coalesce", ["get", "TEXT"], ""];
+
+export const verticalLongSoundAnnotationTextField = () => [
+  "coalesce",
+  ["get", "TEXT_VERTICAL"],
+  ["get", "TEXT"],
+  "",
+];
+
+export const isVerticalAnnotationLayer = (layer) => (
+  isRecord(layer) &&
+  layer.source === "dm" &&
+  layer.type === "symbol" &&
+  typeof layer["source-layer"] === "string" &&
+  layer["source-layer"].endsWith("_text") &&
+  Array.isArray(layer.layout?.["text-writing-mode"]) &&
+  layer.layout["text-writing-mode"].includes("vertical")
+);
+
+export const setVerticalLongSoundAnnotationStyle = (style, enabled) => {
+  for (const layer of style?.layers ?? []) {
+    if (!isVerticalAnnotationLayer(layer)) continue;
+    layer.layout = {
+      ...layer.layout,
+      "text-field": enabled ? verticalLongSoundAnnotationTextField() : annotationTextField(),
+    };
+  }
+  return style;
+};
+
+export const verticalLongSoundAnnotationStyleEnabled = (style) => {
+  const layer = style?.layers?.find(isVerticalAnnotationLayer);
+  return Boolean(layer && sameJson(layer.layout?.["text-field"], verticalLongSoundAnnotationTextField()));
+};
+
 export const findLayerById = (style, id) => style?.layers?.find((layer) => layer.id === id);
 
 export const findBaseLayerForRuntime = (style, id) => style?.layers?.find((layer) => layer.id === id || id.startsWith(`${layer.id}-`));
@@ -57,5 +92,7 @@ export const runtimeLayerIds = (style, id) => style.layers
 export const layerVisibility = (layer) => layer?.layout?.visibility === "none" ? "none" : "visible";
 
 export const runtimeVisibility = ({dmVisible, layerVisible}) => dmVisible && layerVisible ? "visible" : "none";
+
+const sameJson = (left, right) => JSON.stringify(left) === JSON.stringify(right);
 
 const isRecord = (value) => typeof value === "object" && Boolean(value) && !Array.isArray(value);

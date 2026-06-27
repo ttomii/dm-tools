@@ -7,7 +7,9 @@ import {
   layerVisibility,
   runtimeLayerIds,
   runtimeVisibility,
+  setVerticalLongSoundAnnotationStyle,
   toHexColor,
+  verticalLongSoundAnnotationStyleEnabled,
 } from "../core/style-editing.js";
 import {createBundledStyle, createRuntimeStyle, styleLabel} from "../core/style-transform.js";
 import {getInitialCamera, getScaleByZoom} from "../core/map-scale.js";
@@ -81,6 +83,8 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
     }
     elements.styleLayerVisible.disabled = !state.styleEditorState.writable || layers.length === 0;
     elements.styleLayerColor.disabled = !state.styleEditorState.writable || layers.length === 0;
+    elements.styleVerticalLongSound.disabled = !state.styleEditorState.writable;
+    elements.styleVerticalLongSound.checked = verticalLongSoundAnnotationStyleEnabled(state.currentBaseStyle);
     elements.styleSave.disabled = !state.styleEditorState.writable || !state.styleDirty;
     elements.styleEditorStatus.textContent = state.styleEditorState.writable ? "保存できます" : "保存できません";
     renderSelectedStyleLayer();
@@ -145,6 +149,20 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
     layer.layout = {...layer.layout, visibility: visible ? "visible" : "none"};
     for (const layerId of getRuntimeLayerIds(id)) {
       state.map.setLayoutProperty(layerId, "visibility", runtimeVisibility({dmVisible: elements.dmToggle.checked, layerVisible: visible}));
+    }
+    markStyleDirty();
+  };
+
+  const applyVerticalLongSoundAnnotationStyle = (enabled) => {
+    setDetailTab("style-editor");
+    setVerticalLongSoundAnnotationStyle(state.currentBaseStyle, enabled);
+    for (const layer of state.currentBaseStyle.layers.filter((candidate) => candidate.source === "dm")) {
+      const textField = layer.layout?.["text-field"];
+      if (!textField || !Array.isArray(layer.layout?.["text-writing-mode"])) continue;
+      if (!layer.layout["text-writing-mode"].includes("vertical")) continue;
+      for (const layerId of getRuntimeLayerIds(layer.id)) {
+        state.map.setLayoutProperty(layerId, "text-field", textField);
+      }
     }
     markStyleDirty();
   };
@@ -273,6 +291,7 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
     }
     elements.styleLayerSelect.addEventListener("change", renderSelectedStyleLayer);
     elements.styleLayerVisible.addEventListener("change", () => applyLayerVisibility(elements.styleLayerSelect.value, elements.styleLayerVisible.checked));
+    elements.styleVerticalLongSound.addEventListener("change", () => applyVerticalLongSoundAnnotationStyle(elements.styleVerticalLongSound.checked));
     elements.styleLayerColor.addEventListener("input", () => {
       const scheduler = isLayerIconColor(elements.styleLayerSelect.value) ? iconColorScheduler : paintColorScheduler;
       scheduler.schedule(() => applyLayerColor(elements.styleLayerSelect.value, elements.styleLayerColor.value));

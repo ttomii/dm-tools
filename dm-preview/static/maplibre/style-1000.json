@@ -8470,6 +8470,10 @@
           "coalesce",
           [
             "get",
+            "TEXT_VERTICAL"
+          ],
+          [
+            "get",
             "TEXT"
           ],
           ""
@@ -8643,6 +8647,10 @@
       "layout": {
         "text-field": [
           "coalesce",
+          [
+            "get",
+            "TEXT_VERTICAL"
+          ],
           [
             "get",
             "TEXT"
@@ -8820,6 +8828,10 @@
           "coalesce",
           [
             "get",
+            "TEXT_VERTICAL"
+          ],
+          [
+            "get",
             "TEXT"
           ],
           ""
@@ -8993,6 +9005,10 @@
       "layout": {
         "text-field": [
           "coalesce",
+          [
+            "get",
+            "TEXT_VERTICAL"
+          ],
           [
             "get",
             "TEXT"
@@ -9170,6 +9186,10 @@
           "coalesce",
           [
             "get",
+            "TEXT_VERTICAL"
+          ],
+          [
+            "get",
             "TEXT"
           ],
           ""
@@ -9343,6 +9363,10 @@
       "layout": {
         "text-field": [
           "coalesce",
+          [
+            "get",
+            "TEXT_VERTICAL"
+          ],
           [
             "get",
             "TEXT"
@@ -9520,6 +9544,10 @@
           "coalesce",
           [
             "get",
+            "TEXT_VERTICAL"
+          ],
+          [
+            "get",
             "TEXT"
           ],
           ""
@@ -9693,6 +9721,10 @@
       "layout": {
         "text-field": [
           "coalesce",
+          [
+            "get",
+            "TEXT_VERTICAL"
+          ],
           [
             "get",
             "TEXT"
@@ -9870,6 +9902,10 @@
           "coalesce",
           [
             "get",
+            "TEXT_VERTICAL"
+          ],
+          [
+            "get",
             "TEXT"
           ],
           ""
@@ -10043,6 +10079,10 @@
       "layout": {
         "text-field": [
           "coalesce",
+          [
+            "get",
+            "TEXT_VERTICAL"
+          ],
           [
             "get",
             "TEXT"
@@ -10220,6 +10260,10 @@
           "coalesce",
           [
             "get",
+            "TEXT_VERTICAL"
+          ],
+          [
+            "get",
             "TEXT"
           ],
           ""
@@ -10393,6 +10437,10 @@
       "layout": {
         "text-field": [
           "coalesce",
+          [
+            "get",
+            "TEXT_VERTICAL"
+          ],
           [
             "get",
             "TEXT"
@@ -10570,6 +10618,10 @@
           "coalesce",
           [
             "get",
+            "TEXT_VERTICAL"
+          ],
+          [
+            "get",
             "TEXT"
           ],
           ""
@@ -10743,6 +10795,10 @@
       "layout": {
         "text-field": [
           "coalesce",
+          [
+            "get",
+            "TEXT_VERTICAL"
+          ],
           [
             "get",
             "TEXT"
@@ -10920,6 +10976,10 @@
           "coalesce",
           [
             "get",
+            "TEXT_VERTICAL"
+          ],
+          [
+            "get",
             "TEXT"
           ],
           ""
@@ -11093,6 +11153,10 @@
       "layout": {
         "text-field": [
           "coalesce",
+          [
+            "get",
+            "TEXT_VERTICAL"
+          ],
           [
             "get",
             "TEXT"
@@ -11270,6 +11334,10 @@
           "coalesce",
           [
             "get",
+            "TEXT_VERTICAL"
+          ],
+          [
+            "get",
             "TEXT"
           ],
           ""
@@ -11443,6 +11511,10 @@
       "layout": {
         "text-field": [
           "coalesce",
+          [
+            "get",
+            "TEXT_VERTICAL"
+          ],
           [
             "get",
             "TEXT"
@@ -11620,6 +11692,10 @@
           "coalesce",
           [
             "get",
+            "TEXT_VERTICAL"
+          ],
+          [
+            "get",
             "TEXT"
           ],
           ""
@@ -11793,6 +11869,10 @@
       "layout": {
         "text-field": [
           "coalesce",
+          [
+            "get",
+            "TEXT_VERTICAL"
+          ],
           [
             "get",
             "TEXT"
@@ -11970,6 +12050,10 @@
           "coalesce",
           [
             "get",
+            "TEXT_VERTICAL"
+          ],
+          [
+            "get",
             "TEXT"
           ],
           ""
@@ -12143,6 +12227,10 @@
       "layout": {
         "text-field": [
           "coalesce",
+          [
+            "get",
+            "TEXT_VERTICAL"
+          ],
           [
             "get",
             "TEXT"
@@ -12320,6 +12408,10 @@
           "coalesce",
           [
             "get",
+            "TEXT_VERTICAL"
+          ],
+          [
+            "get",
             "TEXT"
           ],
           ""
@@ -12493,6 +12585,10 @@
       "layout": {
         "text-field": [
           "coalesce",
+          [
+            "get",
+            "TEXT_VERTICAL"
+          ],
           [
             "get",
             "TEXT"
@@ -12670,6 +12766,10 @@
           "coalesce",
           [
             "get",
+            "TEXT_VERTICAL"
+          ],
+          [
+            "get",
             "TEXT"
           ],
           ""
@@ -12843,6 +12943,10 @@
       "layout": {
         "text-field": [
           "coalesce",
+          [
+            "get",
+            "TEXT_VERTICAL"
+          ],
           [
             "get",
             "TEXT"
@@ -13020,6 +13124,10 @@
           "coalesce",
           [
             "get",
+            "TEXT_VERTICAL"
+          ],
+          [
+            "get",
             "TEXT"
           ],
           ""
@@ -13193,6 +13301,10 @@
       "layout": {
         "text-field": [
           "coalesce",
+          [
+            "get",
+            "TEXT_VERTICAL"
+          ],
           [
             "get",
             "TEXT"
@@ -13370,6 +13482,10 @@
           "coalesce",
           [
             "get",
+            "TEXT_VERTICAL"
+          ],
+          [
+            "get",
             "TEXT"
           ],
           ""
@@ -13543,6 +13659,10 @@
       "layout": {
         "text-field": [
           "coalesce",
+          [
+            "get",
+            "TEXT_VERTICAL"
+          ],
           [
             "get",
             "TEXT"
@@ -13720,6 +13840,10 @@
           "coalesce",
           [
             "get",
+            "TEXT_VERTICAL"
+          ],
+          [
+            "get",
             "TEXT"
           ],
           ""
@@ -13893,6 +14017,10 @@
       "layout": {
         "text-field": [
           "coalesce",
+          [
+            "get",
+            "TEXT_VERTICAL"
+          ],
           [
             "get",
             "TEXT"
@@ -14070,6 +14198,10 @@
           "coalesce",
           [
             "get",
+            "TEXT_VERTICAL"
+          ],
+          [
+            "get",
             "TEXT"
           ],
           ""
@@ -14245,6 +14377,10 @@
           "coalesce",
           [
             "get",
+            "TEXT_VERTICAL"
+          ],
+          [
+            "get",
             "TEXT"
           ],
           ""
@@ -14418,6 +14554,10 @@
       "layout": {
         "text-field": [
           "coalesce",
+          [
+            "get",
+            "TEXT_VERTICAL"
+          ],
           [
             "get",
             "TEXT"

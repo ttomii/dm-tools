@@ -4,6 +4,12 @@ import {compareLayerName, expandDefaultStyleLayers, getDmSourceLayers, getSource
 import {featureMeta, featureTitle} from "../src/core/feature-labels.js";
 import {featureCenter, geometryBounds, normalizeHighlightProperties, toGeoJsonFeature} from "../src/core/geometry.js";
 import {getCoords, getInitialCamera, getScale, getScaleByZoom, getZoomByScale} from "../src/core/map-scale.js";
+import {
+  annotationTextField,
+  setVerticalLongSoundAnnotationStyle,
+  verticalLongSoundAnnotationStyleEnabled,
+  verticalLongSoundAnnotationTextField,
+} from "../src/core/style-editing.js";
 import {styleLabel} from "../src/core/style-transform.js";
 
 const plain = (value) => JSON.parse(JSON.stringify(value));
@@ -125,4 +131,36 @@ test("core reads camera parameters and converts map scale", () => {
   assert.equal(getScaleByZoom(zoom, 35.68), 2500);
   assert.equal(styleLabel("maplibre/style-2500.json", {levels: [500, 2500]}), "Level 2500");
   assert.equal(styleLabel("custom.json", {levels: [1000], styles: ["custom.json"]}), "Level 1000");
+});
+
+test("core toggles vertical annotation long sound mark text fields", () => {
+  const style = {
+    layers: [
+      {
+        id: "dm-7101-text-2500-label",
+        source: "dm",
+        "source-layer": "dm_7101_text",
+        type: "symbol",
+        layout: {"text-field": annotationTextField()},
+      },
+      {
+        id: "dm-7101-text-2500-label-vertical",
+        source: "dm",
+        "source-layer": "dm_7101_text",
+        type: "symbol",
+        layout: {
+          "text-field": annotationTextField(),
+          "text-writing-mode": ["vertical"],
+        },
+      },
+    ],
+  };
+
+  assert.equal(verticalLongSoundAnnotationStyleEnabled(style), false);
+  setVerticalLongSoundAnnotationStyle(style, true);
+  assert.deepEqual(style.layers[0].layout["text-field"], annotationTextField());
+  assert.deepEqual(style.layers[1].layout["text-field"], verticalLongSoundAnnotationTextField());
+  assert.equal(verticalLongSoundAnnotationStyleEnabled(style), true);
+  setVerticalLongSoundAnnotationStyle(style, false);
+  assert.deepEqual(style.layers[1].layout["text-field"], annotationTextField());
 });

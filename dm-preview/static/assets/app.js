@@ -25,6 +25,7 @@ const resolveElements = (document) => ({
   styleLayerSelect: document.getElementById("style-layer"),
   styleLayerVisible: document.getElementById("style-layer-visible"),
   styleLayerColor: document.getElementById("style-layer-color"),
+  styleVerticalLongSound: document.getElementById("style-vertical-long-sound"),
   styleKindInputs: {
     icon: document.getElementById("style-kind-icon"),
     line: document.getElementById("style-kind-line"),

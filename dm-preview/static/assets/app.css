@@ -26,9 +26,10 @@ header { grid-column: 1 / 3; }
 #style-editor-status { padding: .45rem .75rem; color: #555; border-bottom: 1px solid #eee; }
 .style-editor-controls { display: grid; gap: .5rem; padding: .6rem .75rem; }
 .style-kind-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .4rem .75rem; }
-.style-kind-controls label, .style-layer-controls { display: flex; align-items: center; gap: .35rem; min-width: 0; }
+.style-kind-controls label, .style-layer-controls, .style-option-toggle { display: flex; align-items: center; gap: .35rem; min-width: 0; }
 .style-kind-controls input[type="color"], .style-layer-controls input[type="color"] { width: 2.4rem; height: 1.7rem; padding: 0; }
 .style-layer-controls { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; }
+.style-option-toggle { color: #333; }
 #style-layer { min-width: 0; }
 #style-save { white-space: nowrap; }
 .feature-list-controls { display: flex; min-width: 0; gap: .4rem; }

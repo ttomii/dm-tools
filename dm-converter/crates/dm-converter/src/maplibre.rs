@@ -525,6 +525,9 @@ fn encode_feature(
     );
     if let Some(text) = input.feature.attributes.text.as_deref() {
         push_string(&mut tags, encoder, "TEXT", text);
+        if let Some(vertical_text) = vertical_annotation_text(text) {
+            push_string(&mut tags, encoder, "TEXT_VERTICAL", &vertical_text);
+        }
     }
     if let Some(size) = input.feature.attributes.size {
         push_double(&mut tags, encoder, "SIZE", size);
@@ -824,6 +827,11 @@ fn rotation(input: &ProjectedFeature) -> Option<f64> {
         90.0 - angle
     };
     Some(rotation.rem_euclid(360.0))
+}
+
+fn vertical_annotation_text(text: &str) -> Option<String> {
+    let vertical = text.replace('ー', "︱");
+    (vertical != text).then_some(vertical)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -1453,6 +1461,15 @@ mod tests {
             decoration: None,
         };
         assert_eq!(rotation(&projected), Some(350.0));
+    }
+
+    #[test]
+    fn vertical_annotation_text_replaces_long_sound_marks() {
+        assert_eq!(
+            vertical_annotation_text("スーパーー堤"),
+            Some("ス︱パ︱︱堤".to_string())
+        );
+        assert_eq!(vertical_annotation_text("河川"), None);
     }
 
     #[test]

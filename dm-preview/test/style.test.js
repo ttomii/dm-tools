@@ -3,6 +3,7 @@ import {readFileSync} from "node:fs";
 import path from "node:path";
 import {test} from "node:test";
 import {fileURLToPath} from "node:url";
+import {annotationTextField, verticalLongSoundAnnotationTextField} from "../src/core/style-editing.js";
 
 // These tests pin the fixed MapLibre Style documents shipped in maplibre/ to the
 // DM rendering specification. They were ported from the Rust crate when style
@@ -214,6 +215,8 @@ test("fixed styles split horizontal and vertical annotations", () => {
         ["coalesce", ["get", "ROTATION"], 90],
         90,
       ]);
+      assert.deepEqual(horizontal.layout["text-field"], annotationTextField(), horizontalId);
+      assert.deepEqual(vertical.layout["text-field"], verticalLongSoundAnnotationTextField(), `${horizontalId}-vertical`);
     }
   }
 });

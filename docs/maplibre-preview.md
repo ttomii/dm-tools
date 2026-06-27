@@ -80,6 +80,9 @@ Style内のPMTiles URL、sprite URL、glyph URLは、プレビュー時に配信
 テキストの種別単位で色を一括変更できます。レイヤ単位では色と表示・非表示を
 変更できます。アイコン色は通常のPNG spriteを維持し、色変更後のsprite IDを
 追加して`layout.icon-image`へ適用します。
+縦書き注記の長音記号`ー`を縦棒`︱`で表示する設定も切り替えできます。
+同梱Styleでは既定で有効です。表示用属性`TEXT_VERTICAL`がない地物は元の`TEXT`へ
+フォールバックします。
 
 保存時は`OUTPUT/style.json`を作成または更新します。アイコン色を変更した場合は、
 あわせて`OUTPUT/sprite/sprite.json`、`OUTPUT/sprite/sprite.png`、

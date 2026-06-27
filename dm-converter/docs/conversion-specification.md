@@ -166,9 +166,10 @@ DMの図郭原点、端数座標、座標単位を反映します。Z値は解�
 | `LINENO` | INTEGER | 任意 | 注記の線号 |
 | `VERTICAL` | INTEGER | 任意 | 注記の縦書き区分 |
 | `TEXT` | TEXT | 任意 | 注記文字列 |
+| `TEXT_VERTICAL` | TEXT | 任意 | 縦書き表示用注記文字列 |
 
 `ANGLE`は方向付き点または方向付き注記で取得できる場合に設定します。
-`SIZE`、`CHARSPACING`、`LINENO`、`VERTICAL`、`TEXT`は注記だけが使用します。
+`SIZE`、`CHARSPACING`、`LINENO`、`VERTICAL`、`TEXT`、`TEXT_VERTICAL`は注記だけが使用します。
 値を取得できない任意属性は未設定です。
 
 ### 補助図形
@@ -344,9 +345,11 @@ GeoPackageでは別レイヤーとなる`ZONE`と`LEVEL`の組み合わせを、
 - `LINENO`
 - `VERTICAL`
 - `ROTATION`
+- `TEXT_VERTICAL`
 
 値がない任意属性はMVTへ格納しません。`ROTATION`はGeoPackageの`ANGLE`から
-MapLibreの時計回り回転角へ変換した値です。
+MapLibreの時計回り回転角へ変換した値です。`TEXT_VERTICAL`は`TEXT`内の長音記号
+`ー`を縦書き表示用の`︱`へ置換した値で、置換が発生する注記だけに格納します。
 
 補助図形には上記の適用可能な属性に加え、`SRC_LAYER`、`SRC_USER_ID`、
 `SRC_DMFILE`、`SRC_DMCODE`、`DECORATION`、`DECO_INDEX`を格納します。
