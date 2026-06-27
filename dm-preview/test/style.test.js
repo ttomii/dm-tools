@@ -141,6 +141,32 @@ test("default fallback layers skip DM codes with fixed styles", () => {
   }
 });
 
+test("every fixed point, line, and polygon code is excluded from its default fallback", () => {
+  const defaults = [
+    ["point", (level) => `dm-default-point-${level}-symbol`],
+    ["line", (level) => `dm-default-line-${level}-line`],
+    ["polygon", (level) => `dm-default-polygon-${level}-outline`],
+  ];
+  for (const [style, level] of ALL_STYLES) {
+    for (const [kind, defaultId] of defaults) {
+      const pattern = new RegExp(`^dm_(\\d+)_${kind}$`);
+      const fixedCodes = new Set(
+        style.layers
+          .map((layer) => pattern.exec(layer["source-layer"] ?? ""))
+          .filter(Boolean)
+          .map((match) => Number(match[1])),
+      );
+      const exclusions = new Set(byId(style, defaultId(level)).filter[2][1][2][1]);
+      for (const code of fixedCodes) {
+        assert.ok(
+          exclusions.has(code),
+          `${defaultId(level)}: code ${code} has a fixed ${kind} layer but is not excluded from the default fallback`,
+        );
+      }
+    }
+  }
+});
+
 test("removed BMP symbols are no longer fixed point styles", () => {
   const removed = [3508, 3512, 3513, 3518, 3527, 3528, 3529, 3539, 4232, 6341];
   for (const [style, level] of ALL_STYLES) {
