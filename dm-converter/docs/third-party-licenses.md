@@ -11,7 +11,6 @@
 | libsqlite3-sys / SQLite bundled | SQLiteリンク | MIT / Public Domain |
 | thiserror | エラー型 | MIT OR Apache-2.0 |
 
-GPLコード、実行ファイル、ライブラリは本製品へリンクまたは同梱しません。
 # PMTiles生成で利用するRustクレート
 
 - `pmtiles` Rust crate: MIT OR Apache-2.0
