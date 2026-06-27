@@ -1,18 +1,5 @@
 import {createBrowserPreviewApp} from "./browser/browser-preview-app.js";
 
-const app = createBrowserPreviewApp({
-  elements: resolveElements(document),
-  location,
-  history,
-  maplibregl: window.maplibregl,
-  pmtiles: window.pmtiles,
-  fetch: window.fetch.bind(window),
-});
-
-app.start().catch((error) => {
-  document.getElementById("status").textContent = String(error);
-});
-
 const resolveElements = (document) => ({
   status: document.getElementById("status"),
   select: document.getElementById("style"),
@@ -44,4 +31,17 @@ const resolveElements = (document) => ({
     polygon: document.getElementById("style-kind-polygon"),
     text: document.getElementById("style-kind-text"),
   },
+});
+
+const app = createBrowserPreviewApp({
+  elements: resolveElements(document),
+  location,
+  history,
+  maplibregl: window.maplibregl,
+  pmtiles: window.pmtiles,
+  fetch: window.fetch.bind(window),
+});
+
+app.start().catch((error) => {
+  document.getElementById("status").textContent = String(error);
 });
