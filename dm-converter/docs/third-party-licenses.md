@@ -19,17 +19,6 @@ GPLコード、実行ファイル、ライブラリは本製品へリンクま�
 - `prost`: Apache-2.0
 - `geo`: MIT OR Apache-2.0
 
-# dm-preview Node.js package
-
-Preview機能のJavaScript依存は`../dm-preview/package-lock.json`を正本とします。
-配布時は同パッケージの`THIRD_PARTY_LICENSES`も含めます。
-
-- MapLibre GL JS 5.24.0: BSD-3-Clause
-- PMTiles JavaScript 4.3.0: BSD-3-Clause
-
-同パッケージに同梱するMapLibre資材（`../dm-preview/maplibre/`）のライセンスは
-資材内のライセンスファイルを正本とします。
-
-- BIZ UDPGothic Regular: SIL Open Font License 1.1（`maplibre/glyphs/OFL.txt`）
-- DM sprite source icons: CC0（`maplibre/icons/LICENSE.txt`）
-- fontnik 0.7.4（glyph生成ツール、出力をコミット）: BSD（`maplibre/glyphs/FONTNIK_LICENSE.txt`）
+`dm-preview`のJavaScript依存と同梱MapLibre資材のライセンスは
+[`../../dm-preview/THIRD_PARTY_LICENSES`](../../dm-preview/THIRD_PARTY_LICENSES)を
+参照してください。

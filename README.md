@@ -37,8 +37,7 @@ dm-converter convert INPUT OUTPUT [OPTIONS]
 ```
 
 DMファイル、DMディレクトリ、または本ツールで生成したGeoPackageを入力できます。
-引数、オプション、入力と出力の組み合わせは
-[CLIリファレンス](dm-converter/docs/cli.md)を参照してください。
+引数、オプション、終了コードは`dm-converter convert --help`を参照してください。
 
 ### MapLibreプレビュー
 
@@ -56,9 +55,9 @@ Node.jsパッケージがMapLibre出力ディレクトリをローカルHTTPサ�
 
 ### 詳細資料
 
-- [CLIリファレンス](dm-converter/docs/cli.md)
-- [出力仕様](dm-converter/docs/output-specification.md)
-- [検証手順](dm-converter/docs/verification.md)
+- [共通資料](docs/README.md)
+- [MapLibre出力とプレビュー](docs/maplibre-preview.md)
+- [変換仕様](dm-converter/docs/conversion-specification.md)
 - [第三者ライセンス](dm-converter/docs/third-party-licenses.md)
 
 ## ライセンス

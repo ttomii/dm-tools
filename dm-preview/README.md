@@ -1,6 +1,8 @@
 # dm-preview
 
 `dm-converter`が生成したMapLibre出力をプレビューするNode.js CLIです。
+MapLibre出力ディレクトリ、preview、bundle、スタイル編集の共通説明は
+[MapLibre出力とプレビュー](../docs/maplibre-preview.md)を参照してください。
 
 ## Requirements
 
@@ -25,18 +27,6 @@ node ./dm-preview/bin/dm-preview.js bundle PMTILES OUTPUT
 ```
 
 `preview`の`OUTPUT`は実行時のカレントディレクトリを基準に解決します。
-通常のプレビューでは、StyleやマップアセットはCLI自身のファイル位置から解決するため、
-起動ディレクトリに依存しません。`bundle`で作成した配布フォルダを渡した場合は、
-そのフォルダ内のStyleやマップアセットを優先して表示します。
-
-`OUTPUT/pmtiles-manifest.json`とPMTilesを検証し、出力ディレクトリを
-`127.0.0.1`の空きポートで配信します。PMTilesのRangeリクエストに対応します。
-`OUTPUT/{layerName}.gpkg`が存在する場合は、プレビュー画面のレイヤ別地物一覧と
-地物選択用APIにも使用します。
-
-MapLibreのStyle・sprite・glyphは本パッケージに同梱した`maplibre/`を配信します。
-出力ディレクトリにはこれらを含めず、Rust側`dm-converter`はPMTilesと
-`pmtiles-manifest.json`のみを生成します。
 
 配布用の静的ファイル一式を作成する場合は`bundle`を使います。
 
@@ -44,45 +34,11 @@ MapLibreのStyle・sprite・glyphは本パッケージに同梱した`maplibre/`
 node ./dm-preview/bin/dm-preview.js bundle ./maplibre/dm.pmtiles ./public
 ```
 
-`PMTILES`と同じフォルダにある`pmtiles-manifest.json`を検証し、`OUTPUT`に
-`style.json`、PMTiles、`sprite/`、`glyphs/`を配置します。
-`style.json`は同じフォルダにあるPMTiles、sprite、glyphsを相対参照します。
-作成した`OUTPUT`をHTTPサーバーに配置すると、MapLibre GL JSからそのまま参照できます。
-プレビュー画面の`index.html`、`assets/`、`vendor/`は出力しません。
-`OUTPUT`が既に存在する場合は空ディレクトリである必要があります。
+`bundle`の出力内容は[MapLibre出力とプレビュー](../docs/maplibre-preview.md)を参照してください。
 
 ### スタイル編集
 
-`OUTPUT`を`preview`で開いた場合、プレビュー画面からDMスタイルを編集できます。
-`bundle`で作成した`OUTPUT`では既存の`style.json`を更新します。通常のプレビューで
-パッケージ同梱Styleを参照している場合は、保存時に`OUTPUT/style.json`と
-不足している`sprite/`、`glyphs/`を作成します。
-
-編集対象はMapLibre Style内のDMレイヤです。アイコン、ライン、ポリゴン、
-テキストの種別単位で色を一括変更できます。レイヤ単位では色と表示・非表示を
-変更できます。アイコン色は通常のPNG spriteを維持し、色変更後のsprite IDを
-追加して`layout.icon-image`へ適用します。
-
-保存時は`OUTPUT/style.json`を作成または更新します。アイコン色を変更した場合は、
-あわせて`OUTPUT/sprite/sprite.json`、`OUTPUT/sprite/sprite.png`、
-`OUTPUT/sprite/sprite@2x.json`、`OUTPUT/sprite/sprite@2x.png`を更新します。
-更新後の`OUTPUT`を再度`preview`で指定すると、保存済みのStyleとspriteが適用されます。
-
-スタイル編集API:
-
-```text
-GET /preview/api/style-editor/state
-PUT /preview/api/style-editor/state
-```
-
-地物一覧API:
-
-```text
-GET /preview/api/features?layer=dm_7100_point&page=1&pageSize=50
-```
-
-`layer`はmanifestの`sourceLayers`に含まれるレイヤ名を指定します。
-レスポンスにはGeoJSONジオメトリ、bbox、中心座標、属性、総件数を含みます。
+スタイル編集とAPIは[MapLibre出力とプレビュー](../docs/maplibre-preview.md)を参照してください。
 
 既定ではブラウザを開きます。`--no-open`指定時はURLだけを標準出力へ表示します。
 入力またはmanifestのエラーは終了コード`2`、サーバーなどの実行時エラーは
