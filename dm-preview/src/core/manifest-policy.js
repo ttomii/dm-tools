@@ -19,7 +19,9 @@ export const parseManifest = (value) => {
   const sourceLayers = parseSourceLayers(value.sourceLayers);
   const bounds = parseBounds(value.bounds);
   const center = parseCenter(value.center);
-  return {version: 1, layerName: value.layerName, pmtiles, levels, sourceLayers, bounds, center};
+  const styles = parseStyles(value.styles);
+  const manifest = {version: 1, layerName: value.layerName, pmtiles, levels, sourceLayers, bounds, center};
+  return styles ? {...manifest, styles} : manifest;
 };
 
 export const parseStyleManifest = (style) => {
@@ -50,7 +52,7 @@ export const parseRelativePath = (value, name) => {
   return value;
 };
 
-export const manifestPaths = (manifest) => [manifest.pmtiles];
+export const manifestPaths = (manifest) => [manifest.pmtiles, ...(manifest.styles ?? [])];
 
 export const isStyle = (value) => isRecord(value) && value.version === 8 && isRecord(value.sources);
 
@@ -91,6 +93,14 @@ const parseCenter = (value) => {
     throw new InputError("manifest center is invalid");
   }
   return center;
+};
+
+const parseStyles = (value) => {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value) || !value.length) {
+    throw new InputError("manifest styles must be a non-empty array");
+  }
+  return value.map((style) => parseRelativePath(style, "styles"));
 };
 
 const parseNumberArray = (value, length, name) => {

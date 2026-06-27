@@ -17,6 +17,10 @@ const validManifest = {
 
 test("parseManifest accepts version one contract", () => {
   assert.deepEqual(parseManifest(validManifest), validManifest);
+  assert.deepEqual(parseManifest({...validManifest, styles: ["style.json"]}), {
+    ...validManifest,
+    styles: ["style.json"],
+  });
 });
 
 test("parseManifest rejects invalid coordinates, levels, and paths", () => {
@@ -28,6 +32,8 @@ test("parseManifest rejects invalid coordinates, levels, and paths", () => {
   assert.throws(() => parseManifest({...validManifest, levels: "2500"}));
   assert.throws(() => parseManifest({...validManifest, sourceLayers: "dm_2100_line"}));
   assert.throws(() => parseManifest({...validManifest, sourceLayers: ["dm_default_line"]}));
+  assert.throws(() => parseManifest({...validManifest, styles: []}));
+  assert.throws(() => parseManifest({...validManifest, styles: ["../style.json"]}));
 });
 
 test("readManifest requires the referenced pmtiles file", async (context) => {
@@ -80,4 +86,23 @@ test("readManifest derives preview manifest from style bundle", async (context) 
     levels: [2500],
     styles: ["style.json"],
   });
+});
+
+test("readManifest exposes saved style beside converter manifest", async (context) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "dm-preview-"));
+  context.after(() => rm(root, {recursive: true, force: true}));
+  const output = path.join(root, "output");
+  await mkdir(output);
+  await writeFile(path.join(output, "dm-sample.pmtiles"), "");
+  await writeFile(path.join(output, "pmtiles-manifest.json"), JSON.stringify(validManifest));
+  await writeFile(path.join(output, "style.json"), JSON.stringify({
+    version: 8,
+    sources: {
+      dm: {type: "vector", url: "pmtiles://./dm-sample.pmtiles"},
+    },
+    layers: [],
+  }));
+
+  const {manifest} = await readManifest(output);
+  assert.deepEqual(manifest, {...validManifest, styles: ["style.json"]});
 });

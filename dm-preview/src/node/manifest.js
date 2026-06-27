@@ -24,7 +24,7 @@ export const readManifest = async (output) => {
     await requireFile(root, manifest.pmtiles);
     return {manifest, root};
   }
-  const manifest = parseManifest(value);
+  const manifest = await withSavedStyle(parseManifest(value), root);
   await Promise.all(manifestPaths(manifest).map((relative) => requireFile(root, relative)));
   return {manifest, root};
 };
@@ -55,6 +55,16 @@ const readJson = async (file) => {
     wrapped.code = error.code;
     throw wrapped;
   }
+};
+
+const withSavedStyle = (manifest, root) => {
+  if (manifest.styles) return manifest;
+  return stat(path.join(root, "style.json"))
+    .then((metadata) => metadata.isFile() ? {...manifest, styles: ["style.json"]} : manifest)
+    .catch((error) => {
+      if (error.code === "ENOENT") return manifest;
+      throw error;
+    });
 };
 
 const requireFile = async (root, relative) => {
