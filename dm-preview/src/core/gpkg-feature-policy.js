@@ -21,11 +21,12 @@ export const parseFeatureQuery = (query) => {
 export const parseGpkgTable = (tableName, geometryType, srsId) => {
   const match = /^dm_(\d+)_(polygon|line|point|text)_(\d{2})_(\d+)(?:_deco_(polygon|line|point))?$/.exec(tableName);
   if (!match) return undefined;
-  const kind = match[5] ?? match[2];
+  const sourceKind = match[2];
+  const kind = match[5] ?? geometryKindForSourceKind(sourceKind);
   if (kind !== geometryKind(geometryType)) return undefined;
   const zone = zoneFromSrsId(srsId);
   if (!zone) throw new ApiInputError(`unsupported GeoPackage layer SRS: ${tableName}`, 500);
-  const sourceLayer = match[5] ? `dm_${match[1]}_${match[2]}_deco_${match[5]}` : `dm_${match[1]}_${match[2]}`;
+  const sourceLayer = match[5] ? `dm_${match[1]}_${sourceKind}_deco_${match[5]}` : `dm_${match[1]}_${sourceKind}`;
   return {tableName, sourceLayer, kind, zone};
 };
 
@@ -78,6 +79,8 @@ const geometryKind = (name) => ({
   LINESTRING: "line",
   POINT: "point",
 }[String(name).toUpperCase()]);
+
+const geometryKindForSourceKind = (kind) => kind === "text" ? "point" : kind;
 
 const zoneFromSrsId = (srsId) => {
   const zone = Number(srsId) - 6668;

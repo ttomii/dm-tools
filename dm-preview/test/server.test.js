@@ -249,6 +249,29 @@ test("feature API reads paged GeoPackage features", async (context) => {
   assert.ok(Number.isFinite(body.features[0].center[1]));
 });
 
+test("feature API reads text source layers stored as point geometries", async (context) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "dm-preview-"));
+  context.after(() => rm(root, {recursive: true, force: true}));
+  const output = path.join(root, "output");
+  await mkdir(output);
+  await writeFeatureGpkg(path.join(output, "dm-sample.gpkg"));
+  const manifest = {
+    layerName: "dm-sample",
+    sourceLayers: ["dm_8110_text"],
+  };
+  const {server, url} = await startServer(output, {databaseAdapter, manifest, projectGeometry});
+  context.after(() => server.close());
+  const origin = new URL(url).origin;
+
+  const response = await fetch(`${origin}/preview/api/features?layer=dm_8110_text`);
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.total, 1);
+  assert.equal(body.features[0].sourceLayer, "dm_8110_text");
+  assert.equal(body.features[0].geometry.type, "Point");
+  assert.equal(body.features[0].properties.TEXT, "大阪市");
+});
+
 test("feature API rejects invalid query values", async (context) => {
   const root = await mkdtemp(path.join(os.tmpdir(), "dm-preview-"));
   context.after(() => rm(root, {recursive: true, force: true}));
@@ -299,14 +322,30 @@ const writeFeatureGpkg = async (file) => {
       DMFILE TEXT NOT NULL,
       ANGLE REAL
     );
+    CREATE TABLE dm_8110_text_09_2500 (
+      fid INTEGER PRIMARY KEY AUTOINCREMENT,
+      geom BLOB NOT NULL,
+      USER_ID INTEGER NOT NULL,
+      DMCODE INTEGER,
+      DMFILE TEXT NOT NULL,
+      TEXT TEXT NOT NULL
+    );
   `);
   database.run(
     "INSERT INTO gpkg_contents (table_name, data_type, identifier, srs_id) VALUES (?, 'features', ?, ?)",
     ["dm_7100_point_09_2500", "dm_7100_point_09_2500", 6677],
   );
   database.run(
+    "INSERT INTO gpkg_contents (table_name, data_type, identifier, srs_id) VALUES (?, 'features', ?, ?)",
+    ["dm_8110_text_09_2500", "dm_8110_text_09_2500", 6677],
+  );
+  database.run(
     "INSERT INTO gpkg_geometry_columns VALUES (?, 'geom', 'POINT', ?, 0, 0)",
     ["dm_7100_point_09_2500", 6677],
+  );
+  database.run(
+    "INSERT INTO gpkg_geometry_columns VALUES (?, 'geom', 'POINT', ?, 0, 0)",
+    ["dm_8110_text_09_2500", 6677],
   );
   database.run(
     "INSERT INTO dm_7100_point_09_2500 (geom, USER_ID, DMCODE, DMFILE, ANGLE) VALUES (?, 101, 7100, 'a.dm', 0)",
@@ -315,6 +354,10 @@ const writeFeatureGpkg = async (file) => {
   database.run(
     "INSERT INTO dm_7100_point_09_2500 (geom, USER_ID, DMCODE, DMFILE, ANGLE) VALUES (?, 102, 7100, 'b.dm', 90)",
     [pointBlob(10, 20)],
+  );
+  database.run(
+    "INSERT INTO dm_8110_text_09_2500 (geom, USER_ID, DMCODE, DMFILE, TEXT) VALUES (?, 201, 8110, 'c.dm', '大阪市')",
+    [pointBlob(30, 40)],
   );
   await writeFile(file, database.export());
   database.close();
