@@ -13,6 +13,9 @@ const MAJOR_DASH_CYCLE_MM: f64 = 8.0;
 const PIPE_SYMBOL_INTERVAL_MM: f64 = 3.0;
 const PIPE_SYMBOL_DIAMETER_MM: f64 = 0.2;
 const PIPE_SYMBOL_ARC_SEGMENTS: usize = 8;
+const ATTACHED_TRIANGLE_INTERVAL_MM: f64 = 10.0;
+const ATTACHED_TRIANGLE_BASE_MM: f64 = 0.8;
+const ATTACHED_TRIANGLE_SIDE_MM: f64 = 0.5;
 
 #[derive(Debug, Clone, Copy)]
 struct Vec2 {
@@ -56,6 +59,12 @@ enum LineDecorationSpec {
         length_mm: f64,
         one_sided_right: bool,
         along_tangent: bool,
+    },
+    AttachedTriangles {
+        decoration: &'static str,
+        interval_mm: f64,
+        base_mm: f64,
+        side_mm: f64,
     },
     Semicircles {
         decoration: &'static str,
@@ -101,6 +110,11 @@ const DECORATION_DEFS: &[DecorationDef] = &[
         dmcode: 2305,
         kind: GeometryKind::Line,
         specs: perpendicular_tick_specs,
+    },
+    DecorationDef {
+        dmcode: 2306,
+        kind: GeometryKind::Line,
+        specs: attached_triangle_specs,
     },
     DecorationDef {
         dmcode: 4262,
@@ -227,6 +241,29 @@ pub fn generate(
                     rows.len() as i64,
                 ));
             }
+            LineDecorationSpec::AttachedTriangles {
+                decoration,
+                interval_mm,
+                base_mm,
+                side_mm,
+            } => {
+                let Geometry::LineString(points) = &feature.geometry else {
+                    continue;
+                };
+                rows.extend(attached_triangle_features(
+                    feature,
+                    &key,
+                    source_layer,
+                    source_user_id,
+                    points,
+                    level,
+                    decoration,
+                    interval_mm,
+                    base_mm,
+                    side_mm,
+                    rows.len() as i64,
+                ));
+            }
             LineDecorationSpec::Semicircles {
                 decoration,
                 interval_mm,
@@ -336,6 +373,15 @@ fn perpendicular_tick_specs() -> Vec<LineDecorationSpec> {
         length_mm: 0.6,
         one_sided_right: false,
         along_tangent: false,
+    }]
+}
+
+fn attached_triangle_specs() -> Vec<LineDecorationSpec> {
+    vec![LineDecorationSpec::AttachedTriangles {
+        decoration: "attached_triangles",
+        interval_mm: ATTACHED_TRIANGLE_INTERVAL_MM,
+        base_mm: ATTACHED_TRIANGLE_BASE_MM,
+        side_mm: ATTACHED_TRIANGLE_SIDE_MM,
     }]
 }
 
@@ -609,6 +655,73 @@ fn line_symbol_features(
         distance += interval;
     }
     rows
+}
+
+#[allow(clippy::too_many_arguments)]
+fn attached_triangle_features(
+    feature: &Feature,
+    key: &DecorationLayerKey,
+    source_layer: &str,
+    source_user_id: i64,
+    points: &[Coordinate],
+    level: i64,
+    decoration: &str,
+    interval_mm: f64,
+    base_mm: f64,
+    side_mm: f64,
+    start_index: i64,
+) -> Vec<DecorationFeature> {
+    let total = line_length(points);
+    let interval = mm_to_meter(interval_mm, level);
+    let margin = mm_to_meter(0.5, level);
+    let base = mm_to_meter(base_mm, level);
+    let height = mm_to_meter(attached_triangle_height_mm(base_mm, side_mm), level);
+    let chain_length = base * 2.0;
+    if interval < MIN_DECORATION_LENGTH
+        || base < MIN_DECORATION_LENGTH
+        || height < MIN_DECORATION_LENGTH
+        || total <= margin * 2.0 + chain_length
+    {
+        return Vec::new();
+    }
+
+    let mut rows = Vec::new();
+    let mut distance = margin;
+    while distance + chain_length <= total - margin {
+        if let Some(sample) = sample_at(points, distance) {
+            let geometry = attached_triangle_chain(sample, base, height);
+            if let Some(row) = decoration_feature(
+                feature,
+                key,
+                source_layer,
+                source_user_id,
+                decoration,
+                start_index + rows.len() as i64 + 1,
+                Geometry::LineString(geometry),
+            ) {
+                rows.push(row);
+            }
+        }
+        distance += interval;
+    }
+    rows
+}
+
+fn attached_triangle_height_mm(base_mm: f64, side_mm: f64) -> f64 {
+    let half_base = base_mm / 2.0;
+    (side_mm * side_mm - half_base * half_base).sqrt()
+}
+
+fn attached_triangle_chain(sample: Sample, base: f64, height: f64) -> Vec<Coordinate> {
+    let tangent = sample.tangent;
+    let left = tangent.left_normal();
+    let right = tangent.right_normal();
+    let p0 = sample.point;
+    let p1 = translate(p0, tangent.scale(base));
+    let p2 = translate(p0, tangent.scale(base * 2.0));
+    let apex1 = translate(p0, tangent.scale(base / 2.0).add(right.scale(height)));
+    let apex2 = translate(p0, tangent.scale(base * 1.5).add(left.scale(height)));
+    vec![p0, apex1, p1, apex2, p2]
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -1285,7 +1398,10 @@ mod tests {
             GeometryKind::Line
         );
         let rows = generate(&feature, &key, "dm_2305_line_08_2500", 1);
-        assert!(rows.iter().all(|row| row.decoration == "perpendicular_tick"));
+        assert!(
+            rows.iter()
+                .all(|row| row.decoration == "perpendicular_tick")
+        );
 
         let first_points = line_points(&rows[0].geometry);
         assert_coordinate(first_points[0], 1.25, -0.75);
@@ -1295,6 +1411,33 @@ mod tests {
         let second_points = line_points(&rows[1].geometry);
         assert_coordinate(second_points[0], 13.75, -0.75);
         assert_coordinate(second_points[1], 13.75, 0.75);
+    }
+
+    #[test]
+    fn generates_code_2306_attached_triangle_sides_without_bases() {
+        let feature = line_feature(2306);
+        let key = LayerKey::from_feature(&feature);
+        assert_eq!(
+            decoration_layer_key_for(&feature, &key).unwrap().kind,
+            GeometryKind::Line
+        );
+        let rows = generate(&feature, &key, "dm_2306_line_08_2500", 1);
+        assert!(
+            rows.iter()
+                .all(|row| row.decoration == "attached_triangles")
+        );
+
+        let first_points = line_points(&rows[0].geometry);
+        assert_coordinate(first_points[0], 1.25, 0.0);
+        assert_coordinate(first_points[1], 2.25, -0.75);
+        assert_coordinate(first_points[2], 3.25, 0.0);
+        assert_coordinate(first_points[3], 4.25, 0.75);
+        assert_coordinate(first_points[4], 5.25, 0.0);
+        assert_length(&first_points[0..3], 1.25);
+        assert_length(&first_points[2..5], 1.25);
+
+        let second_points = line_points(&rows[1].geometry);
+        assert_coordinate(second_points[0], 26.25, 0.0);
     }
 
     #[test]

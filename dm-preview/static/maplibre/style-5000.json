@@ -1932,7 +1932,7 @@
         5000
       ],
       "type": "line",
-      "minzoom": 15,
+      "minzoom": 14,
       "paint": {
         "line-color": "#000000",
         "line-width": [
@@ -1944,10 +1944,42 @@
           [
             "zoom"
           ],
-          15,
+          14,
           0.1293685,
           24,
-          66.236673
+          132.473346
+        ]
+      }
+    },
+    {
+      "id": "dm-2306-line-5000-decoration",
+      "source": "dm",
+      "source-layer": "dm_2306_line_deco_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
         ]
       }
     },

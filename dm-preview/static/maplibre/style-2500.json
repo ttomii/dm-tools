@@ -1952,6 +1952,38 @@
       }
     },
     {
+      "id": "dm-2306-line-2500-decoration",
+      "source": "dm",
+      "source-layer": "dm_2306_line_deco_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        2500
+      ],
+      "type": "line",
+      "minzoom": 15,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          15,
+          0.1293685,
+          24,
+          66.236673
+        ]
+      }
+    },
+    {
       "id": "dm-2309-line-2500-line",
       "source": "dm",
       "source-layer": "dm_2309_line",

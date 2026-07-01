@@ -805,6 +805,63 @@ test("code 2305 base and perpendicular ticks are zero point three millimeter sol
   }
 });
 
+test("code 2306 base and attached triangles are zero point one millimeter solid lines", () => {
+  const widths = new Map([
+    [500, [15, 0.0258737, 13.2473346]],
+    [1000, [15, 0.0258737, 13.2473346]],
+    [2500, [15, 0.1293685, 66.236673]],
+    [5000, [14, 0.1293685, 132.473346]],
+  ]);
+  for (const [style, level] of ALL_STYLES) {
+    const [minzoom, widthAtMinzoom, width24] = widths.get(level);
+    const id = `dm-2306-line-${level}-line`;
+    const layer = byId(style, id);
+    assert.equal(layer.type, "line", id);
+    assert.equal(layer["source-layer"], "dm_2306_line", id);
+    assert.equal(layer.minzoom, minzoom, id);
+    assert.equal(layer.paint["line-color"], "#000000", id);
+    assert.equal(layer.paint["line-dasharray"], undefined, id);
+    assert.deepEqual(layer.paint["line-width"], [
+      "interpolate",
+      ["exponential", 2],
+      ["zoom"],
+      minzoom,
+      widthAtMinzoom,
+      24,
+      width24,
+    ]);
+  }
+
+  for (const [style, level] of STYLES) {
+    const [minzoom, widthAtMinzoom, width24] = widths.get(level);
+    const id = `dm-2306-line-${level}-decoration`;
+    const layer = byId(style, id);
+    assert.equal(layer.type, "line", id);
+    assert.equal(layer["source-layer"], "dm_2306_line_deco_line", id);
+    assert.equal(layer.minzoom, minzoom, id);
+    assert.equal(layer.paint["line-color"], "#000000", id);
+    assert.equal(layer.paint["line-dasharray"], undefined, id);
+    assert.deepEqual(layer.filter, [
+      "==",
+      ["get", "LEVEL"],
+      level,
+    ]);
+    assert.deepEqual(layer.paint["line-width"], [
+      "interpolate",
+      ["exponential", 2],
+      ["zoom"],
+      minzoom,
+      widthAtMinzoom,
+      24,
+      width24,
+    ]);
+  }
+
+  for (const [style, level] of LOW_LEVEL_STYLES) {
+    assert.equal(style.layers.some((layer) => layer.id === `dm-2306-line-${level}-decoration`), false);
+  }
+});
+
 test("codes 4265 and 6110 are zero point one millimeter solid lines", () => {
   const cases = [
     [STYLE_2500, 2500, 15, 0.1293685, 66.236673],
