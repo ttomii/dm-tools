@@ -751,7 +751,7 @@ test("code 2227 is a black zero point three millimeter dashed line for level 500
   }
 });
 
-test("code 2305 is a zero point three millimeter solid line", () => {
+test("code 2305 base and perpendicular ticks are zero point three millimeter solid lines", () => {
   const widths = new Map([
     [500, [0.03881055, 39.7420038]],
     [1000, [0.03881055, 39.7420038]],
@@ -775,6 +775,33 @@ test("code 2305 is a zero point three millimeter solid line", () => {
       24,
       width24,
     ]);
+  }
+
+  for (const [style, level] of STYLES) {
+    const id = `dm-2305-line-${level}-decoration`;
+    const layer = byId(style, id);
+    assert.equal(layer.type, "line", id);
+    assert.equal(layer["source-layer"], "dm_2305_line_deco_line", id);
+    assert.equal(layer.paint["line-color"], "#000000", id);
+    assert.equal(layer.paint["line-dasharray"], undefined, id);
+    assert.deepEqual(layer.filter, [
+      "==",
+      ["get", "LEVEL"],
+      level,
+    ]);
+    assert.deepEqual(layer.paint["line-width"], [
+      "interpolate",
+      ["exponential", 2],
+      ["zoom"],
+      14,
+      0.19405275,
+      24,
+      198.710019,
+    ]);
+  }
+
+  for (const [style, level] of LOW_LEVEL_STYLES) {
+    assert.equal(style.layers.some((layer) => layer.id === `dm-2305-line-${level}-decoration`), false);
   }
 });
 

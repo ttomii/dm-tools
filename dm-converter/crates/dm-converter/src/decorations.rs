@@ -98,6 +98,11 @@ const DECORATION_DEFS: &[DecorationDef] = &[
         specs: bridge_pier_specs,
     },
     DecorationDef {
+        dmcode: 2305,
+        kind: GeometryKind::Line,
+        specs: perpendicular_tick_specs,
+    },
+    DecorationDef {
         dmcode: 4262,
         kind: GeometryKind::Polygon,
         specs: pipe_symbol_specs,
@@ -320,6 +325,16 @@ fn bridge_pier_specs() -> Vec<LineDecorationSpec> {
         interval_mm: 25.0,
         length_mm: 1.0,
         one_sided_right: true,
+        along_tangent: false,
+    }]
+}
+
+fn perpendicular_tick_specs() -> Vec<LineDecorationSpec> {
+    vec![LineDecorationSpec::LineSymbols {
+        decoration: "perpendicular_tick",
+        interval_mm: 5.0,
+        length_mm: 0.6,
+        one_sided_right: false,
         along_tangent: false,
     }]
 }
@@ -1259,6 +1274,27 @@ mod tests {
         assert_coordinate(first_points[0], 1.25, 0.0);
         assert_coordinate(first_points[1], 1.25, -1.25);
         assert_length(first_points, 1.25);
+    }
+
+    #[test]
+    fn generates_code_2305_centered_perpendicular_ticks() {
+        let feature = line_feature(2305);
+        let key = LayerKey::from_feature(&feature);
+        assert_eq!(
+            decoration_layer_key_for(&feature, &key).unwrap().kind,
+            GeometryKind::Line
+        );
+        let rows = generate(&feature, &key, "dm_2305_line_08_2500", 1);
+        assert!(rows.iter().all(|row| row.decoration == "perpendicular_tick"));
+
+        let first_points = line_points(&rows[0].geometry);
+        assert_coordinate(first_points[0], 1.25, -0.75);
+        assert_coordinate(first_points[1], 1.25, 0.75);
+        assert_length(first_points, 1.5);
+
+        let second_points = line_points(&rows[1].geometry);
+        assert_coordinate(second_points[0], 13.75, -0.75);
+        assert_coordinate(second_points[1], 13.75, 0.75);
     }
 
     #[test]
