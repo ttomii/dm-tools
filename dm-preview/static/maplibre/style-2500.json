@@ -404,6 +404,9 @@
       ],
       "type": "line",
       "minzoom": 14,
+      "layout": {
+        "visibility": "none"
+      },
       "paint": {
         "line-color": "#000000",
         "line-width": [
@@ -425,6 +428,38 @@
           4.333333,
           1.333333,
           4.333333
+        ]
+      }
+    },
+    {
+      "id": "dm-1101-line-2500-decoration",
+      "source": "dm",
+      "source-layer": "dm_1101_line_deco_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        2500
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.19405275,
+          24,
+          198.710019
         ]
       }
     },

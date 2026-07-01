@@ -864,6 +864,42 @@ test("code 1106 repeats five millimeter dashes with one millimeter gaps", () => 
   }
 });
 
+test("code 1101 hides the base dash line and renders the exact pattern as decorations", () => {
+  const widths = new Map([
+    [500, [0.03881055, 39.7420038]],
+    [1000, [0.03881055, 39.7420036]],
+    [2500, [0.19405275, 198.710019]],
+    [5000, [0.19405275, 198.710019]],
+  ]);
+  for (const [style, level] of ALL_STYLES) {
+    const [width14, width24] = widths.get(level);
+    const base = byId(style, `dm-1101-line-${level}-line`);
+    assert.equal(base.type, "line");
+    assert.equal(base["source-layer"], "dm_1101_line");
+    assert.equal(base.layout.visibility, "none");
+    assert.deepEqual(base.paint["line-dasharray"], [16.666667, 4.333333, 1.333333, 4.333333]);
+
+    const decoration = byId(style, `dm-1101-line-${level}-decoration`);
+    assert.equal(decoration.type, "line");
+    assert.equal(decoration["source-layer"], "dm_1101_line_deco_line");
+    assert.equal(decoration.paint["line-dasharray"], undefined);
+    assert.deepEqual(decoration.filter, [
+      "==",
+      ["get", "LEVEL"],
+      level,
+    ]);
+    assert.deepEqual(decoration.paint["line-width"], [
+      "interpolate",
+      ["exponential", 2],
+      ["zoom"],
+      14,
+      width14,
+      24,
+      width24,
+    ]);
+  }
+});
+
 const assertUnfilledCircle = (prefix, cases) => {
   for (const [style, level, radius15, radius24, stroke15, stroke24] of cases) {
     const id = `${prefix}-point-${level}-symbol`;

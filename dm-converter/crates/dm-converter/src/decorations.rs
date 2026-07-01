@@ -5,6 +5,11 @@ use dm_parser::{Coordinate, Feature, Geometry, GeometryKind};
 
 const MIN_DECORATION_LENGTH: f64 = 0.01;
 const BRIDGE_END_DIAG_LEN_MM: f64 = 0.6;
+const MAJOR_DASH_Y_BRANCH_LEN_MM: f64 = 0.5;
+const MAJOR_DASH_LENGTH_MM: f64 = 5.0;
+const MINOR_DASH_LENGTH_MM: f64 = 0.4;
+const MAJOR_TO_MINOR_DASH_GAP_MM: f64 = 1.3;
+const MAJOR_DASH_CYCLE_MM: f64 = 8.0;
 const PIPE_SYMBOL_INTERVAL_MM: f64 = 3.0;
 const PIPE_SYMBOL_DIAMETER_MM: f64 = 0.2;
 const PIPE_SYMBOL_ARC_SEGMENTS: usize = 8;
@@ -30,6 +35,16 @@ struct Segment {
 
 #[derive(Debug, Clone, Copy)]
 enum LineDecorationSpec {
+    MajorDashEnds {
+        major_decoration: &'static str,
+        minor_decoration: &'static str,
+        end_decoration: &'static str,
+        branch_length_mm: f64,
+        dash_length_mm: f64,
+        minor_dash_length_mm: f64,
+        major_to_minor_gap_mm: f64,
+        cycle_mm: f64,
+    },
     BridgeEnd {
         decoration: &'static str,
         length_mm: f64,
@@ -57,6 +72,11 @@ struct DecorationDef {
 }
 
 const DECORATION_DEFS: &[DecorationDef] = &[
+    DecorationDef {
+        dmcode: 1101,
+        kind: GeometryKind::Line,
+        specs: major_dash_end_specs,
+    },
     DecorationDef {
         dmcode: 2203,
         kind: GeometryKind::Line,
@@ -125,6 +145,37 @@ pub fn generate(
     let mut rows = Vec::new();
     for spec in specs {
         match spec {
+            LineDecorationSpec::MajorDashEnds {
+                major_decoration,
+                minor_decoration,
+                end_decoration,
+                branch_length_mm,
+                dash_length_mm,
+                minor_dash_length_mm,
+                major_to_minor_gap_mm,
+                cycle_mm,
+            } => {
+                let Geometry::LineString(points) = &feature.geometry else {
+                    continue;
+                };
+                rows.extend(major_dash_end_features(
+                    feature,
+                    &key,
+                    source_layer,
+                    source_user_id,
+                    points,
+                    level,
+                    major_decoration,
+                    minor_decoration,
+                    end_decoration,
+                    branch_length_mm,
+                    dash_length_mm,
+                    minor_dash_length_mm,
+                    major_to_minor_gap_mm,
+                    cycle_mm,
+                    rows.len() as i64,
+                ));
+            }
             LineDecorationSpec::BridgeEnd {
                 decoration,
                 length_mm,
@@ -204,8 +255,16 @@ fn decoration_geometry_kind(dmcode: i64) -> GeometryKind {
 
 fn is_decoration_target(feature: &Feature) -> bool {
     decoration_def(feature.dmcode).is_some_and(|def| def.kind == feature.geometry_kind)
-        && matches!(feature.map_level, Some(2500 | 5000))
+        && is_supported_decoration_level(feature.dmcode, feature.map_level)
         && feature.attributes.dmfigtype != Some(99)
+}
+
+fn is_supported_decoration_level(dmcode: i64, level: Option<i64>) -> bool {
+    if dmcode == 1101 {
+        matches!(level, Some(500 | 1000 | 2500 | 5000))
+    } else {
+        matches!(level, Some(2500 | 5000))
+    }
 }
 
 fn specs_for(dmcode: i64) -> Vec<LineDecorationSpec> {
@@ -216,6 +275,19 @@ fn specs_for(dmcode: i64) -> Vec<LineDecorationSpec> {
 
 fn decoration_def(dmcode: i64) -> Option<&'static DecorationDef> {
     DECORATION_DEFS.iter().find(|def| def.dmcode == dmcode)
+}
+
+fn major_dash_end_specs() -> Vec<LineDecorationSpec> {
+    vec![LineDecorationSpec::MajorDashEnds {
+        major_decoration: "major_dash",
+        minor_decoration: "minor_dash",
+        end_decoration: "major_dash_end",
+        branch_length_mm: MAJOR_DASH_Y_BRANCH_LEN_MM,
+        dash_length_mm: MAJOR_DASH_LENGTH_MM,
+        minor_dash_length_mm: MINOR_DASH_LENGTH_MM,
+        major_to_minor_gap_mm: MAJOR_TO_MINOR_DASH_GAP_MM,
+        cycle_mm: MAJOR_DASH_CYCLE_MM,
+    }]
 }
 
 fn bridge_end_specs() -> Vec<LineDecorationSpec> {
@@ -268,6 +340,147 @@ fn wall_symbol_specs() -> Vec<LineDecorationSpec> {
         one_sided_right: true,
         along_tangent: false,
     }]
+}
+
+#[allow(clippy::too_many_arguments)]
+fn major_dash_end_features(
+    feature: &Feature,
+    key: &DecorationLayerKey,
+    source_layer: &str,
+    source_user_id: i64,
+    points: &[Coordinate],
+    level: i64,
+    major_decoration: &str,
+    minor_decoration: &str,
+    end_decoration: &str,
+    branch_length_mm: f64,
+    dash_length_mm: f64,
+    minor_dash_length_mm: f64,
+    major_to_minor_gap_mm: f64,
+    cycle_mm: f64,
+    start_index: i64,
+) -> Vec<DecorationFeature> {
+    let total = line_length(points);
+    let branch_len = mm_to_meter(branch_length_mm, level);
+    let dash_len = mm_to_meter(dash_length_mm, level);
+    let minor_dash_len = mm_to_meter(minor_dash_length_mm, level);
+    let major_to_minor_gap = mm_to_meter(major_to_minor_gap_mm, level);
+    let cycle = mm_to_meter(cycle_mm, level);
+    if branch_len < MIN_DECORATION_LENGTH
+        || dash_len < MIN_DECORATION_LENGTH
+        || minor_dash_len < MIN_DECORATION_LENGTH
+        || cycle <= dash_len + major_to_minor_gap + minor_dash_len
+    {
+        return Vec::new();
+    }
+
+    let mut rows = Vec::new();
+    let mut dash_start = 0.0;
+    while dash_start < total {
+        if let Some(geometry) = line_slice(points, dash_start, (dash_start + dash_len).min(total)) {
+            if let Some(row) = decoration_feature(
+                feature,
+                key,
+                source_layer,
+                source_user_id,
+                major_decoration,
+                start_index + rows.len() as i64 + 1,
+                Geometry::LineString(geometry),
+            ) {
+                rows.push(row);
+            }
+        }
+
+        if let Some(sample) = sample_at(points, dash_start) {
+            rows.extend(major_dash_end_branches(
+                feature,
+                key,
+                source_layer,
+                source_user_id,
+                end_decoration,
+                start_index + rows.len() as i64,
+                sample,
+                true,
+                branch_len,
+            ));
+        }
+
+        let dash_end = dash_start + dash_len;
+        if dash_end <= total {
+            if let Some(sample) = sample_at(points, dash_end) {
+                rows.extend(major_dash_end_branches(
+                    feature,
+                    key,
+                    source_layer,
+                    source_user_id,
+                    end_decoration,
+                    start_index + rows.len() as i64,
+                    sample,
+                    false,
+                    branch_len,
+                ));
+            }
+        }
+
+        let minor_start = dash_start + dash_len + major_to_minor_gap;
+        if minor_start < total {
+            if let Some(geometry) = line_slice(
+                points,
+                minor_start,
+                (minor_start + minor_dash_len).min(total),
+            ) {
+                if let Some(row) = decoration_feature(
+                    feature,
+                    key,
+                    source_layer,
+                    source_user_id,
+                    minor_decoration,
+                    start_index + rows.len() as i64 + 1,
+                    Geometry::LineString(geometry),
+                ) {
+                    rows.push(row);
+                }
+            }
+        }
+
+        dash_start += cycle;
+    }
+    rows
+}
+
+#[allow(clippy::too_many_arguments)]
+fn major_dash_end_branches(
+    feature: &Feature,
+    key: &DecorationLayerKey,
+    source_layer: &str,
+    source_user_id: i64,
+    decoration: &str,
+    start_index: i64,
+    sample: Sample,
+    at_start: bool,
+    branch_len: f64,
+) -> Vec<DecorationFeature> {
+    let angles = if at_start {
+        [135.0, 225.0]
+    } else {
+        [45.0, 315.0]
+    };
+    angles
+        .into_iter()
+        .enumerate()
+        .filter_map(|(index, angle)| {
+            let geometry = bridge_end_segment(sample.point, sample.tangent, angle, branch_len);
+            decoration_feature(
+                feature,
+                key,
+                source_layer,
+                source_user_id,
+                decoration,
+                start_index + index as i64 + 1,
+                Geometry::LineString(geometry),
+            )
+        })
+        .collect()
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -626,6 +839,65 @@ fn one_sided_short_line(center: Coordinate, normal: Vec2, len: f64) -> Vec<Coord
     vec![center, translate(center, normal.scale(len))]
 }
 
+fn line_slice(points: &[Coordinate], start: f64, end: f64) -> Option<Vec<Coordinate>> {
+    if end - start < MIN_DECORATION_LENGTH {
+        return None;
+    }
+    let mut result = Vec::new();
+    let mut distance = 0.0;
+    for pair in points.windows(2) {
+        let segment = Vec2::between(pair[0], pair[1]);
+        let length = segment.length();
+        if length < f64::EPSILON {
+            continue;
+        }
+        let segment_start = distance;
+        let segment_end = distance + length;
+        if segment_end < start {
+            distance = segment_end;
+            continue;
+        }
+        if segment_start > end {
+            break;
+        }
+        let overlap_start = start.max(segment_start);
+        let overlap_end = end.min(segment_end);
+        if overlap_end - overlap_start >= MIN_DECORATION_LENGTH {
+            push_coordinate(
+                &mut result,
+                interpolate(pair[0], pair[1], (overlap_start - segment_start) / length),
+            );
+            push_coordinate(
+                &mut result,
+                interpolate(pair[0], pair[1], (overlap_end - segment_start) / length),
+            );
+        }
+        distance = segment_end;
+    }
+    if result.len() >= 2 {
+        Some(result)
+    } else {
+        None
+    }
+}
+
+fn push_coordinate(points: &mut Vec<Coordinate>, point: Coordinate) {
+    if points.last().is_none_or(|last| {
+        (last.x - point.x).abs() >= MIN_DECORATION_LENGTH
+            || (last.y - point.y).abs() >= MIN_DECORATION_LENGTH
+    }) {
+        points.push(point);
+    }
+}
+
+fn interpolate(start: Coordinate, end: Coordinate, ratio: f64) -> Coordinate {
+    Coordinate {
+        x: start.x + (end.x - start.x) * ratio,
+        y: start.y + (end.y - start.y) * ratio,
+        z: None,
+    }
+}
+
 fn line_length(points: &[Coordinate]) -> f64 {
     points
         .windows(2)
@@ -844,6 +1116,73 @@ mod tests {
 
         let first_points = line_points(&rows[0].geometry);
         assert_length(first_points, 3.0);
+    }
+
+    #[test]
+    fn generates_major_dash_end_branches_for_code_1101() {
+        let feature = line_feature(1101);
+        let key = LayerKey::from_feature(&feature);
+        assert_eq!(
+            decoration_layer_key_for(&feature, &key).unwrap().kind,
+            GeometryKind::Line
+        );
+        let rows = generate(&feature, &key, "dm_1101_line_08_2500", 1);
+        assert_eq!(rows.len(), 30);
+        assert_eq!(rows[0].decoration, "major_dash");
+        assert_eq!(rows[5].decoration, "minor_dash");
+        assert!(rows.iter().all(|row| row.src_user_id == 1));
+
+        let first_major_dash = line_points(&rows[0].geometry);
+        assert_coordinate(first_major_dash[0], 0.0, 0.0);
+        assert_coordinate(first_major_dash[1], 12.5, 0.0);
+        assert_length(first_major_dash, 12.5);
+
+        let first_lower = line_points(&rows[1].geometry);
+        assert_coordinate(first_lower[0], 0.0, 0.0);
+        assert_coordinate(first_lower[1], -0.8838834764831843, -0.8838834764831844);
+        assert_length(first_lower, 1.25);
+
+        let first_upper = line_points(&rows[2].geometry);
+        assert_coordinate(first_upper[0], 0.0, 0.0);
+        assert_coordinate(first_upper[1], -0.8838834764831844, 0.8838834764831843);
+
+        let first_end_lower = line_points(&rows[3].geometry);
+        assert_coordinate(first_end_lower[0], 12.5, 0.0);
+        assert_coordinate(first_end_lower[1], 13.383883476483184, -0.8838834764831843);
+
+        let first_minor_dash = line_points(&rows[5].geometry);
+        assert_coordinate(first_minor_dash[0], 15.75, 0.0);
+        assert_coordinate(first_minor_dash[1], 16.75, 0.0);
+        assert_length(first_minor_dash, 1.0);
+
+        let second_start_lower = line_points(&rows[7].geometry);
+        assert_coordinate(second_start_lower[0], 20.0, 0.0);
+        assert_coordinate(
+            second_start_lower[1],
+            19.116116523516816,
+            -0.8838834764831844,
+        );
+    }
+
+    #[test]
+    fn scales_major_dash_end_branches_by_map_level() {
+        let mut feature = line_feature(1101);
+        feature.map_level = Some(500);
+        let key = LayerKey::from_feature(&feature);
+        let rows = generate(&feature, &key, "dm_1101_line_08_500", 1);
+
+        assert!(!rows.is_empty());
+        let first_points = line_points(&rows[1].geometry);
+        assert_length(first_points, 0.25);
+    }
+
+    #[test]
+    fn skips_code_1101_decorations_outside_supported_map_levels() {
+        let mut feature = line_feature(1101);
+        feature.map_level = Some(10000);
+        let key = LayerKey::from_feature(&feature);
+        assert!(decoration_layer_key_for(&feature, &key).is_none());
+        assert!(generate(&feature, &key, "dm_1101_line_08_10000", 1).is_empty());
     }
 
     #[test]
