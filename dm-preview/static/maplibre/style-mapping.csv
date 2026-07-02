@@ -43,10 +43,10 @@ LEVEL,DMCODE,GEOM,SLD_FILE,STYLE_LAYER_ID,SPRITE_ID,DECORATION,STATUS,NOTE
 2500,2302,line,DM_2302.sld,dm-2302-line-2500-line,,,supported,
 2500,2303,line,DM_2303.sld,dm-2303-line-2500-line,,,supported,
 2500,2304,line,DM_2304.sld,dm-2304-line-2500-line,,,supported,
-2500,2305,line,DM_2305.sld,dm-2305-line-2500-line,,,supported,
 2500,2305,line,DM_2305.sld,dm-2305-line-2500-decoration,,perpendicular_tick,supported,
-2500,2306,line,DM_2306.sld,dm-2306-line-2500-line,,,supported,
+2500,2305,line,DM_2305.sld,dm-2305-line-2500-line,,,supported,
 2500,2306,line,DM_2306.sld,dm-2306-line-2500-decoration,,attached_triangles,supported,
+2500,2306,line,DM_2306.sld,dm-2306-line-2500-line,,,supported,
 2500,2309,line,DM_2309.sld,dm-2309-line-2500-line,,,supported,
 2500,2311,line,DM_2311.sld,dm-2311-line-2500-line,,,supported,
 2500,2312,line,DM_2312.sld,dm-2312-line-2500-line,,,supported,
@@ -72,8 +72,8 @@ LEVEL,DMCODE,GEOM,SLD_FILE,STYLE_LAYER_ID,SPRITE_ID,DECORATION,STATUS,NOTE
 2500,3004,line,DM_3004.sld,dm-3004-line-2500-line,,,supported,
 2500,3004,polygon,DM_3004.sld,dm-3004-polygon-2500-line,,,supported,same outline style as line geometry
 2500,3401,line,DM_3401.sld,dm-3401-line-2500-line,,,supported,
-2500,3401,polygon,DM_3401.sld,dm-3401-polygon-2500-line,,,supported,same outline style as line geometry
 2500,3401,point,DM_3401_point.sld,dm-3401-point-2500-symbol,dm-3401,,supported,unfilled 0.5 mm square with rotation
+2500,3401,polygon,DM_3401.sld,dm-3401-polygon-2500-line,,,supported,same outline style as line geometry
 2500,3402,line,DM_3402.sld,dm-3402-line-2500-line,,,supported,
 2500,3503,point,DM_3503.sld,dm-3503-point-2500-symbol,dm-3503,,supported,
 2500,3504,point,DM_3504.sld,dm-3504-point-2500-symbol,dm-3504,,supported,
@@ -114,25 +114,31 @@ LEVEL,DMCODE,GEOM,SLD_FILE,STYLE_LAYER_ID,SPRITE_ID,DECORATION,STATUS,NOTE
 2500,4207,point,DM_4207.sld,dm-4207-point-2500-symbol,dm-4207,,supported,
 2500,4208,point,DM_4208.sld,dm-4208-point-2500-symbol,dm-4208,,supported,
 2500,4219,line,DM_4219_line.sld,dm-4219-line-2500-line-line,dm-4219,,supported,
-2500,4219,polygon,DM_4219_line.sld,dm-4219-polygon-2500-line,,,supported,same outline style as line geometry
 2500,4219,point,DM_4219_point.sld,dm-4219-point-2500-symbol-point,dm-4219,,supported,
+2500,4219,polygon,DM_4219_line.sld,dm-4219-polygon-2500-line,,,supported,same outline style as line geometry
 2500,4221,point,DM_4221.sld,dm-4221-point-2500-symbol,dm-4221,,supported,
 2500,4222,point,DM_4222.sld,dm-4222-point-2500-symbol,dm-4222,,supported,
 2500,4225,point,DM_4225.sld,dm-4225-point-2500-symbol,dm-4225,,supported,
 2500,4228,point,DM_4228.sld,dm-4228-point-2500-symbol,dm-4228,,supported,
-2500,4231,polygon,DM_4231.sld,dm-4231-polygon-2500-line,,,supported,circle outline
 2500,4231,point,DM_4231.sld,dm-4231-point-2500-symbol,,,supported,
+2500,4231,polygon,DM_4231.sld,dm-4231-polygon-2500-line,,,supported,circle outline
 2500,4234,line,DM_4234.sld,dm-4234-line-2500-line,,,supported,
-2500,4234,polygon,DM_4234.sld,dm-4234-polygon-2500-line,,,supported,same outline style as line geometry
 2500,4234,point,DM_4234.sld,dm-4234-point-2500-symbol,dm-4234,,supported,
+2500,4234,polygon,DM_4234.sld,dm-4234-polygon-2500-line,,,supported,same outline style as line geometry
+2500,4235,line,DM_4235.sld,dm-4235-line-2500-line,,,supported,
 2500,4235,point,DM_4235.sld,dm-4235-point-2500-symbol,dm-4235,,supported,
+2500,4235,polygon,DM_4235.sld,dm-4235-polygon-2500-line,,,supported,same outline style as line geometry
 2500,4236,point,DM_4236.sld,dm-4236-point-2500-symbol,dm-4236,,supported,
 2500,4239,point,DM_4239.sld,dm-4239-point-2500-symbol,dm-4239,,supported,
+2500,4241,line,DM_4241.sld,dm-4241-line-2500-line,,,supported,
 2500,4241,point,DM_4241.sld,dm-4241-point-2500-symbol,dm-4241,,supported,
+2500,4241,polygon,DM_4241.sld,dm-4241-polygon-2500-line,,,supported,same outline style as line geometry
 2500,4243,point,DM_4243.sld,dm-4243-point-2500-symbol,dm-4243,,supported,
 2500,4251,point,DM_4251.sld,dm-4251-point-2500-symbol,dm-4251,,supported,
 2500,4261,line,DM_4261.sld,dm-4261-line-2500-line,,,supported,
+2500,4261,polygon,DM_4261.sld,dm-4261-polygon-2500-line,,,supported,same outline style as line geometry
 2500,4262,line,DM_4262.sld,dm-4262-line-2500-line,,required,supported,
+2500,4262,polygon,DM_4262.sld,dm-4262-polygon-2500-line,,,supported,same outline style as line geometry
 2500,4265,line,DM_4265.sld,dm-4265-line-2500-line,,,supported,
 2500,5101,line,DM_5101.sld,dm-5101-line-2500-line,,,supported,
 2500,5102,line,DM_5102.sld,dm-5102-line-2500-line,,,supported,
@@ -142,7 +148,98 @@ LEVEL,DMCODE,GEOM,SLD_FILE,STYLE_LAYER_ID,SPRITE_ID,DECORATION,STATUS,NOTE
 2500,5105,point,DM_5105.sld,dm-5105-point-2500-symbol,dm-5105,,supported,2 mm wide W centered on point
 2500,5106,line,DM_5106.sld,dm-5106-line-2500-line,,,supported,
 2500,5107,line,DM_5107.sld,dm-5107-line-2500-line,,,supported,
+2500,5108,line,DM_51xx.sld,dm-5108-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5109,line,DM_51xx.sld,dm-5109-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5110,line,DM_51xx.sld,dm-5110-line-2500-line,,,supported,shared 51xx dashed line style
 2500,5111,line,DM_5111.sld,dm-5111-line-2500-line,,,supported,
+2500,5112,line,DM_51xx.sld,dm-5112-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5113,line,DM_51xx.sld,dm-5113-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5114,line,DM_51xx.sld,dm-5114-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5115,line,DM_51xx.sld,dm-5115-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5116,line,DM_51xx.sld,dm-5116-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5117,line,DM_51xx.sld,dm-5117-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5118,line,DM_51xx.sld,dm-5118-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5119,line,DM_51xx.sld,dm-5119-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5120,line,DM_51xx.sld,dm-5120-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5121,line,DM_51xx.sld,dm-5121-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5122,line,DM_51xx.sld,dm-5122-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5123,line,DM_51xx.sld,dm-5123-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5124,line,DM_51xx.sld,dm-5124-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5125,line,DM_51xx.sld,dm-5125-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5126,line,DM_51xx.sld,dm-5126-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5127,line,DM_51xx.sld,dm-5127-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5128,line,DM_51xx.sld,dm-5128-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5129,line,DM_51xx.sld,dm-5129-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5130,line,DM_51xx.sld,dm-5130-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5131,line,DM_51xx.sld,dm-5131-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5132,line,DM_51xx.sld,dm-5132-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5133,line,DM_51xx.sld,dm-5133-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5134,line,DM_51xx.sld,dm-5134-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5135,line,DM_51xx.sld,dm-5135-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5136,line,DM_51xx.sld,dm-5136-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5137,line,DM_51xx.sld,dm-5137-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5138,line,DM_51xx.sld,dm-5138-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5139,line,DM_51xx.sld,dm-5139-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5140,line,DM_51xx.sld,dm-5140-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5141,line,DM_51xx.sld,dm-5141-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5142,line,DM_51xx.sld,dm-5142-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5143,line,DM_51xx.sld,dm-5143-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5144,line,DM_51xx.sld,dm-5144-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5145,line,DM_51xx.sld,dm-5145-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5146,line,DM_51xx.sld,dm-5146-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5147,line,DM_51xx.sld,dm-5147-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5148,line,DM_51xx.sld,dm-5148-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5149,line,DM_51xx.sld,dm-5149-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5150,line,DM_51xx.sld,dm-5150-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5151,line,DM_51xx.sld,dm-5151-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5152,line,DM_51xx.sld,dm-5152-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5153,line,DM_51xx.sld,dm-5153-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5154,line,DM_51xx.sld,dm-5154-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5155,line,DM_51xx.sld,dm-5155-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5156,line,DM_51xx.sld,dm-5156-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5157,line,DM_51xx.sld,dm-5157-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5158,line,DM_51xx.sld,dm-5158-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5159,line,DM_51xx.sld,dm-5159-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5160,line,DM_51xx.sld,dm-5160-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5161,line,DM_51xx.sld,dm-5161-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5162,line,DM_51xx.sld,dm-5162-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5163,line,DM_51xx.sld,dm-5163-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5164,line,DM_51xx.sld,dm-5164-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5165,line,DM_51xx.sld,dm-5165-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5166,line,DM_51xx.sld,dm-5166-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5167,line,DM_51xx.sld,dm-5167-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5168,line,DM_51xx.sld,dm-5168-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5169,line,DM_51xx.sld,dm-5169-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5170,line,DM_51xx.sld,dm-5170-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5171,line,DM_51xx.sld,dm-5171-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5172,line,DM_51xx.sld,dm-5172-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5173,line,DM_51xx.sld,dm-5173-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5174,line,DM_51xx.sld,dm-5174-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5175,line,DM_51xx.sld,dm-5175-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5176,line,DM_51xx.sld,dm-5176-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5177,line,DM_51xx.sld,dm-5177-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5178,line,DM_51xx.sld,dm-5178-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5179,line,DM_51xx.sld,dm-5179-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5180,line,DM_51xx.sld,dm-5180-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5181,line,DM_51xx.sld,dm-5181-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5182,line,DM_51xx.sld,dm-5182-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5183,line,DM_51xx.sld,dm-5183-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5184,line,DM_51xx.sld,dm-5184-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5185,line,DM_51xx.sld,dm-5185-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5186,line,DM_51xx.sld,dm-5186-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5187,line,DM_51xx.sld,dm-5187-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5188,line,DM_51xx.sld,dm-5188-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5189,line,DM_51xx.sld,dm-5189-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5190,line,DM_51xx.sld,dm-5190-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5191,line,DM_51xx.sld,dm-5191-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5192,line,DM_51xx.sld,dm-5192-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5193,line,DM_51xx.sld,dm-5193-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5194,line,DM_51xx.sld,dm-5194-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5195,line,DM_51xx.sld,dm-5195-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5196,line,DM_51xx.sld,dm-5196-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5197,line,DM_51xx.sld,dm-5197-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5198,line,DM_51xx.sld,dm-5198-line-2500-line,,,supported,shared 51xx dashed line style
+2500,5199,line,DM_51xx.sld,dm-5199-line-2500-line,,,supported,shared 51xx dashed line style
 2500,5202,line,DM_5202.sld,dm-5202-line-2500-line,,,supported,
 2500,5203,line,DM_5203.sld,dm-5203-line-2500-line,,,supported,
 2500,5211,line,DM_5211.sld,dm-5211-line-2500-line,,,supported,
@@ -158,6 +255,7 @@ LEVEL,DMCODE,GEOM,SLD_FILE,STYLE_LAYER_ID,SPRITE_ID,DECORATION,STATUS,NOTE
 2500,5232,point,DM_5232_point.sld,dm-5232-point-2500-symbol,,,supported,white 0.5 mm diameter circle with 0.2 mm stroke
 2500,5233,line,DM_5233.sld,dm-5233-line-2500-line,,,supported,
 2500,5239,line,DM_5239.sld,dm-5239-line-2500-line,,,supported,
+2500,5239,polygon,DM_5239.sld,dm-5239-polygon-2500-line,,,supported,same outline style as line geometry
 2500,5241,line,DM_5241_line.sld,dm-5241-line-2500-line-line,,,supported,
 2500,5241,point,DM_5241.sld,dm-5241-point-2500-symbol,dm-5241,,supported,
 2500,6101,line,DM_6101.sld,dm-6101-line-2500-line,,,supported,
@@ -211,6 +309,7 @@ LEVEL,DMCODE,GEOM,SLD_FILE,STYLE_LAYER_ID,SPRITE_ID,DECORATION,STATUS,NOTE
 2500,7105,line,DM_7105.sld,dm-7105-line-2500-line,,,supported,
 2500,7106,line,DM_7106.sld,dm-7106-line-2500-line,,,supported,
 2500,7107,line,DM_7107.sld,dm-7107-line-2500-line,,,supported,
+2500,7199,line,DM_7199.sld,dm-7199-line-2500-line,,,supported,
 2500,7199,point,DM_7199.sld,dm-7199-point-2500-symbol,,,partial,point symbol source is unavailable
 2500,7201,line,DM_7201.sld,dm-7201-line-2500-line,dm-7201,,supported,
 2500,7201,point,DM_7201.sld,dm-7201-point-2500-symbol,dm-7201,,supported,2 mm high (土) centered on point
@@ -219,6 +318,7 @@ LEVEL,DMCODE,GEOM,SLD_FILE,STYLE_LAYER_ID,SPRITE_ID,DECORATION,STATUS,NOTE
 2500,7211,line,DM_7211.sld,dm-7211-line-2500-line,dm-7211,,supported,
 2500,7211,point,DM_7211.sld,dm-7211-point-2500-symbol,dm-7211,,supported,2 mm high (岩) centered on point
 2500,7212,line,DM_7212.sld,dm-7212-line-2500-line,,,supported,
+2500,7213,line,DM_7213.sld,dm-7213-line-2500-line,,,supported,
 2500,7213,point,DM_7213.sld,dm-7213-point-2500-symbol,dm-7213,,supported,
 2500,7214,line,DM_7214.sld,dm-7214-line-2500-line,,,supported,
 2500,7301,point,DM_7301.sld,dm-7301-point-2500-symbol,dm-7301,,supported,
@@ -268,10 +368,10 @@ LEVEL,DMCODE,GEOM,SLD_FILE,STYLE_LAYER_ID,SPRITE_ID,DECORATION,STATUS,NOTE
 5000,2302,line,DM_2302.sld,dm-2302-line-5000-line,,,supported,
 5000,2303,line,DM_2303.sld,dm-2303-line-5000-line,,,supported,
 5000,2304,line,DM_2304.sld,dm-2304-line-5000-line,,,supported,
-5000,2305,line,DM_2305.sld,dm-2305-line-5000-line,,,supported,
 5000,2305,line,DM_2305.sld,dm-2305-line-5000-decoration,,perpendicular_tick,supported,
-5000,2306,line,DM_2306.sld,dm-2306-line-5000-line,,,supported,
+5000,2305,line,DM_2305.sld,dm-2305-line-5000-line,,,supported,
 5000,2306,line,DM_2306.sld,dm-2306-line-5000-decoration,,attached_triangles,supported,
+5000,2306,line,DM_2306.sld,dm-2306-line-5000-line,,,supported,
 5000,2309,line,DM_2309.sld,dm-2309-line-5000-line,,,supported,
 5000,2311,line,DM_2311.sld,dm-2311-line-5000-line,,,supported,
 5000,2312,line,DM_2312.sld,dm-2312-line-5000-line,,,supported,
@@ -297,8 +397,8 @@ LEVEL,DMCODE,GEOM,SLD_FILE,STYLE_LAYER_ID,SPRITE_ID,DECORATION,STATUS,NOTE
 5000,3004,line,DM_3004.sld,dm-3004-line-5000-line,,,supported,
 5000,3004,polygon,DM_3004.sld,dm-3004-polygon-5000-line,,,supported,same outline style as line geometry
 5000,3401,line,DM_3401.sld,dm-3401-line-5000-line,,,supported,
-5000,3401,polygon,DM_3401.sld,dm-3401-polygon-5000-line,,,supported,same outline style as line geometry
 5000,3401,point,DM_3401_point.sld,dm-3401-point-5000-symbol,dm-3401,,supported,unfilled 0.5 mm square with rotation
+5000,3401,polygon,DM_3401.sld,dm-3401-polygon-5000-line,,,supported,same outline style as line geometry
 5000,3402,line,DM_3402.sld,dm-3402-line-5000-line,,,supported,
 5000,3503,point,DM_3503.sld,dm-3503-point-5000-symbol,dm-3503,,supported,
 5000,3504,point,DM_3504.sld,dm-3504-point-5000-symbol,dm-3504,,supported,
@@ -339,25 +439,31 @@ LEVEL,DMCODE,GEOM,SLD_FILE,STYLE_LAYER_ID,SPRITE_ID,DECORATION,STATUS,NOTE
 5000,4207,point,DM_4207.sld,dm-4207-point-5000-symbol,dm-4207,,supported,
 5000,4208,point,DM_4208.sld,dm-4208-point-5000-symbol,dm-4208,,supported,
 5000,4219,line,DM_4219_line.sld,dm-4219-line-5000-line-line,dm-4219,,supported,
-5000,4219,polygon,DM_4219_line.sld,dm-4219-polygon-5000-line,,,supported,same outline style as line geometry
 5000,4219,point,DM_4219_point.sld,dm-4219-point-5000-symbol-point,dm-4219,,supported,
+5000,4219,polygon,DM_4219_line.sld,dm-4219-polygon-5000-line,,,supported,same outline style as line geometry
 5000,4221,point,DM_4221.sld,dm-4221-point-5000-symbol,dm-4221,,supported,
 5000,4222,point,DM_4222.sld,dm-4222-point-5000-symbol,dm-4222,,supported,
 5000,4225,point,DM_4225.sld,dm-4225-point-5000-symbol,dm-4225,,supported,
 5000,4228,point,DM_4228.sld,dm-4228-point-5000-symbol,dm-4228,,supported,
-5000,4231,polygon,DM_4231.sld,dm-4231-polygon-5000-line,,,supported,circle outline
 5000,4231,point,DM_4231.sld,dm-4231-point-5000-symbol,,,supported,
+5000,4231,polygon,DM_4231.sld,dm-4231-polygon-5000-line,,,supported,circle outline
 5000,4234,line,DM_4234.sld,dm-4234-line-5000-line,,,supported,
-5000,4234,polygon,DM_4234.sld,dm-4234-polygon-5000-line,,,supported,same outline style as line geometry
 5000,4234,point,DM_4234.sld,dm-4234-point-5000-symbol,dm-4234,,supported,
+5000,4234,polygon,DM_4234.sld,dm-4234-polygon-5000-line,,,supported,same outline style as line geometry
+5000,4235,line,DM_4235.sld,dm-4235-line-5000-line,,,supported,
 5000,4235,point,DM_4235.sld,dm-4235-point-5000-symbol,dm-4235,,supported,
+5000,4235,polygon,DM_4235.sld,dm-4235-polygon-5000-line,,,supported,same outline style as line geometry
 5000,4236,point,DM_4236.sld,dm-4236-point-5000-symbol,dm-4236,,supported,
 5000,4239,point,DM_4239.sld,dm-4239-point-5000-symbol,dm-4239,,supported,
+5000,4241,line,DM_4241.sld,dm-4241-line-5000-line,,,supported,
 5000,4241,point,DM_4241.sld,dm-4241-point-5000-symbol,dm-4241,,supported,
+5000,4241,polygon,DM_4241.sld,dm-4241-polygon-5000-line,,,supported,same outline style as line geometry
 5000,4243,point,DM_4243.sld,dm-4243-point-5000-symbol,dm-4243,,supported,
 5000,4251,point,DM_4251.sld,dm-4251-point-5000-symbol,dm-4251,,supported,
 5000,4261,line,DM_4261.sld,dm-4261-line-5000-line,,,supported,
+5000,4261,polygon,DM_4261.sld,dm-4261-polygon-5000-line,,,supported,same outline style as line geometry
 5000,4262,line,DM_4262.sld,dm-4262-line-5000-line,,required,supported,
+5000,4262,polygon,DM_4262.sld,dm-4262-polygon-5000-line,,,supported,same outline style as line geometry
 5000,4265,line,DM_4265.sld,dm-4265-line-5000-line,,,supported,
 5000,5101,line,DM_5101.sld,dm-5101-line-5000-line,,,supported,
 5000,5102,line,DM_5102.sld,dm-5102-line-5000-line,,,supported,
@@ -367,7 +473,98 @@ LEVEL,DMCODE,GEOM,SLD_FILE,STYLE_LAYER_ID,SPRITE_ID,DECORATION,STATUS,NOTE
 5000,5105,point,DM_5105.sld,dm-5105-point-5000-symbol,dm-5105,,supported,2 mm wide W centered on point
 5000,5106,line,DM_5106.sld,dm-5106-line-5000-line,,,supported,
 5000,5107,line,DM_5107.sld,dm-5107-line-5000-line,,,supported,
+5000,5108,line,DM_51xx.sld,dm-5108-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5109,line,DM_51xx.sld,dm-5109-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5110,line,DM_51xx.sld,dm-5110-line-5000-line,,,supported,shared 51xx dashed line style
 5000,5111,line,DM_5111.sld,dm-5111-line-5000-line,,,supported,
+5000,5112,line,DM_51xx.sld,dm-5112-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5113,line,DM_51xx.sld,dm-5113-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5114,line,DM_51xx.sld,dm-5114-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5115,line,DM_51xx.sld,dm-5115-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5116,line,DM_51xx.sld,dm-5116-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5117,line,DM_51xx.sld,dm-5117-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5118,line,DM_51xx.sld,dm-5118-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5119,line,DM_51xx.sld,dm-5119-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5120,line,DM_51xx.sld,dm-5120-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5121,line,DM_51xx.sld,dm-5121-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5122,line,DM_51xx.sld,dm-5122-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5123,line,DM_51xx.sld,dm-5123-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5124,line,DM_51xx.sld,dm-5124-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5125,line,DM_51xx.sld,dm-5125-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5126,line,DM_51xx.sld,dm-5126-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5127,line,DM_51xx.sld,dm-5127-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5128,line,DM_51xx.sld,dm-5128-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5129,line,DM_51xx.sld,dm-5129-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5130,line,DM_51xx.sld,dm-5130-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5131,line,DM_51xx.sld,dm-5131-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5132,line,DM_51xx.sld,dm-5132-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5133,line,DM_51xx.sld,dm-5133-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5134,line,DM_51xx.sld,dm-5134-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5135,line,DM_51xx.sld,dm-5135-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5136,line,DM_51xx.sld,dm-5136-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5137,line,DM_51xx.sld,dm-5137-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5138,line,DM_51xx.sld,dm-5138-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5139,line,DM_51xx.sld,dm-5139-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5140,line,DM_51xx.sld,dm-5140-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5141,line,DM_51xx.sld,dm-5141-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5142,line,DM_51xx.sld,dm-5142-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5143,line,DM_51xx.sld,dm-5143-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5144,line,DM_51xx.sld,dm-5144-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5145,line,DM_51xx.sld,dm-5145-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5146,line,DM_51xx.sld,dm-5146-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5147,line,DM_51xx.sld,dm-5147-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5148,line,DM_51xx.sld,dm-5148-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5149,line,DM_51xx.sld,dm-5149-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5150,line,DM_51xx.sld,dm-5150-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5151,line,DM_51xx.sld,dm-5151-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5152,line,DM_51xx.sld,dm-5152-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5153,line,DM_51xx.sld,dm-5153-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5154,line,DM_51xx.sld,dm-5154-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5155,line,DM_51xx.sld,dm-5155-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5156,line,DM_51xx.sld,dm-5156-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5157,line,DM_51xx.sld,dm-5157-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5158,line,DM_51xx.sld,dm-5158-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5159,line,DM_51xx.sld,dm-5159-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5160,line,DM_51xx.sld,dm-5160-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5161,line,DM_51xx.sld,dm-5161-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5162,line,DM_51xx.sld,dm-5162-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5163,line,DM_51xx.sld,dm-5163-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5164,line,DM_51xx.sld,dm-5164-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5165,line,DM_51xx.sld,dm-5165-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5166,line,DM_51xx.sld,dm-5166-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5167,line,DM_51xx.sld,dm-5167-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5168,line,DM_51xx.sld,dm-5168-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5169,line,DM_51xx.sld,dm-5169-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5170,line,DM_51xx.sld,dm-5170-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5171,line,DM_51xx.sld,dm-5171-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5172,line,DM_51xx.sld,dm-5172-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5173,line,DM_51xx.sld,dm-5173-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5174,line,DM_51xx.sld,dm-5174-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5175,line,DM_51xx.sld,dm-5175-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5176,line,DM_51xx.sld,dm-5176-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5177,line,DM_51xx.sld,dm-5177-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5178,line,DM_51xx.sld,dm-5178-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5179,line,DM_51xx.sld,dm-5179-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5180,line,DM_51xx.sld,dm-5180-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5181,line,DM_51xx.sld,dm-5181-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5182,line,DM_51xx.sld,dm-5182-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5183,line,DM_51xx.sld,dm-5183-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5184,line,DM_51xx.sld,dm-5184-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5185,line,DM_51xx.sld,dm-5185-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5186,line,DM_51xx.sld,dm-5186-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5187,line,DM_51xx.sld,dm-5187-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5188,line,DM_51xx.sld,dm-5188-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5189,line,DM_51xx.sld,dm-5189-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5190,line,DM_51xx.sld,dm-5190-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5191,line,DM_51xx.sld,dm-5191-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5192,line,DM_51xx.sld,dm-5192-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5193,line,DM_51xx.sld,dm-5193-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5194,line,DM_51xx.sld,dm-5194-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5195,line,DM_51xx.sld,dm-5195-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5196,line,DM_51xx.sld,dm-5196-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5197,line,DM_51xx.sld,dm-5197-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5198,line,DM_51xx.sld,dm-5198-line-5000-line,,,supported,shared 51xx dashed line style
+5000,5199,line,DM_51xx.sld,dm-5199-line-5000-line,,,supported,shared 51xx dashed line style
 5000,5202,line,DM_5202.sld,dm-5202-line-5000-line,,,supported,
 5000,5203,line,DM_5203.sld,dm-5203-line-5000-line,,,supported,
 5000,5211,line,DM_5211.sld,dm-5211-line-5000-line,,,supported,
@@ -383,6 +580,7 @@ LEVEL,DMCODE,GEOM,SLD_FILE,STYLE_LAYER_ID,SPRITE_ID,DECORATION,STATUS,NOTE
 5000,5232,point,DM_5232_point.sld,dm-5232-point-5000-symbol,,,supported,white 0.5 mm diameter circle with 0.2 mm stroke
 5000,5233,line,DM_5233.sld,dm-5233-line-5000-line,,,supported,
 5000,5239,line,DM_5239.sld,dm-5239-line-5000-line,,,supported,
+5000,5239,polygon,DM_5239.sld,dm-5239-polygon-5000-line,,,supported,same outline style as line geometry
 5000,5241,line,DM_5241_line.sld,dm-5241-line-5000-line-line,,,supported,
 5000,5241,point,DM_5241.sld,dm-5241-point-5000-symbol,dm-5241,,supported,
 5000,6101,line,DM_6101.sld,dm-6101-line-5000-line,,,supported,
@@ -436,6 +634,7 @@ LEVEL,DMCODE,GEOM,SLD_FILE,STYLE_LAYER_ID,SPRITE_ID,DECORATION,STATUS,NOTE
 5000,7105,line,DM_7105.sld,dm-7105-line-5000-line,,,supported,
 5000,7106,line,DM_7106.sld,dm-7106-line-5000-line,,,supported,
 5000,7107,line,DM_7107.sld,dm-7107-line-5000-line,,,supported,
+5000,7199,line,DM_7199.sld,dm-7199-line-5000-line,,,supported,
 5000,7199,point,DM_7199.sld,dm-7199-point-5000-symbol,,,partial,point symbol source is unavailable
 5000,7201,line,DM_7201.sld,dm-7201-line-5000-line,dm-7201,,supported,
 5000,7201,point,DM_7201.sld,dm-7201-point-5000-symbol,dm-7201,,supported,2 mm high (土) centered on point
@@ -444,6 +643,7 @@ LEVEL,DMCODE,GEOM,SLD_FILE,STYLE_LAYER_ID,SPRITE_ID,DECORATION,STATUS,NOTE
 5000,7211,line,DM_7211.sld,dm-7211-line-5000-line,dm-7211,,supported,
 5000,7211,point,DM_7211.sld,dm-7211-point-5000-symbol,dm-7211,,supported,2 mm high (岩) centered on point
 5000,7212,line,DM_7212.sld,dm-7212-line-5000-line,,,supported,
+5000,7213,line,DM_7213.sld,dm-7213-line-5000-line,,,supported,
 5000,7213,point,DM_7213.sld,dm-7213-point-5000-symbol,dm-7213,,supported,
 5000,7214,line,DM_7214.sld,dm-7214-line-5000-line,,,supported,
 5000,7301,point,DM_7301.sld,dm-7301-point-5000-symbol,dm-7301,,supported,

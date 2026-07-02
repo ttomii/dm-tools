@@ -109,6 +109,8 @@
                 4207,
                 4219,
                 4234,
+                4235,
+                4241,
                 4261,
                 4262,
                 4265,
@@ -119,7 +121,98 @@
                 5105,
                 5106,
                 5107,
+                5108,
+                5109,
+                5110,
                 5111,
+                5112,
+                5113,
+                5114,
+                5115,
+                5116,
+                5117,
+                5118,
+                5119,
+                5120,
+                5121,
+                5122,
+                5123,
+                5124,
+                5125,
+                5126,
+                5127,
+                5128,
+                5129,
+                5130,
+                5131,
+                5132,
+                5133,
+                5134,
+                5135,
+                5136,
+                5137,
+                5138,
+                5139,
+                5140,
+                5141,
+                5142,
+                5143,
+                5144,
+                5145,
+                5146,
+                5147,
+                5148,
+                5149,
+                5150,
+                5151,
+                5152,
+                5153,
+                5154,
+                5155,
+                5156,
+                5157,
+                5158,
+                5159,
+                5160,
+                5161,
+                5162,
+                5163,
+                5164,
+                5165,
+                5166,
+                5167,
+                5168,
+                5169,
+                5170,
+                5171,
+                5172,
+                5173,
+                5174,
+                5175,
+                5176,
+                5177,
+                5178,
+                5179,
+                5180,
+                5181,
+                5182,
+                5183,
+                5184,
+                5185,
+                5186,
+                5187,
+                5188,
+                5189,
+                5190,
+                5191,
+                5192,
+                5193,
+                5194,
+                5195,
+                5196,
+                5197,
+                5198,
+                5199,
                 5202,
                 5203,
                 5211,
@@ -158,7 +251,9 @@
                 7202,
                 7211,
                 7212,
-                7214
+                7214,
+                7199,
+                7213
               ]
             ]
           ]
@@ -222,7 +317,12 @@
                 3401,
                 4219,
                 4231,
-                4234
+                4234,
+                4235,
+                4241,
+                4261,
+                4262,
+                5239
               ]
             ]
           ]
@@ -5155,6 +5255,70 @@
       }
     },
     {
+      "id": "dm-4235-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_4235_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.19405275,
+          24,
+          198.710018
+        ]
+      }
+    },
+    {
+      "id": "dm-4235-polygon-5000-line",
+      "source": "dm",
+      "source-layer": "dm_4235_polygon",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.19405275,
+          24,
+          198.710018
+        ]
+      }
+    },
+    {
       "id": "dm-4235-point-5000-symbol",
       "source": "dm",
       "source-layer": "dm_4235_point",
@@ -5271,6 +5435,70 @@
           0.109155,
           24,
           55.887193
+        ]
+      }
+    },
+    {
+      "id": "dm-4241-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_4241_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.19405275,
+          24,
+          198.710018
+        ]
+      }
+    },
+    {
+      "id": "dm-4241-polygon-5000-line",
+      "source": "dm",
+      "source-layer": "dm_4241_polygon",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.19405275,
+          24,
+          198.710018
         ]
       }
     },
@@ -5407,7 +5635,7 @@
         5000
       ],
       "type": "line",
-      "minzoom": 15,
+      "minzoom": 14,
       "paint": {
         "line-color": "#000000",
         "line-width": [
@@ -5419,10 +5647,42 @@
           [
             "zoom"
           ],
-          15,
+          14,
           0.1293685,
           24,
-          66.236673
+          132.473346
+        ]
+      }
+    },
+    {
+      "id": "dm-4261-polygon-5000-line",
+      "source": "dm",
+      "source-layer": "dm_4261_polygon",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
         ]
       }
     },
@@ -5439,7 +5699,7 @@
         5000
       ],
       "type": "line",
-      "minzoom": 15,
+      "minzoom": 14,
       "paint": {
         "line-color": "#000000",
         "line-width": [
@@ -5451,10 +5711,42 @@
           [
             "zoom"
           ],
-          15,
+          14,
           0.1293685,
           24,
-          66.236673
+          132.473346
+        ]
+      }
+    },
+    {
+      "id": "dm-4262-polygon-5000-line",
+      "source": "dm",
+      "source-layer": "dm_4262_polygon",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
         ]
       }
     },
@@ -5534,9 +5826,9 @@
             "zoom"
           ],
           14,
-          0.097026375,
+          0.19405275,
           24,
-          99.355009
+          198.710018
         ]
       }
     },
@@ -5566,9 +5858,9 @@
             "zoom"
           ],
           14,
-          0.097026375,
+          0.19405275,
           24,
-          99.355009
+          198.710018
         ]
       }
     },
@@ -5585,7 +5877,7 @@
         5000
       ],
       "type": "line",
-      "minzoom": 15,
+      "minzoom": 14,
       "paint": {
         "line-color": "#000000",
         "line-width": [
@@ -5597,10 +5889,10 @@
           [
             "zoom"
           ],
-          15,
+          14,
           0.1293685,
           24,
-          66.236673
+          132.473346
         ],
         "line-dasharray": [
           5,
@@ -5634,9 +5926,13 @@
             "zoom"
           ],
           14,
-          0.097026375,
+          0.1293685,
           24,
-          99.355009
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
         ]
       }
     },
@@ -5666,9 +5962,13 @@
             "zoom"
           ],
           14,
-          0.097026375,
+          0.1293685,
           24,
-          99.355009
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
         ]
       }
     },
@@ -5730,9 +6030,13 @@
             "zoom"
           ],
           14,
-          0.097026375,
+          0.1293685,
           24,
-          99.355009
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
         ]
       }
     },
@@ -5762,13 +6066,13 @@
             "zoom"
           ],
           14,
-          0.097026375,
+          0.1293685,
           24,
-          99.355009
+          132.473346
         ],
         "line-dasharray": [
-          10,
-          6.666667
+          5,
+          5
         ]
       }
     },
@@ -5798,13 +6102,3289 @@
             "zoom"
           ],
           14,
-          0.19405275,
+          0.1293685,
           24,
-          198.710019
+          132.473346
         ],
         "line-dasharray": [
-          20,
-          6.666667
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5108-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5108_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5109-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5109_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5110-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5110_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5112-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5112_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5113-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5113_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5114-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5114_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5115-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5115_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5116-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5116_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5117-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5117_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5118-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5118_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5119-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5119_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5120-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5120_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5121-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5121_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5122-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5122_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5123-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5123_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5124-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5124_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5125-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5125_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5126-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5126_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5127-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5127_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5128-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5128_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5129-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5129_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5130-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5130_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5131-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5131_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5132-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5132_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5133-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5133_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5134-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5134_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5135-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5135_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5136-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5136_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5137-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5137_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5138-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5138_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5139-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5139_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5140-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5140_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5141-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5141_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5142-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5142_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5143-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5143_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5144-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5144_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5145-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5145_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5146-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5146_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5147-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5147_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5148-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5148_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5149-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5149_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5150-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5150_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5151-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5151_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5152-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5152_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5153-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5153_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5154-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5154_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5155-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5155_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5156-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5156_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5157-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5157_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5158-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5158_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5159-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5159_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5160-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5160_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5161-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5161_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5162-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5162_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5163-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5163_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5164-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5164_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5165-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5165_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5166-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5166_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5167-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5167_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5168-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5168_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5169-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5169_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5170-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5170_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5171-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5171_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5172-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5172_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5173-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5173_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5174-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5174_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5175-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5175_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5176-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5176_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5177-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5177_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5178-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5178_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5179-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5179_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5180-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5180_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5181-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5181_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5182-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5182_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5183-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5183_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5184-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5184_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5185-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5185_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5186-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5186_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5187-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5187_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5188-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5188_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5189-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5189_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5190-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5190_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5191-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5191_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5192-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5192_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5193-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5193_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5194-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5194_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5195-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5195_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5196-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5196_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5197-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5197_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5198-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5198_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "id": "dm-5199-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5199_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ],
+        "line-dasharray": [
+          5,
+          5
         ]
       }
     },
@@ -5866,9 +9446,9 @@
             "zoom"
           ],
           14,
-          0.1293685,
+          0.2587349333,
           24,
-          132.473346
+          264.9445717402
         ]
       }
     },
@@ -5974,9 +9554,9 @@
             "zoom"
           ],
           14,
-          0.1293685,
+          0.2587349333,
           24,
-          132.473346
+          264.9445717402
         ]
       }
     },
@@ -6046,9 +9626,9 @@
             "zoom"
           ],
           14,
-          0.1293685,
+          0.2587349333,
           24,
-          132.473346
+          264.9445717402
         ]
       }
     },
@@ -6118,9 +9698,9 @@
             "zoom"
           ],
           14,
-          0.1293685,
+          0.2587349333,
           24,
-          132.473346
+          264.9445717402
         ]
       }
     },
@@ -6192,9 +9772,9 @@
             "zoom"
           ],
           14,
-          0.1707665,
+          0.2587349333,
           24,
-          174.864816
+          264.9445717402
         ]
       }
     },
@@ -6211,7 +9791,7 @@
         5000
       ],
       "type": "line",
-      "minzoom": 15,
+      "minzoom": 14,
       "paint": {
         "line-color": "#000000",
         "line-width": [
@@ -6223,14 +9803,10 @@
           [
             "zoom"
           ],
-          15,
-          0.10349475,
+          14,
+          0.2587349333,
           24,
-          52.989338
-        ],
-        "line-dasharray": [
-          6.25,
-          12.5
+          264.9445717402
         ]
       }
     },
@@ -6342,9 +9918,41 @@
             "zoom"
           ],
           14,
-          0.1293685,
+          0.19405275,
           24,
-          132.473346
+          198.710018
+        ]
+      }
+    },
+    {
+      "id": "dm-5239-polygon-5000-line",
+      "source": "dm",
+      "source-layer": "dm_5239_polygon",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.19405275,
+          24,
+          198.710018
         ]
       }
     },
@@ -6452,9 +10060,9 @@
             "zoom"
           ],
           14,
-          0.097026375,
+          0.1293685,
           24,
-          99.355009
+          132.473346
         ]
       }
     },
@@ -6484,9 +10092,9 @@
             "zoom"
           ],
           14,
-          0.097026375,
+          0.1293685,
           24,
-          99.355009
+          132.473346
         ]
       }
     },
@@ -6626,9 +10234,9 @@
             "zoom"
           ],
           14,
-          0.1293685,
+          0.2587349333,
           24,
-          132.473346
+          264.9445717402
         ],
         "line-dasharray": [
           10,
@@ -6959,7 +10567,7 @@
         5000
       ],
       "type": "line",
-      "minzoom": 15,
+      "minzoom": 14,
       "paint": {
         "line-color": "#000000",
         "line-width": [
@@ -6971,10 +10579,10 @@
           [
             "zoom"
           ],
-          15,
+          14,
           0.1293685,
           24,
-          66.236673
+          132.473346
         ],
         "line-dasharray": [
           15,
@@ -7355,7 +10963,7 @@
         5000
       ],
       "type": "line",
-      "minzoom": 15,
+      "minzoom": 14,
       "paint": {
         "line-color": "#000000",
         "line-width": [
@@ -7367,10 +10975,10 @@
           [
             "zoom"
           ],
-          15,
+          14,
           0.1293685,
           24,
-          66.236673
+          132.473346
         ],
         "line-dasharray": [
           5,
@@ -7391,7 +10999,7 @@
         5000
       ],
       "type": "line",
-      "minzoom": 15,
+      "minzoom": 14,
       "paint": {
         "line-color": "#000000",
         "line-width": [
@@ -7403,10 +11011,10 @@
           [
             "zoom"
           ],
-          15,
+          14,
           0.1293685,
           24,
-          66.236673
+          132.473346
         ],
         "line-dasharray": [
           30,
@@ -8138,9 +11746,9 @@
             "zoom"
           ],
           14,
-          0.1293685,
+          0.2587349333,
           24,
-          132.473346
+          264.9445717402
         ]
       }
     },
@@ -8157,7 +11765,7 @@
         5000
       ],
       "type": "line",
-      "minzoom": 15,
+      "minzoom": 14,
       "paint": {
         "line-color": "#000000",
         "line-width": [
@@ -8169,10 +11777,10 @@
           [
             "zoom"
           ],
-          15,
+          14,
           0.1293685,
           24,
-          66.236673
+          132.473346
         ]
       }
     },
@@ -8189,7 +11797,7 @@
         5000
       ],
       "type": "line",
-      "minzoom": 15,
+      "minzoom": 14,
       "paint": {
         "line-color": "#000000",
         "line-width": [
@@ -8201,10 +11809,10 @@
           [
             "zoom"
           ],
-          15,
+          14,
           0.1293685,
           24,
-          66.236673
+          132.473346
         ],
         "line-dasharray": [
           100,
@@ -8325,7 +11933,7 @@
         5000
       ],
       "type": "line",
-      "minzoom": 15,
+      "minzoom": 14,
       "paint": {
         "line-color": "#000000",
         "line-width": [
@@ -8337,14 +11945,46 @@
           [
             "zoom"
           ],
-          15,
+          14,
           0.1293685,
           24,
-          66.236673
+          132.473346
         ],
         "line-dasharray": [
           100,
           5
+        ]
+      }
+    },
+    {
+      "id": "dm-7199-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_7199_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
         ]
       }
     },
@@ -8379,7 +12019,7 @@
         5000
       ],
       "type": "line",
-      "minzoom": 15,
+      "minzoom": 14,
       "paint": {
         "line-color": "#000000",
         "line-width": [
@@ -8391,10 +12031,10 @@
           [
             "zoom"
           ],
-          15,
+          14,
           0.1293685,
           24,
-          66.236673
+          132.473346
         ]
       }
     },
@@ -8443,7 +12083,7 @@
         5000
       ],
       "type": "line",
-      "minzoom": 15,
+      "minzoom": 14,
       "paint": {
         "line-color": "#000000",
         "line-width": [
@@ -8455,10 +12095,10 @@
           [
             "zoom"
           ],
-          15,
+          14,
           0.1293685,
           24,
-          66.236673
+          132.473346
         ]
       }
     },
@@ -8515,7 +12155,7 @@
         5000
       ],
       "type": "line",
-      "minzoom": 15,
+      "minzoom": 14,
       "paint": {
         "line-color": "#000000",
         "line-width": [
@@ -8527,10 +12167,10 @@
           [
             "zoom"
           ],
-          15,
+          14,
           0.1293685,
           24,
-          66.236673
+          132.473346
         ]
       }
     },
@@ -8579,7 +12219,7 @@
         5000
       ],
       "type": "line",
-      "minzoom": 15,
+      "minzoom": 14,
       "paint": {
         "line-color": "#000000",
         "line-width": [
@@ -8591,10 +12231,42 @@
           [
             "zoom"
           ],
-          15,
+          14,
           0.1293685,
           24,
-          66.236673
+          132.473346
+        ]
+      }
+    },
+    {
+      "id": "dm-7213-line-5000-line",
+      "source": "dm",
+      "source-layer": "dm_7213_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
         ]
       }
     },
@@ -8651,7 +12323,7 @@
         5000
       ],
       "type": "line",
-      "minzoom": 15,
+      "minzoom": 14,
       "paint": {
         "line-color": "#000000",
         "line-width": [
@@ -8663,10 +12335,10 @@
           [
             "zoom"
           ],
-          15,
+          14,
           0.1293685,
           24,
-          66.236673
+          132.473346
         ]
       }
     },

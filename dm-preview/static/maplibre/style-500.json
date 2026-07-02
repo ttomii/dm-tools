@@ -108,6 +108,8 @@
                 4207,
                 4219,
                 4234,
+                4235,
+                4241,
                 4261,
                 4262,
                 4265,
@@ -157,7 +159,9 @@
                 7202,
                 7211,
                 7212,
-                7214
+                7214,
+                7199,
+                7213
               ]
             ]
           ]
@@ -218,7 +222,10 @@
                 3004,
                 4219,
                 4231,
-                4234
+                4234,
+                4235,
+                4241,
+                5239
               ]
             ]
           ]
@@ -4963,6 +4970,70 @@
       }
     },
     {
+      "id": "dm-4235-line-500-line",
+      "source": "dm",
+      "source-layer": "dm_4235_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        500
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.019405275,
+          24,
+          19.8710018
+        ]
+      }
+    },
+    {
+      "id": "dm-4235-polygon-500-line",
+      "source": "dm",
+      "source-layer": "dm_4235_polygon",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        500
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.019405275,
+          24,
+          19.8710018
+        ]
+      }
+    },
+    {
       "id": "dm-4235-point-500-symbol",
       "source": "dm",
       "source-layer": "dm_4235_point",
@@ -5079,6 +5150,70 @@
           0.021831,
           24,
           11.1774386
+        ]
+      }
+    },
+    {
+      "id": "dm-4241-line-500-line",
+      "source": "dm",
+      "source-layer": "dm_4241_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        500
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.019405275,
+          24,
+          19.8710018
+        ]
+      }
+    },
+    {
+      "id": "dm-4241-polygon-500-line",
+      "source": "dm",
+      "source-layer": "dm_4241_polygon",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        500
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.019405275,
+          24,
+          19.8710018
         ]
       }
     },
@@ -6000,9 +6135,9 @@
             "zoom"
           ],
           14,
-          0.0341533,
+          0.0258737,
           24,
-          34.9729632
+          26.4946692
         ]
       }
     },
@@ -6019,7 +6154,7 @@
         500
       ],
       "type": "line",
-      "minzoom": 15,
+      "minzoom": 14,
       "paint": {
         "line-color": "#000000",
         "line-width": [
@@ -6031,14 +6166,10 @@
           [
             "zoom"
           ],
-          15,
-          0.02069895,
+          14,
+          0.0258737,
           24,
-          10.5978676
-        ],
-        "line-dasharray": [
-          6.25,
-          12.5
+          26.4946692
         ]
       }
     },
@@ -6150,9 +6281,41 @@
             "zoom"
           ],
           14,
-          0.0258737,
+          0.019405275,
           24,
-          26.4946692
+          19.8710018
+        ]
+      }
+    },
+    {
+      "id": "dm-5239-polygon-500-line",
+      "source": "dm",
+      "source-layer": "dm_5239_polygon",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        500
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.019405275,
+          24,
+          19.8710018
         ]
       }
     },
@@ -8019,7 +8182,7 @@
         500
       ],
       "type": "line",
-      "minzoom": 14,
+      "minzoom": 15,
       "paint": {
         "line-color": "#000000",
         "line-width": [
@@ -8031,10 +8194,10 @@
           [
             "zoom"
           ],
-          14,
+          15,
           0.0258737,
           24,
-          26.4946692
+          13.2473346
         ],
         "line-dasharray": [
           2.5,
@@ -8075,6 +8238,38 @@
         "line-dasharray": [
           100,
           5
+        ]
+      }
+    },
+    {
+      "id": "dm-7199-line-500-line",
+      "source": "dm",
+      "source-layer": "dm_7199_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        500
+      ],
+      "type": "line",
+      "minzoom": 15,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          15,
+          0.0258737,
+          24,
+          13.2473346
         ]
       }
     },
@@ -8300,6 +8495,38 @@
       "id": "dm-7212-line-500-line",
       "source": "dm",
       "source-layer": "dm_7212_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        500
+      ],
+      "type": "line",
+      "minzoom": 15,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          15,
+          0.0258737,
+          24,
+          13.2473346
+        ]
+      }
+    },
+    {
+      "id": "dm-7213-line-500-line",
+      "source": "dm",
+      "source-layer": "dm_7213_line",
       "filter": [
         "==",
         [
