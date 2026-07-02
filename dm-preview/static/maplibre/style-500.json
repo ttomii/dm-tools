@@ -105,7 +105,9 @@
                 3004,
                 3401,
                 3402,
+                4207,
                 4219,
+                4234,
                 4261,
                 4262,
                 4265,
@@ -206,10 +208,17 @@
             [
               "literal",
               [
+                2219,
+                2226,
+                2419,
+                2424,
                 3001,
                 3002,
                 3003,
-                3004
+                3004,
+                4219,
+                4231,
+                4234
               ]
             ]
           ]
@@ -603,9 +612,9 @@
             "zoom"
           ],
           14,
-          0.0258737,
+          0.0258734933,
           24,
-          26.4946692
+          26.494457174
         ],
         "line-dasharray": [
           50,
@@ -639,9 +648,9 @@
             "zoom"
           ],
           14,
-          0.0258737,
+          0.0258734933,
           24,
-          26.4946692
+          26.494457174
         ],
         "line-dasharray": [
           20,
@@ -885,9 +894,9 @@
             "zoom"
           ],
           14,
-          0.03881055,
+          0.019405275,
           24,
-          39.7420038
+          19.8710018
         ],
         "line-dasharray": [
           5,
@@ -1232,7 +1241,7 @@
         500
       ],
       "type": "line",
-      "minzoom": 15,
+      "minzoom": 14,
       "paint": {
         "line-color": "#000000",
         "line-width": [
@@ -1244,10 +1253,10 @@
           [
             "zoom"
           ],
-          15,
-          0.0258737,
+          14,
+          0.019405275,
           24,
-          13.2473346
+          19.8710018
         ],
         "line-dasharray": [
           10,
@@ -1323,6 +1332,38 @@
       "id": "dm-2219-line-500-line-line",
       "source": "dm",
       "source-layer": "dm_2219_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        500
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.019405275,
+          24,
+          19.8710018
+        ]
+      }
+    },
+    {
+      "id": "dm-2219-polygon-500-line",
+      "source": "dm",
+      "source-layer": "dm_2219_polygon",
       "filter": [
         "==",
         [
@@ -1449,9 +1490,41 @@
             "zoom"
           ],
           14,
-          0.01953465,
+          0.019405275,
           24,
-          20.0034752
+          19.8710018
+        ]
+      }
+    },
+    {
+      "id": "dm-2226-polygon-500-line",
+      "source": "dm",
+      "source-layer": "dm_2226_polygon",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        500
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.019405275,
+          24,
+          19.8710018
         ]
       }
     },
@@ -1843,9 +1916,9 @@
             "zoom"
           ],
           14,
-          0.0646843,
+          0.0517469867,
           24,
-          66.2366728
+          52.988914348
         ]
       }
     },
@@ -1907,9 +1980,9 @@
             "zoom"
           ],
           14,
-          0.03881055,
+          0.0517469867,
           24,
-          39.7420038
+          52.988914348
         ]
       }
     },
@@ -2007,9 +2080,9 @@
             "zoom"
           ],
           15,
-          0.0258737,
+          0.03881055,
           24,
-          13.2473346
+          19.8710018
         ]
       }
     },
@@ -2026,7 +2099,7 @@
         500
       ],
       "type": "line",
-      "minzoom": 14,
+      "minzoom": 15,
       "paint": {
         "line-color": "#000000",
         "line-width": [
@@ -2038,10 +2111,10 @@
           [
             "zoom"
           ],
-          14,
+          15,
           0.03881055,
           24,
-          39.7420038
+          19.8710018
         ],
         "line-dasharray": [
           5,
@@ -2362,6 +2435,38 @@
       }
     },
     {
+      "id": "dm-2419-polygon-500-line",
+      "source": "dm",
+      "source-layer": "dm_2419_polygon",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        500
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.019405275,
+          24,
+          19.8710018
+        ]
+      }
+    },
+    {
       "id": "dm-2419-point-500-symbol-point",
       "source": "dm",
       "source-layer": "dm_2419_point",
@@ -2467,9 +2572,41 @@
             "zoom"
           ],
           15,
-          0.0258737,
+          0.03881055,
           24,
-          13.2473346
+          19.8710018
+        ]
+      }
+    },
+    {
+      "id": "dm-2424-polygon-500-line",
+      "source": "dm",
+      "source-layer": "dm_2424_polygon",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        500
+      ],
+      "type": "line",
+      "minzoom": 15,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          15,
+          0.03881055,
+          24,
+          19.8710018
         ]
       }
     },
@@ -4314,6 +4451,38 @@
       }
     },
     {
+      "id": "dm-4207-line-500-line",
+      "source": "dm",
+      "source-layer": "dm_4207_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        500
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.019405275,
+          24,
+          19.8710018
+        ]
+      }
+    },
+    {
       "id": "dm-4207-point-500-symbol",
       "source": "dm",
       "source-layer": "dm_4207_point",
@@ -4357,6 +4526,38 @@
       "id": "dm-4219-line-500-line-line",
       "source": "dm",
       "source-layer": "dm_4219_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        500
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.019405275,
+          24,
+          19.8710018
+        ]
+      }
+    },
+    {
+      "id": "dm-4219-polygon-500-line",
+      "source": "dm",
+      "source-layer": "dm_4219_polygon",
       "filter": [
         "==",
         [
@@ -4586,6 +4787,38 @@
       }
     },
     {
+      "id": "dm-4231-polygon-500-line",
+      "source": "dm",
+      "source-layer": "dm_4231_polygon",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        500
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.019405275,
+          24,
+          19.8710018
+        ]
+      }
+    },
+    {
       "id": "dm-4231-point-500-symbol",
       "source": "dm",
       "source-layer": "dm_4231_point",
@@ -4622,6 +4855,70 @@
           0.016171,
           24,
           8.2795842
+        ]
+      }
+    },
+    {
+      "id": "dm-4234-line-500-line",
+      "source": "dm",
+      "source-layer": "dm_4234_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        500
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.019405275,
+          24,
+          19.8710018
+        ]
+      }
+    },
+    {
+      "id": "dm-4234-polygon-500-line",
+      "source": "dm",
+      "source-layer": "dm_4234_polygon",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        500
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.019405275,
+          24,
+          19.8710018
         ]
       }
     },

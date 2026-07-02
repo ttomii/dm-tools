@@ -72,6 +72,7 @@ LEVEL,DMCODE,GEOM,SLD_FILE,STYLE_LAYER_ID,SPRITE_ID,DECORATION,STATUS,NOTE
 2500,3004,line,DM_3004.sld,dm-3004-line-2500-line,,,supported,
 2500,3004,polygon,DM_3004.sld,dm-3004-polygon-2500-line,,,supported,same outline style as line geometry
 2500,3401,line,DM_3401.sld,dm-3401-line-2500-line,,,supported,
+2500,3401,polygon,DM_3401.sld,dm-3401-polygon-2500-line,,,supported,same outline style as line geometry
 2500,3401,point,DM_3401_point.sld,dm-3401-point-2500-symbol,dm-3401,,supported,unfilled 0.5 mm square with rotation
 2500,3402,line,DM_3402.sld,dm-3402-line-2500-line,,,supported,
 2500,3503,point,DM_3503.sld,dm-3503-point-2500-symbol,dm-3503,,supported,
@@ -109,15 +110,20 @@ LEVEL,DMCODE,GEOM,SLD_FILE,STYLE_LAYER_ID,SPRITE_ID,DECORATION,STATUS,NOTE
 2500,4203,point,DM_4203.sld,dm-4203-point-2500-symbol,dm-4203,,supported,
 2500,4204,point,DM_4204.sld,dm-4204-point-2500-symbol,dm-4204,,supported,
 2500,4205,point,DM_4205.sld,dm-4205-point-2500-symbol,dm-4205,,supported,
+2500,4207,line,DM_4207.sld,dm-4207-line-2500-line,,,supported,
 2500,4207,point,DM_4207.sld,dm-4207-point-2500-symbol,dm-4207,,supported,
 2500,4208,point,DM_4208.sld,dm-4208-point-2500-symbol,dm-4208,,supported,
 2500,4219,line,DM_4219_line.sld,dm-4219-line-2500-line-line,dm-4219,,supported,
+2500,4219,polygon,DM_4219_line.sld,dm-4219-polygon-2500-line,,,supported,same outline style as line geometry
 2500,4219,point,DM_4219_point.sld,dm-4219-point-2500-symbol-point,dm-4219,,supported,
 2500,4221,point,DM_4221.sld,dm-4221-point-2500-symbol,dm-4221,,supported,
 2500,4222,point,DM_4222.sld,dm-4222-point-2500-symbol,dm-4222,,supported,
 2500,4225,point,DM_4225.sld,dm-4225-point-2500-symbol,dm-4225,,supported,
 2500,4228,point,DM_4228.sld,dm-4228-point-2500-symbol,dm-4228,,supported,
+2500,4231,polygon,DM_4231.sld,dm-4231-polygon-2500-line,,,supported,circle outline
 2500,4231,point,DM_4231.sld,dm-4231-point-2500-symbol,,,supported,
+2500,4234,line,DM_4234.sld,dm-4234-line-2500-line,,,supported,
+2500,4234,polygon,DM_4234.sld,dm-4234-polygon-2500-line,,,supported,same outline style as line geometry
 2500,4234,point,DM_4234.sld,dm-4234-point-2500-symbol,dm-4234,,supported,
 2500,4235,point,DM_4235.sld,dm-4235-point-2500-symbol,dm-4235,,supported,
 2500,4236,point,DM_4236.sld,dm-4236-point-2500-symbol,dm-4236,,supported,
@@ -291,6 +297,7 @@ LEVEL,DMCODE,GEOM,SLD_FILE,STYLE_LAYER_ID,SPRITE_ID,DECORATION,STATUS,NOTE
 5000,3004,line,DM_3004.sld,dm-3004-line-5000-line,,,supported,
 5000,3004,polygon,DM_3004.sld,dm-3004-polygon-5000-line,,,supported,same outline style as line geometry
 5000,3401,line,DM_3401.sld,dm-3401-line-5000-line,,,supported,
+5000,3401,polygon,DM_3401.sld,dm-3401-polygon-5000-line,,,supported,same outline style as line geometry
 5000,3401,point,DM_3401_point.sld,dm-3401-point-5000-symbol,dm-3401,,supported,unfilled 0.5 mm square with rotation
 5000,3402,line,DM_3402.sld,dm-3402-line-5000-line,,,supported,
 5000,3503,point,DM_3503.sld,dm-3503-point-5000-symbol,dm-3503,,supported,
@@ -328,15 +335,20 @@ LEVEL,DMCODE,GEOM,SLD_FILE,STYLE_LAYER_ID,SPRITE_ID,DECORATION,STATUS,NOTE
 5000,4203,point,DM_4203.sld,dm-4203-point-5000-symbol,dm-4203,,supported,
 5000,4204,point,DM_4204.sld,dm-4204-point-5000-symbol,dm-4204,,supported,
 5000,4205,point,DM_4205.sld,dm-4205-point-5000-symbol,dm-4205,,supported,
+5000,4207,line,DM_4207.sld,dm-4207-line-5000-line,,,supported,
 5000,4207,point,DM_4207.sld,dm-4207-point-5000-symbol,dm-4207,,supported,
 5000,4208,point,DM_4208.sld,dm-4208-point-5000-symbol,dm-4208,,supported,
 5000,4219,line,DM_4219_line.sld,dm-4219-line-5000-line-line,dm-4219,,supported,
+5000,4219,polygon,DM_4219_line.sld,dm-4219-polygon-5000-line,,,supported,same outline style as line geometry
 5000,4219,point,DM_4219_point.sld,dm-4219-point-5000-symbol-point,dm-4219,,supported,
 5000,4221,point,DM_4221.sld,dm-4221-point-5000-symbol,dm-4221,,supported,
 5000,4222,point,DM_4222.sld,dm-4222-point-5000-symbol,dm-4222,,supported,
 5000,4225,point,DM_4225.sld,dm-4225-point-5000-symbol,dm-4225,,supported,
 5000,4228,point,DM_4228.sld,dm-4228-point-5000-symbol,dm-4228,,supported,
+5000,4231,polygon,DM_4231.sld,dm-4231-polygon-5000-line,,,supported,circle outline
 5000,4231,point,DM_4231.sld,dm-4231-point-5000-symbol,,,supported,
+5000,4234,line,DM_4234.sld,dm-4234-line-5000-line,,,supported,
+5000,4234,polygon,DM_4234.sld,dm-4234-polygon-5000-line,,,supported,same outline style as line geometry
 5000,4234,point,DM_4234.sld,dm-4234-point-5000-symbol,dm-4234,,supported,
 5000,4235,point,DM_4235.sld,dm-4235-point-5000-symbol,dm-4235,,supported,
 5000,4236,point,DM_4236.sld,dm-4236-point-5000-symbol,dm-4236,,supported,
