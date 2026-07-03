@@ -262,6 +262,7 @@ LEVEL,DMCODE,GEOM,SLD_FILE,STYLE_LAYER_ID,SPRITE_ID,DECORATION,STATUS,NOTE
 2500,6102,line,DM_6102.sld,dm-6102-line-2500-decoration,,perpendicular_tick_1mm,supported,
 2500,6102,line,DM_6102.sld,dm-6102-line-2500-line,,,supported,
 2500,6103,line,DM_6103.sld,dm-6103-line-2500-line,,,supported,
+2500,6110,line,DM_6110.sld,dm-6110-line-2500-decoration,,right_semicircle,supported,figtype 11 right-side 0.4 mm semicircles at 2 mm intervals
 2500,6110,line,DM_6110.sld,dm-6110-line-2500-line,,,supported,
 2500,6110,point,DM_6110_point.sld,dm-6110-point-2500-symbol,,,supported,unfilled 0.3 mm diameter circle with 0.1 mm stroke
 2500,6130,line,DM_6130.sld,dm-6130-line-2500-line,,,supported,
@@ -588,6 +589,7 @@ LEVEL,DMCODE,GEOM,SLD_FILE,STYLE_LAYER_ID,SPRITE_ID,DECORATION,STATUS,NOTE
 5000,6102,line,DM_6102.sld,dm-6102-line-5000-decoration,,perpendicular_tick_1mm,supported,
 5000,6102,line,DM_6102.sld,dm-6102-line-5000-line,,,supported,
 5000,6103,line,DM_6103.sld,dm-6103-line-5000-line,,,supported,
+5000,6110,line,DM_6110.sld,dm-6110-line-5000-decoration,,right_semicircle,supported,figtype 11 right-side 0.4 mm semicircles at 2 mm intervals
 5000,6110,line,DM_6110.sld,dm-6110-line-5000-line,,,supported,
 5000,6110,point,DM_6110_point.sld,dm-6110-point-5000-symbol,,,supported,unfilled 0.3 mm diameter circle with 0.1 mm stroke
 5000,6130,line,DM_6130.sld,dm-6130-line-5000-line,,,supported,

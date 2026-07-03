@@ -1564,13 +1564,13 @@ test("codes 4261 and 4262 render line and polygon outlines as zero point one mil
   }
 });
 
-test("codes 4265, 6101, 6102, and 6110 are zero point one millimeter solid lines", () => {
+test("codes 4265, 6101, and 6102 are zero point one millimeter solid lines", () => {
   const cases = [
     [STYLE_2500, 2500, 15, 0.1293685, 66.236673],
     [STYLE_5000, 5000, 14, 0.1293685, 132.473346],
   ];
   for (const [style, level, minzoom, widthAtMinzoom, width24] of cases) {
-    for (const code of [4265, 6101, 6102, 6110]) {
+    for (const code of [4265, 6101, 6102]) {
       const id = `dm-${code}-line-${level}-line`;
       const layer = byId(style, id);
       assert.equal(layer.type, "line", id);
@@ -1590,6 +1590,44 @@ test("codes 4265, 6101, 6102, and 6110 are zero point one millimeter solid lines
   }
 });
 
+test("code 6110 line is zero point one millimeter only for figtype 12 and zero point two millimeters otherwise", () => {
+  const cases = [
+    [STYLE_2500, 2500, 14, 0.12936746667, 132.47228587008, 15, 0.1293685, 66.236673],
+    [STYLE_5000, 5000, 14, 0.25873493334, 264.94457174016, 14, 0.1293685, 132.473346],
+  ];
+  for (const [style, level, baseMinzoom, baseWidthAtMinzoom, baseWidth24, fig12Minzoom, fig12WidthAtMinzoom, fig12Width24] of cases) {
+    const base = byId(style, `dm-6110-line-${level}-line`);
+    assert.equal(base.type, "line");
+    assert.equal(base["source-layer"], "dm_6110_line");
+    assert.equal(base.minzoom, baseMinzoom);
+    assert.deepEqual(base.filter, ["all", ["==", ["get", "LEVEL"], level], ["!=", ["get", "DMFIGTYPE"], 12]]);
+    assert.deepEqual(base.paint["line-width"], [
+      "interpolate",
+      ["exponential", 2],
+      ["zoom"],
+      baseMinzoom,
+      baseWidthAtMinzoom,
+      24,
+      baseWidth24,
+    ]);
+
+    const fig12 = byId(style, `dm-6110-line-${level}-line-figtype-12`);
+    assert.equal(fig12.type, "line");
+    assert.equal(fig12["source-layer"], "dm_6110_line");
+    assert.equal(fig12.minzoom, fig12Minzoom);
+    assert.deepEqual(fig12.filter, ["all", ["==", ["get", "LEVEL"], level], ["==", ["get", "DMFIGTYPE"], 12]]);
+    assert.deepEqual(fig12.paint["line-width"], [
+      "interpolate",
+      ["exponential", 2],
+      ["zoom"],
+      fig12Minzoom,
+      fig12WidthAtMinzoom,
+      24,
+      fig12Width24,
+    ]);
+  }
+});
+
 test("code 6102 perpendicular tick decorations are zero point one millimeter solid lines", () => {
   const cases = [
     [STYLE_2500, 2500, 15, 0.1293685, 66.236673],
@@ -1600,6 +1638,32 @@ test("code 6102 perpendicular tick decorations are zero point one millimeter sol
     const layer = byId(style, id);
     assert.equal(layer.type, "line", id);
     assert.equal(layer["source-layer"], "dm_6102_line_deco_line", id);
+    assert.equal(layer.minzoom, minzoom, id);
+    assert.equal(layer.paint["line-color"], "#000000", id);
+    assert.equal(layer.paint["line-dasharray"], undefined, id);
+    assert.deepEqual(layer.filter, ["==", ["get", "LEVEL"], level], id);
+    assert.deepEqual(layer.paint["line-width"], [
+      "interpolate",
+      ["exponential", 2],
+      ["zoom"],
+      minzoom,
+      widthAtMinzoom,
+      24,
+      width24,
+    ]);
+  }
+});
+
+test("code 6110 right-side semicircle decorations are zero point two millimeter solid lines", () => {
+  const cases = [
+    [STYLE_2500, 2500, 14, 0.12936746667, 132.47228587008],
+    [STYLE_5000, 5000, 14, 0.25873493334, 264.94457174016],
+  ];
+  for (const [style, level, minzoom, widthAtMinzoom, width24] of cases) {
+    const id = `dm-6110-line-${level}-decoration`;
+    const layer = byId(style, id);
+    assert.equal(layer.type, "line", id);
+    assert.equal(layer["source-layer"], "dm_6110_line_deco_polygon", id);
     assert.equal(layer.minzoom, minzoom, id);
     assert.equal(layer.paint["line-color"], "#000000", id);
     assert.equal(layer.paint["line-dasharray"], undefined, id);

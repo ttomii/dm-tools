@@ -10219,6 +10219,92 @@
       "source": "dm",
       "source-layer": "dm_6110_line",
       "filter": [
+        "all",
+        [
+          "==",
+          [
+            "get",
+            "LEVEL"
+          ],
+          5000
+        ],
+        [
+          "!=",
+          [
+            "get",
+            "DMFIGTYPE"
+          ],
+          12
+        ]
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.25873493334,
+          24,
+          264.94457174016
+        ]
+      }
+    },
+    {
+      "id": "dm-6110-line-5000-line-figtype-12",
+      "source": "dm",
+      "source-layer": "dm_6110_line",
+      "filter": [
+        "all",
+        [
+          "==",
+          [
+            "get",
+            "LEVEL"
+          ],
+          5000
+        ],
+        [
+          "==",
+          [
+            "get",
+            "DMFIGTYPE"
+          ],
+          12
+        ]
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ]
+      }
+    },
+    {
+      "id": "dm-6110-line-5000-decoration",
+      "source": "dm",
+      "source-layer": "dm_6110_line_deco_polygon",
+      "filter": [
         "==",
         [
           "get",
@@ -10240,9 +10326,9 @@
             "zoom"
           ],
           14,
-          0.1293685,
+          0.25873493334,
           24,
-          132.473346
+          264.94457174016
         ]
       }
     },

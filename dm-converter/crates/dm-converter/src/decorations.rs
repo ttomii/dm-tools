@@ -13,6 +13,8 @@ const MAJOR_DASH_CYCLE_MM: f64 = 8.0;
 const PIPE_SYMBOL_INTERVAL_MM: f64 = 3.0;
 const PIPE_SYMBOL_DIAMETER_MM: f64 = 0.2;
 const PIPE_SYMBOL_ARC_SEGMENTS: usize = 8;
+const CODE_6110_SEMICIRCLE_INTERVAL_MM: f64 = 2.0;
+const CODE_6110_SEMICIRCLE_DIAMETER_MM: f64 = 0.4;
 const ATTACHED_TRIANGLE_INTERVAL_MM: f64 = 10.0;
 const ATTACHED_TRIANGLE_BASE_MM: f64 = 0.8;
 const ATTACHED_TRIANGLE_SIDE_MM: f64 = 0.5;
@@ -71,64 +73,87 @@ enum LineDecorationSpec {
         interval_mm: f64,
         diameter_mm: f64,
     },
+    LineSemicircles {
+        decoration: &'static str,
+        dmfigtype: i64,
+        interval_mm: f64,
+        diameter_mm: f64,
+    },
 }
 
 #[derive(Debug, Clone, Copy)]
 struct DecorationDef {
     dmcode: i64,
-    kind: GeometryKind,
+    source_kind: GeometryKind,
+    decoration_kind: GeometryKind,
     specs: fn() -> Vec<LineDecorationSpec>,
 }
 
 const DECORATION_DEFS: &[DecorationDef] = &[
     DecorationDef {
         dmcode: 1101,
-        kind: GeometryKind::Line,
+        source_kind: GeometryKind::Line,
+        decoration_kind: GeometryKind::Line,
         specs: major_dash_end_specs,
     },
     DecorationDef {
         dmcode: 2203,
-        kind: GeometryKind::Line,
+        source_kind: GeometryKind::Line,
+        decoration_kind: GeometryKind::Line,
         specs: bridge_end_specs,
     },
     DecorationDef {
         dmcode: 2204,
-        kind: GeometryKind::Line,
+        source_kind: GeometryKind::Line,
+        decoration_kind: GeometryKind::Line,
         specs: bridge_opening_specs,
     },
     DecorationDef {
         dmcode: 2205,
-        kind: GeometryKind::Line,
+        source_kind: GeometryKind::Line,
+        decoration_kind: GeometryKind::Line,
         specs: footbridge_opening_specs,
     },
     DecorationDef {
         dmcode: 2206,
-        kind: GeometryKind::Line,
+        source_kind: GeometryKind::Line,
+        decoration_kind: GeometryKind::Line,
         specs: bridge_pier_specs,
     },
     DecorationDef {
         dmcode: 2305,
-        kind: GeometryKind::Line,
+        source_kind: GeometryKind::Line,
+        decoration_kind: GeometryKind::Line,
         specs: perpendicular_tick_specs,
     },
     DecorationDef {
         dmcode: 2306,
-        kind: GeometryKind::Line,
+        source_kind: GeometryKind::Line,
+        decoration_kind: GeometryKind::Line,
         specs: attached_triangle_specs,
     },
     DecorationDef {
         dmcode: 4262,
-        kind: GeometryKind::Polygon,
+        source_kind: GeometryKind::Polygon,
+        decoration_kind: GeometryKind::Polygon,
         specs: pipe_symbol_specs,
     },
     DecorationDef {
         dmcode: 6102,
-        kind: GeometryKind::Line,
+        source_kind: GeometryKind::Line,
+        decoration_kind: GeometryKind::Line,
         specs: code_6102_perpendicular_tick_specs,
     },
     DecorationDef {
+        dmcode: 6110,
+        source_kind: GeometryKind::Line,
+        decoration_kind: GeometryKind::Polygon,
+        specs: code_6110_semicircle_specs,
+    },
+    DecorationDef {
         dmcode: 6140,
-        kind: GeometryKind::Line,
+        source_kind: GeometryKind::Line,
+        decoration_kind: GeometryKind::Line,
         specs: wall_symbol_specs,
     },
 ];
@@ -289,6 +314,29 @@ pub fn generate(
                     ));
                 }
             }
+            LineDecorationSpec::LineSemicircles {
+                decoration,
+                dmfigtype,
+                interval_mm,
+                diameter_mm,
+            } => {
+                let Geometry::LineString(points) = &feature.geometry else {
+                    continue;
+                };
+                rows.extend(line_semicircle_features(
+                    feature,
+                    &key,
+                    source_layer,
+                    source_user_id,
+                    points,
+                    level,
+                    decoration,
+                    dmfigtype,
+                    interval_mm,
+                    diameter_mm,
+                    rows.len() as i64,
+                ));
+            }
         }
     }
     rows
@@ -296,12 +344,12 @@ pub fn generate(
 
 fn decoration_geometry_kind(dmcode: i64) -> GeometryKind {
     decoration_def(dmcode)
-        .map(|def| def.kind)
+        .map(|def| def.decoration_kind)
         .unwrap_or(GeometryKind::Line)
 }
 
 fn is_decoration_target(feature: &Feature) -> bool {
-    decoration_def(feature.dmcode).is_some_and(|def| def.kind == feature.geometry_kind)
+    decoration_def(feature.dmcode).is_some_and(|def| def.source_kind == feature.geometry_kind)
         && is_supported_decoration_level(feature.dmcode, feature.map_level)
         && feature.attributes.dmfigtype != Some(99)
 }
@@ -405,6 +453,15 @@ fn code_6102_perpendicular_tick_specs() -> Vec<LineDecorationSpec> {
         length_mm: 1.0,
         one_sided_right: false,
         along_tangent: false,
+    }]
+}
+
+fn code_6110_semicircle_specs() -> Vec<LineDecorationSpec> {
+    vec![LineDecorationSpec::LineSemicircles {
+        decoration: "right_semicircle",
+        dmfigtype: 11,
+        interval_mm: CODE_6110_SEMICIRCLE_INTERVAL_MM,
+        diameter_mm: CODE_6110_SEMICIRCLE_DIAMETER_MM,
     }]
 }
 
@@ -776,6 +833,58 @@ fn long_side_semicircle_features(
                 rows.push(row);
             }
         }
+    }
+    rows
+}
+
+#[allow(clippy::too_many_arguments)]
+fn line_semicircle_features(
+    feature: &Feature,
+    key: &DecorationLayerKey,
+    source_layer: &str,
+    source_user_id: i64,
+    points: &[Coordinate],
+    level: i64,
+    decoration: &str,
+    dmfigtype: i64,
+    interval_mm: f64,
+    diameter_mm: f64,
+    start_index: i64,
+) -> Vec<DecorationFeature> {
+    if feature.attributes.dmfigtype != Some(dmfigtype) {
+        return Vec::new();
+    }
+
+    let total = line_length(points);
+    let interval = mm_to_meter(interval_mm, level);
+    let radius = mm_to_meter(diameter_mm, level) / 2.0;
+    if interval < MIN_DECORATION_LENGTH || radius < MIN_DECORATION_LENGTH || total <= radius * 2.0 {
+        return Vec::new();
+    }
+
+    let mut rows = Vec::new();
+    let mut distance = radius;
+    while distance <= total - radius {
+        if let Some(sample) = sample_at(points, distance) {
+            let geometry = filled_semicircle(
+                sample.point,
+                sample.tangent,
+                sample.tangent.right_normal(),
+                radius,
+            );
+            if let Some(row) = decoration_feature(
+                feature,
+                key,
+                source_layer,
+                source_user_id,
+                decoration,
+                start_index + rows.len() as i64 + 1,
+                Geometry::Polygon(geometry),
+            ) {
+                rows.push(row);
+            }
+        }
+        distance += interval;
     }
     rows
 }
@@ -1450,6 +1559,41 @@ mod tests {
         let second_points = line_points(&rows[1].geometry);
         assert_coordinate(second_points[0], 3.75, -1.25);
         assert_coordinate(second_points[1], 3.75, 1.25);
+    }
+
+    #[test]
+    fn generates_code_6110_semicircles_on_the_right_side_for_figtype_11() {
+        let mut feature = line_feature(6110);
+        feature.attributes.dmfigtype = Some(11);
+        let key = LayerKey::from_feature(&feature);
+        assert_eq!(
+            decoration_layer_key_for(&feature, &key).unwrap().kind,
+            GeometryKind::Polygon
+        );
+        let rows = generate(&feature, &key, "dm_6110_line_08_2500", 1);
+        assert_eq!(rows.len(), 20);
+        assert!(rows.iter().all(|row| row.decoration == "right_semicircle"));
+        assert!(rows.iter().all(|row| row.key.kind == GeometryKind::Polygon));
+
+        let first_points = polygon_points(&rows[0].geometry);
+        assert_eq!(first_points.len(), PIPE_SYMBOL_ARC_SEGMENTS + 2);
+        assert_coordinate(first_points[0], 0.0, 0.0);
+        assert_coordinate(first_points[4], 0.5, -0.5);
+        assert_coordinate(first_points[8], 1.0, 0.0);
+        assert_eq!(first_points.first(), first_points.last());
+
+        let second_points = polygon_points(&rows[1].geometry);
+        assert_coordinate(second_points[0], 5.0, 0.0);
+        assert_coordinate(second_points[4], 5.5, -0.5);
+        assert_coordinate(second_points[8], 6.0, 0.0);
+    }
+
+    #[test]
+    fn skips_code_6110_semicircles_for_non_figtype_11() {
+        let mut feature = line_feature(6110);
+        feature.attributes.dmfigtype = Some(12);
+        let key = LayerKey::from_feature(&feature);
+        assert!(generate(&feature, &key, "dm_6110_line_08_2500", 1).is_empty());
     }
 
     #[test]

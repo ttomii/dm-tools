@@ -10219,12 +10219,66 @@
       "source": "dm",
       "source-layer": "dm_6110_line",
       "filter": [
-        "==",
+        "all",
         [
-          "get",
-          "LEVEL"
+          "==",
+          [
+            "get",
+            "LEVEL"
+          ],
+          2500
         ],
-        2500
+        [
+          "!=",
+          [
+            "get",
+            "DMFIGTYPE"
+          ],
+          12
+        ]
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.12936746667,
+          24,
+          132.47228587008
+        ]
+      }
+    },
+    {
+      "id": "dm-6110-line-2500-line-figtype-12",
+      "source": "dm",
+      "source-layer": "dm_6110_line",
+      "filter": [
+        "all",
+        [
+          "==",
+          [
+            "get",
+            "LEVEL"
+          ],
+          2500
+        ],
+        [
+          "==",
+          [
+            "get",
+            "DMFIGTYPE"
+          ],
+          12
+        ]
       ],
       "type": "line",
       "minzoom": 15,
@@ -10243,6 +10297,38 @@
           0.1293685,
           24,
           66.236673
+        ]
+      }
+    },
+    {
+      "id": "dm-6110-line-2500-decoration",
+      "source": "dm",
+      "source-layer": "dm_6110_line_deco_polygon",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        2500
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.12936746667,
+          24,
+          132.47228587008
         ]
       }
     },
