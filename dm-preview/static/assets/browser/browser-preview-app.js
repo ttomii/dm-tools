@@ -30,6 +30,7 @@ import {
 import {recolorSpriteIcon, spritePayload} from "./sprite-editor.js";
 
 const FEATURE_PAGE_SIZE = 50;
+const FEATURE_LAYER_PARAMETER = "layers";
 
 export const createBrowserPreviewApp = ({elements, location, history, maplibregl, pmtiles, fetch}) => {
   const appBase = new URL(".", location.href);
@@ -240,7 +241,11 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
       zoom: camera.zoom,
       maxZoom: 24,
     });
-    setupFeatureLayerOptions(elements.featureLayerSelect, runtimeStyle, elements.featureKindSelect.value);
+    setupFeatureLayerOptions(elements.featureLayerSelect, runtimeStyle, {
+      kind: elements.featureKindSelect.value,
+      selectedLayer: featureLayerParameter(location),
+    });
+    updateFeatureLayerParameter(location, history, elements.featureLayerSelect.value);
     await loadStyleEditorState().catch((error) => {
       elements.styleEditorStatus.textContent = String(error);
       elements.styleSave.disabled = true;
@@ -307,15 +312,19 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
     elements.tabFeatureDetails.addEventListener("click", () => setDetailTab("feature-details"));
     elements.featureKindSelect.addEventListener("change", () => {
       setupFeatureLayerOptions(elements.featureLayerSelect, state.map.getStyle(), elements.featureKindSelect.value);
+      updateFeatureLayerParameter(location, history, elements.featureLayerSelect.value);
       loadFeaturePage(1).catch((error) => {
         elements.featureListStatus.textContent = String(error);
         elements.featureList.replaceChildren();
       });
     });
-    elements.featureLayerSelect.addEventListener("change", () => loadFeaturePage(1).catch((error) => {
-      elements.featureListStatus.textContent = String(error);
-      elements.featureList.replaceChildren();
-    }));
+    elements.featureLayerSelect.addEventListener("change", () => {
+      updateFeatureLayerParameter(location, history, elements.featureLayerSelect.value);
+      loadFeaturePage(1).catch((error) => {
+        elements.featureListStatus.textContent = String(error);
+        elements.featureList.replaceChildren();
+      });
+    });
     elements.featurePrev.addEventListener("click", () => loadFeaturePage(state.currentFeaturePage - 1).catch((error) => {
       elements.featureListStatus.textContent = String(error);
     }));
@@ -369,6 +378,18 @@ const updateMapParameters = (location, history, map) => {
   const url = new URL(location.href);
   url.searchParams.set("coords", `${center.lng},${center.lat}`);
   url.searchParams.set("scale", String(getScaleByZoom(map.getZoom(), center.lat)));
+  history.replaceState("", "", url);
+};
+
+export const featureLayerParameter = (location) => new URL(location.href).searchParams.get(FEATURE_LAYER_PARAMETER) ?? "";
+
+export const updateFeatureLayerParameter = (location, history, layer) => {
+  const url = new URL(location.href);
+  if (layer) {
+    url.searchParams.set(FEATURE_LAYER_PARAMETER, layer);
+  } else {
+    url.searchParams.delete(FEATURE_LAYER_PARAMETER);
+  }
   history.replaceState("", "", url);
 };
 

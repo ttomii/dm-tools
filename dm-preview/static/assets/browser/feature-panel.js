@@ -5,8 +5,9 @@ import {featureCenter, geometryBounds, toGeoJsonFeature} from "../core/geometry.
 const HIGHLIGHT_SOURCE_ID = "dm-highlight";
 const EMPTY_FEATURES = {type: "FeatureCollection", features: []};
 
-export const setupFeatureLayerOptions = (select, style, kind = "") => {
-  const selected = select.value;
+export const setupFeatureLayerOptions = (select, style, options = {}) => {
+  const kind = typeof options === "string" ? options : options.kind ?? "";
+  const selected = typeof options === "string" ? select.value : options.selectedLayer ?? select.value;
   select.replaceChildren();
   const sourceLayers = getDmSourceLayers(style).filter((sourceLayer) => !kind || getSourceLayerKind(sourceLayer) === kind);
   for (const sourceLayer of sourceLayers) {

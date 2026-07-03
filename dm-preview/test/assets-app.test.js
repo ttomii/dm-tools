@@ -4,6 +4,7 @@ import {compareLayerName, expandDefaultStyleLayers, getDmSourceLayers, getSource
 import {featureMeta, featureTitle} from "../src/core/feature-labels.js";
 import {featureCenter, geometryBounds, normalizeHighlightProperties, toGeoJsonFeature} from "../src/core/geometry.js";
 import {getCoords, getInitialCamera, getScale, getScaleByZoom, getZoomByScale} from "../src/core/map-scale.js";
+import {featureLayerParameter, updateFeatureLayerParameter} from "../static/assets/browser/browser-preview-app.js";
 import {
   annotationTextField,
   setVerticalLongSoundAnnotationStyle,
@@ -131,6 +132,25 @@ test("core reads camera parameters and converts map scale", () => {
   assert.equal(getScaleByZoom(zoom, 35.68), 2500);
   assert.equal(styleLabel("maplibre/style-2500.json", {levels: [500, 2500]}), "Level 2500");
   assert.equal(styleLabel("custom.json", {levels: [1000], styles: ["custom.json"]}), "Level 1000");
+});
+
+test("browser preview stores selected feature layer in URL parameters", () => {
+  const location = {href: "http://localhost/preview/?coords=139,35&layers=dm_7101_line"};
+  const replaced = [];
+  const history = {
+    replaceState: (_state, _title, url) => {
+      replaced.push(url.toString());
+      location.href = url.toString();
+    },
+  };
+
+  assert.equal(featureLayerParameter(location), "dm_7101_line");
+  updateFeatureLayerParameter(location, history, "dm_8110_text");
+  assert.equal(new URL(replaced.at(-1)).searchParams.get("layers"), "dm_8110_text");
+  assert.equal(new URL(replaced.at(-1)).searchParams.get("coords"), "139,35");
+
+  updateFeatureLayerParameter(location, history, "");
+  assert.equal(new URL(replaced.at(-1)).searchParams.has("layers"), false);
 });
 
 test("core hides DMSKIP features in runtime and bundled DM styles", () => {

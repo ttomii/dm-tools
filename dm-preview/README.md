@@ -24,11 +24,12 @@ npm install --prefix ./dm-preview
 リポジトリルートから`node`で起動します。
 
 ```bash
-node ./dm-preview/bin/dm-preview.js preview OUTPUT [--no-open]
+node ./dm-preview/bin/dm-preview.js preview OUTPUT [--no-open] [--port PORT]
 node ./dm-preview/bin/dm-preview.js bundle PMTILES OUTPUT
 ```
 
 `preview`の`OUTPUT`は実行時のカレントディレクトリを基準に解決します。
+`--port`を省略した場合は空いているポートを自動で使用します。
 
 配布用の静的ファイル一式を作成する場合は`bundle`を使います。
 
