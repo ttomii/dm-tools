@@ -122,6 +122,11 @@ const DECORATION_DEFS: &[DecorationDef] = &[
         specs: pipe_symbol_specs,
     },
     DecorationDef {
+        dmcode: 6102,
+        kind: GeometryKind::Line,
+        specs: code_6102_perpendicular_tick_specs,
+    },
+    DecorationDef {
         dmcode: 6140,
         kind: GeometryKind::Line,
         specs: wall_symbol_specs,
@@ -390,6 +395,16 @@ fn pipe_symbol_specs() -> Vec<LineDecorationSpec> {
         decoration: "pipe_symbol",
         interval_mm: PIPE_SYMBOL_INTERVAL_MM,
         diameter_mm: PIPE_SYMBOL_DIAMETER_MM,
+    }]
+}
+
+fn code_6102_perpendicular_tick_specs() -> Vec<LineDecorationSpec> {
+    vec![LineDecorationSpec::LineSymbols {
+        decoration: "perpendicular_tick_1mm",
+        interval_mm: 1.0,
+        length_mm: 1.0,
+        one_sided_right: false,
+        along_tangent: false,
     }]
 }
 
@@ -1411,6 +1426,30 @@ mod tests {
         let second_points = line_points(&rows[1].geometry);
         assert_coordinate(second_points[0], 13.75, -0.75);
         assert_coordinate(second_points[1], 13.75, 0.75);
+    }
+
+    #[test]
+    fn generates_code_6102_one_millimeter_perpendicular_ticks() {
+        let feature = line_feature(6102);
+        let key = LayerKey::from_feature(&feature);
+        assert_eq!(
+            decoration_layer_key_for(&feature, &key).unwrap().kind,
+            GeometryKind::Line
+        );
+        let rows = generate(&feature, &key, "dm_6102_line_08_2500", 1);
+        assert!(
+            rows.iter()
+                .all(|row| row.decoration == "perpendicular_tick_1mm")
+        );
+
+        let first_points = line_points(&rows[0].geometry);
+        assert_coordinate(first_points[0], 1.25, -1.25);
+        assert_coordinate(first_points[1], 1.25, 1.25);
+        assert_length(first_points, 2.5);
+
+        let second_points = line_points(&rows[1].geometry);
+        assert_coordinate(second_points[0], 3.75, -1.25);
+        assert_coordinate(second_points[1], 3.75, 1.25);
     }
 
     #[test]

@@ -1590,6 +1590,32 @@ test("codes 4265, 6101, 6102, and 6110 are zero point one millimeter solid lines
   }
 });
 
+test("code 6102 perpendicular tick decorations are zero point one millimeter solid lines", () => {
+  const cases = [
+    [STYLE_2500, 2500, 15, 0.1293685, 66.236673],
+    [STYLE_5000, 5000, 14, 0.1293685, 132.473346],
+  ];
+  for (const [style, level, minzoom, widthAtMinzoom, width24] of cases) {
+    const id = `dm-6102-line-${level}-decoration`;
+    const layer = byId(style, id);
+    assert.equal(layer.type, "line", id);
+    assert.equal(layer["source-layer"], "dm_6102_line_deco_line", id);
+    assert.equal(layer.minzoom, minzoom, id);
+    assert.equal(layer.paint["line-color"], "#000000", id);
+    assert.equal(layer.paint["line-dasharray"], undefined, id);
+    assert.deepEqual(layer.filter, ["==", ["get", "LEVEL"], level], id);
+    assert.deepEqual(layer.paint["line-width"], [
+      "interpolate",
+      ["exponential", 2],
+      ["zoom"],
+      minzoom,
+      widthAtMinzoom,
+      24,
+      width24,
+    ]);
+  }
+});
+
 test("code 4265 has zero point three millimeter circles beside the line every ten millimeters for levels 2500 and 5000", () => {
   const cases = [
     [STYLE_2500, 2500, 15, 12.93685, 6623.6673, 0.05659826666812501, 28.978312534080004],
