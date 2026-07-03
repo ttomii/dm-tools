@@ -663,5 +663,12 @@
     "x": 224,
     "y": 288,
     "pixelRatio": 1
+  },
+  "dm-4265": {
+    "width": 32,
+    "height": 32,
+    "x": 256,
+    "y": 288,
+    "pixelRatio": 1
   }
 }

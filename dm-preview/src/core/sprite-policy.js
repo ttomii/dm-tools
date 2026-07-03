@@ -23,7 +23,7 @@ export const SPRITE_ORDER = [
   "dm-6216", "dm-6217", "dm-6314", "dm-6323", "dm-6338", "dm-6340",
   "dm-5105", "dm-7201", "dm-7206", "dm-7211", "dm-7213", "dm-7303", "dm-7305",
   "dm-5241", "dm-5228", "dm-4221", "dm-3401", "dm-4208", "dm-6315",
-  "dm-7304",
+  "dm-7304", "dm-4265",
 ];
 
 export const CUSTOM_SIZES = new Map([

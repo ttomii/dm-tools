@@ -663,5 +663,12 @@
     "x": 448,
     "y": 576,
     "pixelRatio": 2
+  },
+  "dm-4265": {
+    "width": 64,
+    "height": 64,
+    "x": 512,
+    "y": 576,
+    "pixelRatio": 2
   }
 }

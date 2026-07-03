@@ -1554,6 +1554,48 @@ test("codes 4265, 6101, 6102, and 6110 are zero point one millimeter solid lines
   }
 });
 
+test("code 4265 has zero point three millimeter circles beside the line every ten millimeters for levels 2500 and 5000", () => {
+  const cases = [
+    [STYLE_2500, 2500, 15, 12.93685, 6623.6673, 0.05659826666812501, 28.978312534080004],
+    [STYLE_5000, 5000, 14, 12.93685, 13247.3346, 0.05659826666812501, 57.95662506816001],
+  ];
+  for (const [style, level, minzoom, spacingAtMinzoom, spacing24, sizeAtMinzoom, size24] of cases) {
+    const id = `dm-4265-line-${level}-symbol-circles`;
+    const layer = byId(style, id);
+    assert.equal(layer.type, "symbol", id);
+    assert.equal(layer.source, "dm", id);
+    assert.equal(layer["source-layer"], "dm_4265_line", id);
+    assert.equal(layer.minzoom, minzoom, id);
+    assert.deepEqual(layer.filter, ["==", ["get", "LEVEL"], level], id);
+    assert.equal(layer.layout["symbol-placement"], "line", id);
+    assert.equal(layer.layout["icon-image"], "dm-4265", id);
+    assert.equal(layer.layout["icon-allow-overlap"], true, id);
+    assert.equal(layer.layout["icon-ignore-placement"], true, id);
+    assert.equal(layer.layout["icon-rotation-alignment"], "map", id);
+    assert.equal(layer.layout["icon-pitch-alignment"], "map", id);
+    assert.deepEqual(layer.layout["symbol-spacing"], [
+      "interpolate",
+      ["exponential", 2],
+      ["zoom"],
+      minzoom,
+      spacingAtMinzoom,
+      24,
+      spacing24,
+    ]);
+    const iconSize = layer.layout["icon-size"];
+    assert.deepEqual(iconSize.slice(0, 4), [
+      "interpolate",
+      ["exponential", 2],
+      ["zoom"],
+      minzoom,
+    ], id);
+    assertApprox(iconSize[4], sizeAtMinzoom, id);
+    assert.equal(iconSize[5], 24, id);
+    assertApprox(iconSize[6], size24, id);
+  }
+  assert.ok(SPRITE["dm-4265"]);
+});
+
 test("codes 5101 and 5102 are zero point one five millimeter solid lines", () => {
   const widths = new Map([
     [500, [0.019405275, 19.8710018]],

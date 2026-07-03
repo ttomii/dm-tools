@@ -5834,6 +5834,57 @@
       }
     },
     {
+      "id": "dm-4265-line-2500-symbol-circles",
+      "source": "dm",
+      "source-layer": "dm_4265_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        2500
+      ],
+      "type": "symbol",
+      "minzoom": 15,
+      "layout": {
+        "symbol-placement": "line",
+        "symbol-spacing": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          15,
+          12.93685,
+          24,
+          6623.6673
+        ],
+        "icon-image": "dm-4265",
+        "icon-size": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          15,
+          0.05659826666812501,
+          24,
+          28.978312534080004
+        ],
+        "icon-allow-overlap": true,
+        "icon-ignore-placement": true,
+        "icon-rotation-alignment": "map",
+        "icon-pitch-alignment": "map"
+      }
+    },
+    {
       "id": "dm-5101-line-2500-line",
       "source": "dm",
       "source-layer": "dm_5101_line",
