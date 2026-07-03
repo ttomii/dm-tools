@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import {test} from "node:test";
-import {parseArguments} from "../src/main.js";
+import {createHelpText, parseArguments} from "../src/main.js";
 
 test("parseArguments accepts preview command", () => {
   assert.deepEqual(parseArguments(["preview", "output", "--no-open"]), {
@@ -54,4 +54,15 @@ test("parseArguments rejects unknown and missing arguments", () => {
   assert.throws(() => parseArguments(["preview", "output", "--port", "abc"]), /port must be an integer/);
   assert.throws(() => parseArguments(["bundle", "input.pmtiles"]), /bundle requires PMTILES and OUTPUT/);
   assert.throws(() => parseArguments([]), /preview requires exactly one OUTPUT/);
+});
+
+test("createHelpText explains commands, options, URL parameters, and exit codes", () => {
+  const help = createHelpText();
+
+  assert.match(help, /dm-preview preview OUTPUT \[--no-open\] \[--port PORT\]/);
+  assert.match(help, /dm-preview bundle PMTILES OUTPUT/);
+  assert.match(help, /--no-open\s+Print the preview URL/);
+  assert.match(help, /--port PORT\s+Listen on PORT/);
+  assert.match(help, /layers=NAME\s+Selected feature-list layer/);
+  assert.match(help, /Exit codes:/);
 });
