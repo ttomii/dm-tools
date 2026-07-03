@@ -2,7 +2,7 @@
 
 DMファイルを扱うツール群です。
 
-- `dm-converter`: DMファイルをGeoPackageまたはMapLibre向けPMTilesへ変換するRust CLI
+- `dm-converter`: DMファイルをGeoPackageまたはPMTilesへ変換するRust CLI
 - `dm-preview`: `dm-converter`が生成したMapLibre出力をプレビューするNode.js CLI
 
 ## 動作要件
@@ -17,12 +17,12 @@ cd dm-converter
 cargo build --release
 
 target/release/dm-converter convert ./dm-data ./result.gpkg
-target/release/dm-converter convert ./dm-data ./maplibre --format maplibre --layer-name dm
+target/release/dm-converter convert ./dm-data ./pmtiles --format pmtiles --layer-name dm
 ```
 
 実行ファイルは`target/release/dm-converter`に生成されます。入力には単一の
 `.dm`ファイル、またはDMファイルを含むディレクトリを指定できます。
-GeoPackageを作る場合は`.gpkg`ファイルを、MapLibre向けPMTilesを作る場合は
+GeoPackageを作る場合は`.gpkg`ファイルを、PMTilesを作る場合は
 出力ディレクトリを指定します。
 
 Windows向けリリースビルドの手順は
