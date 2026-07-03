@@ -10,7 +10,7 @@ import {
   verticalLongSoundAnnotationStyleEnabled,
   verticalLongSoundAnnotationTextField,
 } from "../src/core/style-editing.js";
-import {styleLabel} from "../src/core/style-transform.js";
+import {createBundledStyle, createRuntimeStyle, styleLabel} from "../src/core/style-transform.js";
 
 const plain = (value) => JSON.parse(JSON.stringify(value));
 
@@ -133,6 +133,53 @@ test("core reads camera parameters and converts map scale", () => {
   assert.equal(styleLabel("custom.json", {levels: [1000], styles: ["custom.json"]}), "Level 1000");
 });
 
+test("core hides DMSKIP features in runtime and bundled DM styles", () => {
+  const baseStyle = {
+    version: 8,
+    sources: {dm: {type: "vector"}},
+    layers: [
+      {id: "background", type: "background"},
+      {
+        id: "fixed-line",
+        type: "line",
+        source: "dm",
+        "source-layer": "dm_6101_line",
+        filter: ["==", ["get", "LEVEL"], 2500],
+      },
+      {
+        id: "default-line",
+        type: "line",
+        source: "dm",
+        "source-layer": "dm_default_line",
+      },
+    ],
+  };
+  const manifest = {
+    levels: [2500],
+    pmtiles: "sample.pmtiles",
+    sourceLayers: ["dm_7101_line"],
+  };
+
+  const runtime = createRuntimeStyle(baseStyle, manifest, {
+    resourceUrl: (value) => value,
+    basemapVisible: true,
+    dmVisible: true,
+  });
+  assert.deepEqual(byLayerId(runtime, "fixed-line").filter, [
+    "all",
+    ["==", ["get", "LEVEL"], 2500],
+    ["!=", ["get", "DMSKIP"], 1],
+  ]);
+  assert.deepEqual(byLayerId(runtime, "default-line-7101").filter, ["!=", ["get", "DMSKIP"], 1]);
+
+  const bundled = createBundledStyle(baseStyle, manifest);
+  assert.deepEqual(byLayerId(bundled, "fixed-line").filter, [
+    "all",
+    ["==", ["get", "LEVEL"], 2500],
+    ["!=", ["get", "DMSKIP"], 1],
+  ]);
+});
+
 test("core toggles vertical annotation long sound mark text fields", () => {
   const style = {
     layers: [
@@ -164,3 +211,9 @@ test("core toggles vertical annotation long sound mark text fields", () => {
   setVerticalLongSoundAnnotationStyle(style, false);
   assert.deepEqual(style.layers[1].layout["text-field"], annotationTextField());
 });
+
+const byLayerId = (style, id) => {
+  const layer = style.layers.find((candidate) => candidate.id === id);
+  assert.ok(layer, `missing layer ${id}`);
+  return layer;
+};

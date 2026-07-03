@@ -252,7 +252,6 @@ LEVEL,DMCODE,GEOM,SLD_FILE,STYLE_LAYER_ID,SPRITE_ID,DECORATION,STATUS,NOTE
 2500,5228,line,DM_5228_line.sld,dm-5228-line-2500-line-line,,,supported,
 2500,5228,point,DM_5228_point.sld,dm-5228-point-2500-symbol-point,dm-5228,,supported,1.5 mm rotating line with outlined squares
 2500,5231,line,DM_5231.sld,dm-5231-line-2500-line,,,supported,
-2500,5232,line,DM_5232.sld,dm-5232-line-2500-line,,,supported,
 2500,5232,point,DM_5232_point.sld,dm-5232-point-2500-symbol,,,supported,white 0.5 mm diameter circle with 0.2 mm stroke
 2500,5233,line,DM_5233.sld,dm-5233-line-2500-line,,,supported,
 2500,5239,line,DM_5239.sld,dm-5239-line-2500-line,,,supported,
@@ -578,7 +577,6 @@ LEVEL,DMCODE,GEOM,SLD_FILE,STYLE_LAYER_ID,SPRITE_ID,DECORATION,STATUS,NOTE
 5000,5228,line,DM_5228_line.sld,dm-5228-line-5000-line-line,,,supported,
 5000,5228,point,DM_5228_point.sld,dm-5228-point-5000-symbol-point,dm-5228,,supported,1.5 mm rotating line with outlined squares
 5000,5231,line,DM_5231.sld,dm-5231-line-5000-line,,,supported,
-5000,5232,line,DM_5232.sld,dm-5232-line-5000-line,,,supported,
 5000,5232,point,DM_5232_point.sld,dm-5232-point-5000-symbol,,,supported,white 0.5 mm diameter circle with 0.2 mm stroke
 5000,5233,line,DM_5233.sld,dm-5233-line-5000-line,,,supported,
 5000,5239,line,DM_5239.sld,dm-5239-line-5000-line,,,supported,

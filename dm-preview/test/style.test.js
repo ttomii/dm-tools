@@ -776,6 +776,14 @@ test("code 5232 point is a white half millimeter diameter circle with a zero poi
   }
 });
 
+test("code 5232 line is not displayed", () => {
+  for (const [style, level] of ALL_STYLES) {
+    assert.equal(style.layers.some((layer) => layer.id === `dm-5232-line-${level}-line`), false);
+    assert.equal(style.layers.some((layer) => layer["source-layer"] === "dm_5232_line"), false);
+    assert.ok(byId(style, `dm-default-line-${level}-line`).filter[2][1][2][1].includes(5232));
+  }
+});
+
 test("code 6340 renders the S as one point two millimeters high", () => {
   const cases = [
     [STYLE_500, 500, 0.006749606956521739, 3.455798761828174],
@@ -1707,7 +1715,7 @@ test("code 5203 is a zero point two millimeter solid line", () => {
   }
 });
 
-test("codes 5226, 5227, 5228, 5231, and 5232 are zero point two millimeter solid lines", () => {
+test("codes 5226, 5227, 5228, and 5231 are zero point two millimeter solid lines", () => {
   const widths = new Map([
     [500, [0.0258737, 26.4946692]],
     [1000, [0.0517469867, 52.988914348]],
@@ -1719,7 +1727,7 @@ test("codes 5226, 5227, 5228, 5231, and 5232 are zero point two millimeter solid
     : `dm-${code}-line-${level}-line`;
   for (const [style, level] of ALL_STYLES) {
     const [width14, width24] = widths.get(level);
-    for (const code of [5226, 5227, 5228, 5231, 5232]) {
+    for (const code of [5226, 5227, 5228, 5231]) {
       const layer = byId(style, lineId(code, level));
       assert.equal(layer.type, "line");
       assert.equal(layer["source-layer"], `dm_${code}_line`);

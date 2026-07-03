@@ -6175,38 +6175,6 @@
       }
     },
     {
-      "id": "dm-5232-line-500-line",
-      "source": "dm",
-      "source-layer": "dm_5232_line",
-      "filter": [
-        "==",
-        [
-          "get",
-          "LEVEL"
-        ],
-        500
-      ],
-      "type": "line",
-      "minzoom": 14,
-      "paint": {
-        "line-color": "#000000",
-        "line-width": [
-          "interpolate",
-          [
-            "exponential",
-            2
-          ],
-          [
-            "zoom"
-          ],
-          14,
-          0.0258737,
-          24,
-          26.4946692
-        ]
-      }
-    },
-    {
       "id": "dm-5232-point-500-symbol",
       "source": "dm",
       "source-layer": "dm_5232_point",
