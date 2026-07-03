@@ -1,6 +1,6 @@
 // © TOMII, Tatsuru
 
-use encoding_rs::{Encoding, SHIFT_JIS};
+use encoding_rs::{EUC_JP, Encoding, SHIFT_JIS};
 use std::collections::VecDeque;
 use std::io::{self, BufRead};
 use std::path::Path;
@@ -403,7 +403,8 @@ impl<R: BufRead> DmParser<R> {
                     }
                 }
                 text_bytes.truncate(bytes_needed);
-                let (text, _, _) = self.config.encoding.decode(&text_bytes);
+                let text =
+                    decode_annotation_text(self.config.encoding, &text_bytes, annotation_type);
                 attributes.text = Some(text.into_owned());
                 (GeometryKind::Text, Geometry::TextPoint(point))
             }
@@ -519,6 +520,48 @@ fn number_f64(bytes: &[u8], start: usize, count: usize) -> Option<f64> {
         .ok()
 }
 
+fn decode_annotation_text<'a>(
+    encoding: &'static Encoding,
+    bytes: &'a [u8],
+    annotation_type: i64,
+) -> std::borrow::Cow<'a, str> {
+    if annotation_type == 1
+        && let Some(text) = decode_jis_x0208_gl_annotation(bytes)
+    {
+        return text;
+    }
+    let (text, _, _) = encoding.decode(bytes);
+    text
+}
+
+fn decode_jis_x0208_gl_annotation(bytes: &[u8]) -> Option<std::borrow::Cow<'static, str>> {
+    if bytes.len() % 2 != 0
+        || !bytes
+            .chunks_exact(2)
+            .all(|pair| (0x21..=0x7e).contains(&pair[0]) && (0x21..=0x7e).contains(&pair[1]))
+    {
+        return None;
+    }
+
+    let euc_jp_bytes = bytes.iter().map(|byte| byte | 0x80).collect::<Vec<_>>();
+    let (text, _, had_errors) = EUC_JP.decode(&euc_jp_bytes);
+    if had_errors || japanese_char_count(&text) == 0 {
+        return None;
+    }
+    Some(std::borrow::Cow::Owned(text.into_owned()))
+}
+
+fn japanese_char_count(text: &str) -> usize {
+    text.chars()
+        .filter(|char| {
+            matches!(
+                *char as u32,
+                0x3040..=0x30ff | 0x3400..=0x9fff | 0xf900..=0xfaff
+            )
+        })
+        .count()
+}
+
 fn required_i64(bytes: &[u8], start: usize, count: usize, name: &str) -> Result<i64, String> {
     number_i64(bytes, start, count).ok_or_else(|| format!("invalid {name}"))
 }
@@ -626,6 +669,15 @@ mod tests {
         let mut line = vec![b' '; 84];
         for (start, value) in fields {
             line[*start..*start + value.len()].copy_from_slice(value.as_bytes());
+        }
+        line.extend_from_slice(b"\r\n");
+        line
+    }
+
+    fn fixed_line_bytes(fields: &[(usize, &[u8])]) -> Vec<u8> {
+        let mut line = vec![b' '; 84];
+        for (start, value) in fields {
+            line[*start..*start + value.len()].copy_from_slice(value);
         }
         line.extend_from_slice(b"\r\n");
         line
@@ -1014,5 +1066,39 @@ mod tests {
         assert_eq!(feature.attributes.char_spacing, Some(12.0));
         assert_eq!(feature.attributes.line_no, Some(3));
         assert_eq!(feature.attributes.text.as_deref(), Some("TEST"));
+    }
+
+    #[test]
+    fn decodes_annotation_text_stored_as_jis_x0208_gl() {
+        let header = fixed_line(&[
+            (0, "E7"),
+            (2, "8110"),
+            (20, "2"),
+            (23, "1"),
+            (27, "0003"),
+            (31, "0001"),
+            (35, "0000010"),
+            (42, "0000020"),
+        ]);
+        let row = fixed_line_bytes(&[
+            (0, b"0"),
+            (1, b"0000000"),
+            (8, b"00050"),
+            (13, b"00200"),
+            (18, b"08"),
+            (20, &[0x3f, 0x37, 0x33, 0x63, 0x3b, 0x54]),
+        ]);
+        let mut parser = DmParser::new(
+            Cursor::new(sample(header, vec![row])),
+            "test.dm",
+            ParserConfig::default(),
+        );
+        let feature = parser
+            .find_map(|event| match event.unwrap() {
+                ParseEvent::Feature(feature) => Some(feature),
+                ParseEvent::Metadata(_) | ParseEvent::Warning(_) => None,
+            })
+            .unwrap();
+        assert_eq!(feature.attributes.text.as_deref(), Some("新潟市"));
     }
 }
