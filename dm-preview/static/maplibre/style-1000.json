@@ -959,7 +959,7 @@
       "type": "line",
       "minzoom": 14,
       "paint": {
-        "line-color": "#222222",
+        "line-color": "#000000",
         "line-width": [
           "interpolate",
           [
@@ -1023,7 +1023,7 @@
       "type": "line",
       "minzoom": 14,
       "paint": {
-        "line-color": "#222222",
+        "line-color": "#000000",
         "line-width": [
           "interpolate",
           [
@@ -1087,7 +1087,7 @@
       "type": "line",
       "minzoom": 14,
       "paint": {
-        "line-color": "#222222",
+        "line-color": "#000000",
         "line-width": [
           "interpolate",
           [
@@ -1151,7 +1151,7 @@
       "type": "line",
       "minzoom": 14,
       "paint": {
-        "line-color": "#222222",
+        "line-color": "#000000",
         "line-width": [
           "interpolate",
           [
@@ -5449,7 +5449,7 @@
       "type": "fill",
       "paint": {
         "fill-color": "#d9d9d9",
-        "fill-outline-color": "#333333"
+        "fill-outline-color": "#000000"
       }
     },
     {
@@ -6815,7 +6815,7 @@
       "type": "line",
       "minzoom": 14,
       "paint": {
-        "line-color": "#222222",
+        "line-color": "#000000",
         "line-width": [
           "interpolate",
           [
@@ -7464,10 +7464,32 @@
         ],
         1000
       ],
-      "type": "circle",
-      "paint": {
-        "circle-radius": 0.6,
-        "circle-color": "#222222"
+      "type": "symbol",
+      "layout": {
+        "icon-image": "dm-6315",
+        "icon-rotate": [
+          "coalesce",
+          [
+            "get",
+            "ROTATION"
+          ],
+          0
+        ],
+        "icon-allow-overlap": true,
+        "icon-size": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          15,
+          0.016171,
+          24,
+          8.2795842
+        ]
       }
     },
     {
@@ -8304,24 +8326,6 @@
           24,
           26.4946692
         ]
-      }
-    },
-    {
-      "id": "dm-7199-point-1000-symbol",
-      "source": "dm",
-      "source-layer": "dm_7199_point",
-      "filter": [
-        "==",
-        [
-          "get",
-          "LEVEL"
-        ],
-        1000
-      ],
-      "type": "circle",
-      "paint": {
-        "circle-radius": 0.6,
-        "circle-color": "#222222"
       }
     },
     {

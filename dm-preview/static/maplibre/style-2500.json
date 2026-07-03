@@ -1062,7 +1062,7 @@
       "type": "line",
       "minzoom": 14,
       "paint": {
-        "line-color": "#222222",
+        "line-color": "#000000",
         "line-width": [
           "interpolate",
           [
@@ -1126,7 +1126,7 @@
       "type": "line",
       "minzoom": 14,
       "paint": {
-        "line-color": "#222222",
+        "line-color": "#000000",
         "line-width": [
           "interpolate",
           [
@@ -1190,7 +1190,7 @@
       "type": "line",
       "minzoom": 14,
       "paint": {
-        "line-color": "#222222",
+        "line-color": "#000000",
         "line-width": [
           "interpolate",
           [
@@ -5798,7 +5798,7 @@
       "type": "fill",
       "paint": {
         "fill-color": "#d9d9d9",
-        "fill-outline-color": "#333333"
+        "fill-outline-color": "#000000"
       }
     },
     {
@@ -10549,7 +10549,7 @@
       "type": "line",
       "minzoom": 14,
       "paint": {
-        "line-color": "#222222",
+        "line-color": "#000000",
         "line-width": [
           "interpolate",
           [
@@ -11238,10 +11238,32 @@
         ],
         2500
       ],
-      "type": "circle",
-      "paint": {
-        "circle-radius": 3,
-        "circle-color": "#222222"
+      "type": "symbol",
+      "layout": {
+        "icon-image": "dm-6315",
+        "icon-rotate": [
+          "coalesce",
+          [
+            "get",
+            "ROTATION"
+          ],
+          0
+        ],
+        "icon-allow-overlap": true,
+        "icon-size": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          15,
+          0.080855,
+          24,
+          41.397921
+        ]
       }
     },
     {
@@ -12070,24 +12092,6 @@
           24,
           66.236673
         ]
-      }
-    },
-    {
-      "id": "dm-7199-point-2500-symbol",
-      "source": "dm",
-      "source-layer": "dm_7199_point",
-      "filter": [
-        "==",
-        [
-          "get",
-          "LEVEL"
-        ],
-        2500
-      ],
-      "type": "circle",
-      "paint": {
-        "circle-radius": 3,
-        "circle-color": "#222222"
       }
     },
     {

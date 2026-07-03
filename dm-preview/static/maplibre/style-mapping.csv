@@ -311,7 +311,7 @@ LEVEL,DMCODE,GEOM,SLD_FILE,STYLE_LAYER_ID,SPRITE_ID,DECORATION,STATUS,NOTE
 2500,7106,line,DM_7106.sld,dm-7106-line-2500-line,,,supported,
 2500,7107,line,DM_7107.sld,dm-7107-line-2500-line,,,supported,
 2500,7199,line,DM_7199.sld,dm-7199-line-2500-line,,,supported,
-2500,7199,point,DM_7199.sld,dm-7199-point-2500-symbol,,,partial,point symbol source is unavailable
+2500,7199,point,DM_7199.sld,,,,unsupported,point symbol source is unavailable
 2500,7201,line,DM_7201.sld,dm-7201-line-2500-line,dm-7201,,supported,
 2500,7201,point,DM_7201.sld,dm-7201-point-2500-symbol,dm-7201,,supported,2 mm high (土) centered on point
 2500,7202,line,DM_7202.sld,dm-7202-line-2500-line,,,supported,
@@ -637,7 +637,7 @@ LEVEL,DMCODE,GEOM,SLD_FILE,STYLE_LAYER_ID,SPRITE_ID,DECORATION,STATUS,NOTE
 5000,7106,line,DM_7106.sld,dm-7106-line-5000-line,,,supported,
 5000,7107,line,DM_7107.sld,dm-7107-line-5000-line,,,supported,
 5000,7199,line,DM_7199.sld,dm-7199-line-5000-line,,,supported,
-5000,7199,point,DM_7199.sld,dm-7199-point-5000-symbol,,,partial,point symbol source is unavailable
+5000,7199,point,DM_7199.sld,,,,unsupported,point symbol source is unavailable
 5000,7201,line,DM_7201.sld,dm-7201-line-5000-line,dm-7201,,supported,
 5000,7201,point,DM_7201.sld,dm-7201-point-5000-symbol,dm-7201,,supported,2 mm high (土) centered on point
 5000,7202,line,DM_7202.sld,dm-7202-line-5000-line,,,supported,

@@ -904,6 +904,34 @@ test("code 6217 uses a rotating point symbol", () => {
   assert.ok(SPRITE["dm-6217"]);
 });
 
+test("code 6315 uses the bundled point symbol", () => {
+  const sizes = new Map([
+    [500, [0.016171, 8.2795842]],
+    [1000, [0.016171, 8.2795842]],
+    [2500, [0.080855, 41.397921]],
+    [5000, [0.080855, 41.397921]],
+  ]);
+  for (const [style, level] of ALL_STYLES) {
+    const [atZoom15, atZoom24] = sizes.get(level);
+    const id = `dm-6315-point-${level}-symbol`;
+    const layer = byId(style, id);
+    assert.equal(layer.type, "symbol", id);
+    assert.equal(layer["source-layer"], "dm_6315_point", id);
+    assert.equal(layer.layout["icon-image"], "dm-6315", id);
+    assert.deepEqual(layer.layout["icon-rotate"], ["coalesce", ["get", "ROTATION"], 0]);
+    assert.deepEqual(layer.layout["icon-size"], [
+      "interpolate",
+      ["exponential", 2],
+      ["zoom"],
+      15,
+      atZoom15,
+      24,
+      atZoom24,
+    ]);
+  }
+  assert.ok(SPRITE["dm-6315"]);
+});
+
 test("code 4208 uses a rotating point symbol", () => {
   for (const [style, level] of STYLES) {
     const id = `dm-4208-point-${level}-symbol`;
@@ -1867,6 +1895,13 @@ test("codes 7106, 7107, 7199, 7201, 7202, 7211, 7212, 7213, and 7214 are zero po
         width24,
       ]);
     }
+  }
+});
+
+test("code 7199 does not render a point symbol", () => {
+  for (const [style, level] of ALL_STYLES) {
+    const id = `dm-7199-point-${level}-symbol`;
+    assert.equal(style.layers.some((layer) => layer.id === id), false, id);
   }
 });
 
