@@ -31,6 +31,7 @@ LEVEL,DMCODE,GEOM,SLD_FILE,STYLE_LAYER_ID,SPRITE_ID,DECORATION,STATUS,NOTE
 2500,2222,line,DM_2222.sld,dm-2222-line-2500-line,,,supported,
 2500,2226,line,DM_2226.sld,dm-2226-line-2500-line,,,supported,
 2500,2228,line,DM_2228.sld,dm-2228-line-2500-line,,,supported,
+2500,2228,polygon,DM_2228.sld,dm-2228-polygon-2500-line,,,supported,same outline style as line geometry
 2500,2231,line,DM_2231.sld,dm-2231-line-2500-line,,,supported,
 2500,2232,line,DM_2232.sld,dm-2232-line-2500-line,,,supported,
 2500,2233,line,DM_2233.sld,dm-2233-line-2500-line,,,supported,
@@ -356,6 +357,7 @@ LEVEL,DMCODE,GEOM,SLD_FILE,STYLE_LAYER_ID,SPRITE_ID,DECORATION,STATUS,NOTE
 5000,2222,line,DM_2222.sld,dm-2222-line-5000-line,,,supported,
 5000,2226,line,DM_2226.sld,dm-2226-line-5000-line,,,supported,
 5000,2228,line,DM_2228.sld,dm-2228-line-5000-line,,,supported,
+5000,2228,polygon,DM_2228.sld,dm-2228-polygon-5000-line,,,supported,same outline style as line geometry
 5000,2231,line,DM_2231.sld,dm-2231-line-5000-line,,,supported,
 5000,2232,line,DM_2232.sld,dm-2232-line-5000-line,,,supported,
 5000,2233,line,DM_2233.sld,dm-2233-line-5000-line,,,supported,

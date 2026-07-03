@@ -446,9 +446,9 @@ test("codes 4234, 4235, and 4241 render line and polygon outlines as zero point 
   }
 });
 
-test("codes 2219, 2226, and 2419 render polygon outlines with line styles", () => {
+test("codes 2219, 2226, 2228, and 2419 render polygon outlines with line styles", () => {
   for (const [style, level] of ALL_STYLES) {
-    for (const [code, lineSuffix] of [[2219, "line-line"], [2226, "line"], [2419, "line-line"]]) {
+    for (const [code, lineSuffix] of [[2219, "line-line"], [2226, "line"], [2228, "line"], [2419, "line-line"]]) {
       const line = byId(style, `dm-${code}-line-${level}-${lineSuffix}`);
       const polygon = byId(style, `dm-${code}-polygon-${level}-line`);
       assert.equal(polygon["source-layer"], `dm_${code}_polygon`);
@@ -534,7 +534,7 @@ test("code 2428 renders line and polygon outlines as zero point two millimeter d
       assert.equal(layer["source-layer"], sourceLayer);
       assert.equal(layer.minzoom, minzoom);
       assert.equal(layer.paint["line-color"], "#000000");
-      assert.deepEqual(layer.paint["line-dasharray"], [6.666667, 3.333333]);
+      assert.deepEqual(layer.paint["line-dasharray"], [5, 2.5]);
       assert.deepEqual(layer.paint["line-width"], [
         "interpolate",
         ["exponential", 2],
@@ -1073,10 +1073,17 @@ test("code 2109 is zero point one five millimeter at levels 500 and 1000 and zer
     [2500, [15, 0.1293685, 66.236673]],
     [5000, [14, 0.1293685, 132.473346]],
   ]);
+  const dasharrays = new Map([
+    [500, [10, 10]],
+    [1000, [10, 10]],
+    [2500, [15, 15]],
+    [5000, [15, 15]],
+  ]);
   for (const [style, level] of ALL_STYLES) {
     const [minzoom, widthAtMinzoom, width24] = widths.get(level);
     const layer = byId(style, `dm-2109-line-${level}-line`);
     assert.equal(layer.minzoom, minzoom);
+    assert.deepEqual(layer.paint["line-dasharray"], dasharrays.get(level));
     assert.deepEqual(layer.paint["line-width"], [
       "interpolate",
       ["exponential", 2],
@@ -1254,6 +1261,15 @@ test("code 2303 is zero point four millimeter at levels 500 and 1000 and zero po
       24,
       width24,
     ]);
+  }
+});
+
+test("code 2304 is a solid line", () => {
+  for (const [style, level] of ALL_STYLES) {
+    const layer = byId(style, `dm-2304-line-${level}-line`);
+    assert.equal(layer.type, "line");
+    assert.equal(layer["source-layer"], "dm_2304_line");
+    assert.equal(layer.paint["line-dasharray"], undefined);
   }
 });
 
@@ -1440,6 +1456,12 @@ test("code 2309 is zero point one five millimeter at levels 500 and 1000 and zer
     [2500, [15, 0.1293685, 66.236673]],
     [5000, [14, 0.1293685, 132.473346]],
   ]);
+  const dasharrays = new Map([
+    [500, [10, 10]],
+    [1000, [10, 10]],
+    [2500, [15, 15]],
+    [5000, [15, 15]],
+  ]);
   for (const [style, level] of ALL_STYLES) {
     const [minzoom, widthAtMinzoom, width24] = widths.get(level);
     const id = `dm-2309-line-${level}-line`;
@@ -1448,7 +1470,7 @@ test("code 2309 is zero point one five millimeter at levels 500 and 1000 and zer
     assert.equal(layer["source-layer"], "dm_2309_line", id);
     assert.equal(layer.minzoom, minzoom, id);
     assert.equal(layer.paint["line-color"], "#000000", id);
-    assert.deepEqual(layer.paint["line-dasharray"], [5, 5], id);
+    assert.deepEqual(layer.paint["line-dasharray"], dasharrays.get(level), id);
     assert.deepEqual(layer.paint["line-width"], [
       "interpolate",
       ["exponential", 2],
@@ -1812,7 +1834,7 @@ test("code 1106 repeats five millimeter dashes with one millimeter gaps", () => 
     const layer = byId(style, id);
     assert.equal(layer.type, "line", id);
     assert.equal(layer["source-layer"], "dm_1106_line", id);
-    assert.deepEqual(layer.paint["line-dasharray"], [50, 10], id);
+    assert.deepEqual(layer.paint["line-dasharray"], [25, 5], id);
   }
 });
 
