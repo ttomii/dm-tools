@@ -381,11 +381,9 @@ fn discover_layers(
                 ParseEvent::Feature(feature) if included(args, &feature) => {
                     let key = LayerKey::from_feature(&feature);
                     keys.insert(key.clone());
-                    if args.decorations
-                        && let Some(decoration_key) =
-                            decorations::decoration_layer_key_for(&feature, &key)
-                    {
-                        decoration_keys.insert(decoration_key);
+                    if args.decorations {
+                        decoration_keys
+                            .extend(decorations::decoration_layer_keys_for(&feature, &key));
                     }
                 }
                 ParseEvent::Warning(_) => warnings += 1,

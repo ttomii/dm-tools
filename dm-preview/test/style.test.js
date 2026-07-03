@@ -982,26 +982,65 @@ test("code 6214 rendered shape is one point seven millimeters high", () => {
   assert.ok(SPRITE["dm-6214"]);
 });
 
-test("codes 6130 and 6140 are zero point two millimeter lines for levels 2500 and 5000", () => {
+test("code 6130 is a two millimeter line and one point five millimeter gap pattern with circles", () => {
   const cases = [
-    [STYLE_2500, 2500, [0.1293685, 132.473346], [0.12936746667, 132.47228587008]],
-    [STYLE_5000, 5000, [0.2587349333, 264.9445717402], [0.25873493334, 264.94457174016]],
+    [STYLE_2500, 2500, [0.1293685, 132.473346], [0.097026375, 99.3550095]],
+    [STYLE_5000, 5000, [0.2587349333, 264.9445717402], [0.194051199975, 198.70842880515]],
   ];
-  for (const [style, level, code6130Width, code6140Width] of cases) {
+  for (const [style, level, lineWidth, circleRadius] of cases) {
     const code6130 = byId(style, `dm-6130-line-${level}-line`);
     assert.equal(code6130.type, "line");
     assert.equal(code6130["source-layer"], "dm_6130_line");
-    assert.deepEqual(code6130.paint["line-dasharray"], [10, 3, 1.5, 3]);
+    assert.equal(code6130.layout.visibility, "none");
+    assert.deepEqual(code6130.paint["line-dasharray"], [10, 7.5]);
     assert.deepEqual(code6130.paint["line-width"], [
       "interpolate",
       ["exponential", 2],
       ["zoom"],
       14,
-      code6130Width[0],
+      lineWidth[0],
       24,
-      code6130Width[1],
+      lineWidth[1],
     ]);
 
+    const dashes = byId(style, `dm-6130-line-${level}-dash-segments`);
+    assert.equal(dashes.type, "line");
+    assert.equal(dashes["source-layer"], "dm_6130_line_deco_line");
+    assert.deepEqual(dashes.filter, ["==", ["get", "LEVEL"], level]);
+    assert.deepEqual(dashes.paint["line-width"], [
+      "interpolate",
+      ["exponential", 2],
+      ["zoom"],
+      14,
+      lineWidth[0],
+      24,
+      lineWidth[1],
+    ]);
+    assert.equal(dashes.paint["line-dasharray"], undefined);
+
+    const circles = byId(style, `dm-6130-line-${level}-gap-circles`);
+    assert.equal(circles.type, "circle");
+    assert.equal(circles["source-layer"], "dm_6130_line_deco_point");
+    assert.deepEqual(circles.filter, ["==", ["get", "LEVEL"], level]);
+    assert.equal(circles.paint["circle-color"], "#000000");
+    assert.deepEqual(circles.paint["circle-radius"], [
+      "interpolate",
+      ["exponential", 2],
+      ["zoom"],
+      14,
+      circleRadius[0],
+      24,
+      circleRadius[1],
+    ]);
+  }
+});
+
+test("code 6140 is a zero point two millimeter line for levels 2500 and 5000", () => {
+  const cases = [
+    [STYLE_2500, 2500, [0.12936746667, 132.47228587008]],
+    [STYLE_5000, 5000, [0.25873493334, 264.94457174016]],
+  ];
+  for (const [style, level, code6140Width] of cases) {
     for (const [suffix, sourceLayer] of [["line", "dm_6140_line"], ["decoration", "dm_6140_line_deco_line"]]) {
       const id = `dm-6140-line-${level}-${suffix}`;
       const layer = byId(style, id);

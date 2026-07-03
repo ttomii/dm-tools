@@ -10410,9 +10410,74 @@
         ],
         "line-dasharray": [
           10,
-          3,
-          1.5,
-          3
+          7.5
+        ]
+      },
+      "layout": {
+        "visibility": "none"
+      }
+    },
+    {
+      "id": "dm-6130-line-5000-dash-segments",
+      "source": "dm",
+      "source-layer": "dm_6130_line_deco_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.2587349333,
+          24,
+          264.9445717402
+        ]
+      }
+    },
+    {
+      "id": "dm-6130-line-5000-gap-circles",
+      "source": "dm",
+      "source-layer": "dm_6130_line_deco_point",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        5000
+      ],
+      "type": "circle",
+      "minzoom": 14,
+      "paint": {
+        "circle-color": "#000000",
+        "circle-radius": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.194051199975,
+          24,
+          198.70842880515
         ]
       }
     },

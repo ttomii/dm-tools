@@ -18,6 +18,9 @@ const CODE_6110_SEMICIRCLE_DIAMETER_MM: f64 = 0.4;
 const ATTACHED_TRIANGLE_INTERVAL_MM: f64 = 10.0;
 const ATTACHED_TRIANGLE_BASE_MM: f64 = 0.8;
 const ATTACHED_TRIANGLE_SIDE_MM: f64 = 0.5;
+const CODE_6130_DASH_LENGTH_MM: f64 = 2.0;
+const CODE_6130_CYCLE_MM: f64 = 3.5;
+const CODE_6130_CIRCLE_OFFSET_MM: f64 = 2.75;
 
 #[derive(Debug, Clone, Copy)]
 struct Vec2 {
@@ -79,13 +82,22 @@ enum LineDecorationSpec {
         interval_mm: f64,
         diameter_mm: f64,
     },
+    PointSymbols {
+        decoration: &'static str,
+        interval_mm: f64,
+        offset_mm: f64,
+    },
+    DashSegments {
+        decoration: &'static str,
+        dash_length_mm: f64,
+        cycle_mm: f64,
+    },
 }
 
 #[derive(Debug, Clone, Copy)]
 struct DecorationDef {
     dmcode: i64,
     source_kind: GeometryKind,
-    decoration_kind: GeometryKind,
     specs: fn() -> Vec<LineDecorationSpec>,
 }
 
@@ -93,82 +105,96 @@ const DECORATION_DEFS: &[DecorationDef] = &[
     DecorationDef {
         dmcode: 1101,
         source_kind: GeometryKind::Line,
-        decoration_kind: GeometryKind::Line,
         specs: major_dash_end_specs,
     },
     DecorationDef {
         dmcode: 2203,
         source_kind: GeometryKind::Line,
-        decoration_kind: GeometryKind::Line,
         specs: bridge_end_specs,
     },
     DecorationDef {
         dmcode: 2204,
         source_kind: GeometryKind::Line,
-        decoration_kind: GeometryKind::Line,
         specs: bridge_opening_specs,
     },
     DecorationDef {
         dmcode: 2205,
         source_kind: GeometryKind::Line,
-        decoration_kind: GeometryKind::Line,
         specs: footbridge_opening_specs,
     },
     DecorationDef {
         dmcode: 2206,
         source_kind: GeometryKind::Line,
-        decoration_kind: GeometryKind::Line,
         specs: bridge_pier_specs,
     },
     DecorationDef {
         dmcode: 2305,
         source_kind: GeometryKind::Line,
-        decoration_kind: GeometryKind::Line,
         specs: perpendicular_tick_specs,
     },
     DecorationDef {
         dmcode: 2306,
         source_kind: GeometryKind::Line,
-        decoration_kind: GeometryKind::Line,
         specs: attached_triangle_specs,
     },
     DecorationDef {
         dmcode: 4262,
         source_kind: GeometryKind::Polygon,
-        decoration_kind: GeometryKind::Polygon,
         specs: pipe_symbol_specs,
     },
     DecorationDef {
         dmcode: 6102,
         source_kind: GeometryKind::Line,
-        decoration_kind: GeometryKind::Line,
         specs: code_6102_perpendicular_tick_specs,
     },
     DecorationDef {
         dmcode: 6110,
         source_kind: GeometryKind::Line,
-        decoration_kind: GeometryKind::Polygon,
         specs: code_6110_semicircle_specs,
+    },
+    DecorationDef {
+        dmcode: 6130,
+        source_kind: GeometryKind::Line,
+        specs: code_6130_circle_specs,
     },
     DecorationDef {
         dmcode: 6140,
         source_kind: GeometryKind::Line,
-        decoration_kind: GeometryKind::Line,
         specs: wall_symbol_specs,
     },
 ];
 
+#[cfg(test)]
 pub fn decoration_layer_key_for(
     feature: &Feature,
     source_key: &LayerKey,
 ) -> Option<DecorationLayerKey> {
+    decoration_layer_keys_for(feature, source_key)
+        .into_iter()
+        .next()
+}
+
+pub fn decoration_layer_keys_for(
+    feature: &Feature,
+    source_key: &LayerKey,
+) -> Vec<DecorationLayerKey> {
     if !is_decoration_target(feature) {
-        return None;
+        return Vec::new();
     }
-    Some(DecorationLayerKey {
-        source: source_key.clone(),
-        kind: decoration_geometry_kind(feature.dmcode),
-    })
+    let mut kinds = Vec::new();
+    for spec in specs_for(feature.dmcode) {
+        let kind = spec_geometry_kind(&spec);
+        if !kinds.contains(&kind) {
+            kinds.push(kind);
+        }
+    }
+    kinds
+        .into_iter()
+        .map(|kind| DecorationLayerKey {
+            source: source_key.clone(),
+            kind,
+        })
+        .collect()
 }
 
 pub fn generate(
@@ -187,12 +213,12 @@ pub fn generate(
     if specs.is_empty() {
         return Vec::new();
     }
-    let key = DecorationLayerKey {
-        source: source_key.clone(),
-        kind: decoration_geometry_kind(feature.dmcode),
-    };
     let mut rows = Vec::new();
     for spec in specs {
+        let key = DecorationLayerKey {
+            source: source_key.clone(),
+            kind: spec_geometry_kind(&spec),
+        };
         match spec {
             LineDecorationSpec::MajorDashEnds {
                 major_decoration,
@@ -337,15 +363,65 @@ pub fn generate(
                     rows.len() as i64,
                 ));
             }
+            LineDecorationSpec::PointSymbols {
+                decoration,
+                interval_mm,
+                offset_mm,
+            } => {
+                let Geometry::LineString(points) = &feature.geometry else {
+                    continue;
+                };
+                rows.extend(point_symbol_features(
+                    feature,
+                    &key,
+                    source_layer,
+                    source_user_id,
+                    points,
+                    level,
+                    decoration,
+                    interval_mm,
+                    offset_mm,
+                    rows.len() as i64,
+                ));
+            }
+            LineDecorationSpec::DashSegments {
+                decoration,
+                dash_length_mm,
+                cycle_mm,
+            } => {
+                let Geometry::LineString(points) = &feature.geometry else {
+                    continue;
+                };
+                rows.extend(dash_segment_features(
+                    feature,
+                    &key,
+                    source_layer,
+                    source_user_id,
+                    points,
+                    level,
+                    decoration,
+                    dash_length_mm,
+                    cycle_mm,
+                    rows.len() as i64,
+                ));
+            }
         }
     }
     rows
 }
 
-fn decoration_geometry_kind(dmcode: i64) -> GeometryKind {
-    decoration_def(dmcode)
-        .map(|def| def.decoration_kind)
-        .unwrap_or(GeometryKind::Line)
+fn spec_geometry_kind(spec: &LineDecorationSpec) -> GeometryKind {
+    match spec {
+        LineDecorationSpec::Semicircles { .. } | LineDecorationSpec::LineSemicircles { .. } => {
+            GeometryKind::Polygon
+        }
+        LineDecorationSpec::PointSymbols { .. } => GeometryKind::Point,
+        LineDecorationSpec::MajorDashEnds { .. }
+        | LineDecorationSpec::BridgeEnd { .. }
+        | LineDecorationSpec::LineSymbols { .. }
+        | LineDecorationSpec::AttachedTriangles { .. }
+        | LineDecorationSpec::DashSegments { .. } => GeometryKind::Line,
+    }
 }
 
 fn is_decoration_target(feature: &Feature) -> bool {
@@ -463,6 +539,21 @@ fn code_6110_semicircle_specs() -> Vec<LineDecorationSpec> {
         interval_mm: CODE_6110_SEMICIRCLE_INTERVAL_MM,
         diameter_mm: CODE_6110_SEMICIRCLE_DIAMETER_MM,
     }]
+}
+
+fn code_6130_circle_specs() -> Vec<LineDecorationSpec> {
+    vec![
+        LineDecorationSpec::DashSegments {
+            decoration: "dash_segment",
+            dash_length_mm: CODE_6130_DASH_LENGTH_MM,
+            cycle_mm: CODE_6130_CYCLE_MM,
+        },
+        LineDecorationSpec::PointSymbols {
+            decoration: "gap_circle",
+            interval_mm: CODE_6130_CYCLE_MM,
+            offset_mm: CODE_6130_CIRCLE_OFFSET_MM,
+        },
+    ]
 }
 
 fn wall_symbol_specs() -> Vec<LineDecorationSpec> {
@@ -725,6 +816,85 @@ fn line_symbol_features(
             }
         }
         distance += interval;
+    }
+    rows
+}
+
+#[allow(clippy::too_many_arguments)]
+fn point_symbol_features(
+    feature: &Feature,
+    key: &DecorationLayerKey,
+    source_layer: &str,
+    source_user_id: i64,
+    points: &[Coordinate],
+    level: i64,
+    decoration: &str,
+    interval_mm: f64,
+    offset_mm: f64,
+    start_index: i64,
+) -> Vec<DecorationFeature> {
+    let total = line_length(points);
+    let interval = mm_to_meter(interval_mm, level);
+    let mut distance = mm_to_meter(offset_mm, level);
+    if interval < MIN_DECORATION_LENGTH || total < distance {
+        return Vec::new();
+    }
+    let mut rows = Vec::new();
+    while distance <= total {
+        if let Some(sample) = sample_at(points, distance)
+            && let Some(row) = decoration_feature(
+                feature,
+                key,
+                source_layer,
+                source_user_id,
+                decoration,
+                start_index + rows.len() as i64 + 1,
+                Geometry::Point(sample.point),
+            )
+        {
+            rows.push(row);
+        }
+        distance += interval;
+    }
+    rows
+}
+
+#[allow(clippy::too_many_arguments)]
+fn dash_segment_features(
+    feature: &Feature,
+    key: &DecorationLayerKey,
+    source_layer: &str,
+    source_user_id: i64,
+    points: &[Coordinate],
+    level: i64,
+    decoration: &str,
+    dash_length_mm: f64,
+    cycle_mm: f64,
+    start_index: i64,
+) -> Vec<DecorationFeature> {
+    let total = line_length(points);
+    let dash_length = mm_to_meter(dash_length_mm, level);
+    let cycle = mm_to_meter(cycle_mm, level);
+    if dash_length < MIN_DECORATION_LENGTH || cycle < MIN_DECORATION_LENGTH {
+        return Vec::new();
+    }
+    let mut rows = Vec::new();
+    let mut start = 0.0;
+    while start < total {
+        if let Some(geometry) = line_slice(points, start, (start + dash_length).min(total))
+            && let Some(row) = decoration_feature(
+                feature,
+                key,
+                source_layer,
+                source_user_id,
+                decoration,
+                start_index + rows.len() as i64 + 1,
+                Geometry::LineString(geometry),
+            )
+        {
+            rows.push(row);
+        }
+        start += cycle;
     }
     rows
 }
@@ -1514,6 +1684,49 @@ mod tests {
     }
 
     #[test]
+    fn generates_code_6130_gap_circle_points() {
+        let feature = line_feature(6130);
+        let key = LayerKey::from_feature(&feature);
+        assert_eq!(
+            decoration_layer_keys_for(&feature, &key)
+                .into_iter()
+                .map(|key| key.kind)
+                .collect::<Vec<_>>(),
+            vec![GeometryKind::Line, GeometryKind::Point]
+        );
+
+        let rows = generate(&feature, &key, "dm_6130_line_08_2500", 1);
+        let dashes = rows
+            .iter()
+            .filter(|row| row.decoration == "dash_segment")
+            .collect::<Vec<_>>();
+        let circles = rows
+            .iter()
+            .filter(|row| row.decoration == "gap_circle")
+            .collect::<Vec<_>>();
+
+        assert!(!dashes.is_empty());
+        assert!(!circles.is_empty());
+        assert!(dashes.iter().all(|row| row.key.kind == GeometryKind::Line));
+        assert!(
+            circles
+                .iter()
+                .all(|row| row.key.kind == GeometryKind::Point)
+        );
+
+        let first_dash = line_points(&dashes[0].geometry);
+        assert_coordinate(first_dash[0], 0.0, 0.0);
+        assert_coordinate(first_dash[1], 5.0, 0.0);
+
+        let second_dash = line_points(&dashes[1].geometry);
+        assert_coordinate(second_dash[0], 8.75, 0.0);
+        assert_coordinate(second_dash[1], 13.75, 0.0);
+
+        assert_coordinate(point_coordinate(&circles[0].geometry), 6.875, 0.0);
+        assert_coordinate(point_coordinate(&circles[1].geometry), 15.625, 0.0);
+    }
+
+    #[test]
     fn generates_code_2305_centered_perpendicular_ticks() {
         let feature = line_feature(2305);
         let key = LayerKey::from_feature(&feature);
@@ -1652,6 +1865,13 @@ mod tests {
         match geometry {
             Geometry::Polygon(points) => points,
             _ => panic!("expected polygon"),
+        }
+    }
+
+    fn point_coordinate(geometry: &Geometry) -> Coordinate {
+        match geometry {
+            Geometry::Point(point) => *point,
+            _ => panic!("expected point"),
         }
     }
 
