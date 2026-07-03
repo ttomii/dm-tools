@@ -523,6 +523,63 @@ fn encode_feature(
         "DMSKIP",
         input.feature.attributes.dmskip,
     );
+    push_int_opt(
+        &mut tags,
+        encoder,
+        "DMATTR",
+        input.feature.attributes.dmattr,
+    );
+    push_int_opt(
+        &mut tags,
+        encoder,
+        "DMPREC",
+        input.feature.attributes.dmprec,
+    );
+    push_int_opt(
+        &mut tags,
+        encoder,
+        "DMYYMM",
+        input.feature.attributes.dmyymm,
+    );
+    push_int_opt(
+        &mut tags,
+        encoder,
+        "DMREGION",
+        input.feature.attributes.dmregion,
+    );
+    push_int_opt(
+        &mut tags,
+        encoder,
+        "DMINFO",
+        input.feature.attributes.dminfo,
+    );
+    push_int_opt(
+        &mut tags,
+        encoder,
+        "DMELEMID",
+        input.feature.attributes.dmelemid,
+    );
+    push_int_opt(
+        &mut tags,
+        encoder,
+        "DMATTRKIND",
+        input.feature.attributes.dmattrkind,
+    );
+    push_int_opt(
+        &mut tags,
+        encoder,
+        "DMUPYYMM",
+        input.feature.attributes.dmupyymm,
+    );
+    push_int_opt(
+        &mut tags,
+        encoder,
+        "DMDELYYMM",
+        input.feature.attributes.dmdelyymm,
+    );
+    if let Some(data) = input.feature.attributes.dmattrdata.as_deref() {
+        push_string(&mut tags, encoder, "DMATTRDATA", data);
+    }
     if let Some(text) = input.feature.attributes.text.as_deref() {
         push_string(&mut tags, encoder, "TEXT", text);
         if let Some(vertical_text) = vertical_annotation_text(text) {
@@ -958,8 +1015,10 @@ fn read_layer_features(
             ("NULL", "NULL", "NULL", "NULL", "NULL")
         };
         format!(
-            "SELECT f.geom, f.USER_ID, f.DMCODE, f.DMFIGTYPE, f.DMMOVE,
-                    f.DMSKIP, f.DMATTR, f.DMPREC, f.DMYYMM, f.DMFILE,
+            "SELECT f.geom, f.USER_ID, f.DMCODE, f.LEVEL, f.DMFIGTYPE, f.DMMOVE,
+                    f.DMSKIP, f.DMATTR, f.DMPREC, f.DMYYMM, f.DMREGION, f.DMINFO,
+                    f.DMELEMID, f.DMATTRKIND, f.DMUPYYMM, f.DMDELYYMM, f.DMATTRDATA,
+                    f.DMFILE,
                     {angle} AS ANGLE, {size} AS SIZE,
                     {char_spacing} AS CHARSPACING, {line_no} AS LINENO,
                     {vertical} AS VERTICAL, {text} AS TEXT
@@ -989,27 +1048,35 @@ fn read_feature_row(
     let points = read_geometry(&blob, layer.kind)?;
     let projected = projector.project(layer.zone, &points)?;
     let dmcode = row.get(2)?;
+    let map_level = row.get(3)?;
     let feature = Feature {
-        source_file: row.get(9)?,
+        source_file: row.get(17)?,
         source_line: 0,
         plane_rectangular_zone: Some(layer.zone),
-        map_level: Some(layer.level),
+        map_level,
         dmcode,
         geometry_kind: layer.kind,
         geometry: geometry_from_points(layer.kind, points),
         attributes: dm_parser::Attributes {
-            dmfigtype: row.get(3)?,
-            dmmove: row.get(4)?,
-            dmskip: row.get(5)?,
-            dmattr: row.get(6)?,
-            dmprec: row.get(7)?,
-            dmyymm: row.get(8)?,
-            angle: row.get(10)?,
-            size: row.get(11)?,
-            char_spacing: row.get(12)?,
-            line_no: row.get(13)?,
-            vertical: row.get(14)?,
-            text: row.get(15)?,
+            dmfigtype: row.get(4)?,
+            dmmove: row.get(5)?,
+            dmskip: row.get(6)?,
+            dmattr: row.get(7)?,
+            dmprec: row.get(8)?,
+            dmyymm: row.get(9)?,
+            dmregion: row.get(10)?,
+            dminfo: row.get(11)?,
+            dmelemid: row.get(12)?,
+            dmattrkind: row.get(13)?,
+            dmupyymm: row.get(14)?,
+            dmdelyymm: row.get(15)?,
+            dmattrdata: row.get(16)?,
+            angle: row.get(18)?,
+            size: row.get(19)?,
+            char_spacing: row.get(20)?,
+            line_no: row.get(21)?,
+            vertical: row.get(22)?,
+            text: row.get(23)?,
         },
         warnings: Vec::new(),
     };
@@ -1492,6 +1559,58 @@ mod tests {
         assert_eq!(features.len(), 1);
         assert_eq!(features[0].feature.dmcode, 9999);
         assert_eq!(features[0].feature.attributes.dmskip, Some(1));
+    }
+
+    #[test]
+    fn encoded_features_include_dm_attributes() {
+        let mut feature = sample_feature();
+        feature.attributes.dmattr = Some(12);
+        feature.attributes.dmprec = Some(30);
+        feature.attributes.dmyymm = Some(1312);
+        feature.attributes.dmregion = Some(3);
+        feature.attributes.dminfo = Some(42);
+        feature.attributes.dmelemid = Some(123);
+        feature.attributes.dmattrkind = Some(9);
+        feature.attributes.dmupyymm = Some(1401);
+        feature.attributes.dmdelyymm = Some(1502);
+        feature.attributes.dmattrdata = Some("OWNER=ABC".to_string());
+        let projected = ProjectedFeature {
+            feature,
+            user_id: 7,
+            points: vec![Coordinate {
+                x: 0.0,
+                y: 0.0,
+                z: None,
+            }],
+            decoration: None,
+        };
+        let layer = encode_layer(
+            TileKey {
+                z: MIN_ZOOM,
+                x: 1 << (MIN_ZOOM - 1),
+                y: 1 << (MIN_ZOOM - 1),
+            },
+            "dm_9999_point".to_string(),
+            vec![&projected],
+        )
+        .unwrap();
+
+        assert!(layer.keys.contains(&"DMATTR".to_string()));
+        assert!(layer.keys.contains(&"DMPREC".to_string()));
+        assert!(layer.keys.contains(&"DMYYMM".to_string()));
+        assert!(layer.keys.contains(&"DMREGION".to_string()));
+        assert!(layer.keys.contains(&"DMINFO".to_string()));
+        assert!(layer.keys.contains(&"DMELEMID".to_string()));
+        assert!(layer.keys.contains(&"DMATTRKIND".to_string()));
+        assert!(layer.keys.contains(&"DMUPYYMM".to_string()));
+        assert!(layer.keys.contains(&"DMDELYYMM".to_string()));
+        assert!(layer.keys.contains(&"DMATTRDATA".to_string()));
+        assert!(
+            layer
+                .values
+                .iter()
+                .any(|value| value.string_value.as_deref() == Some("OWNER=ABC"))
+        );
     }
 
     #[test]

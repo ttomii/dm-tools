@@ -462,12 +462,20 @@ fn create_base_layer(
            geom BLOB NOT NULL,
            USER_ID INTEGER NOT NULL,
            DMCODE INTEGER,
+           LEVEL INTEGER,
            DMFIGTYPE INTEGER,
            DMMOVE INTEGER,
            DMSKIP INTEGER,
            DMATTR INTEGER,
            DMPREC INTEGER,
            DMYYMM INTEGER,
+           DMREGION INTEGER,
+           DMINFO INTEGER,
+           DMELEMID INTEGER,
+           DMATTRKIND INTEGER,
+           DMUPYYMM INTEGER,
+           DMDELYYMM INTEGER,
+           DMATTRDATA TEXT,
            DMFILE TEXT NOT NULL
            {extra_columns}
          );
@@ -548,14 +556,17 @@ fn insert_feature(
         GeometryKind::Polygon | GeometryKind::Line => "",
     };
     let extra_values = match layer.kind {
-        GeometryKind::Text => ", ?11, ?12, ?13, ?14, ?15, ?16",
-        GeometryKind::Point => ", ?11",
+        GeometryKind::Text => ", ?19, ?20, ?21, ?22, ?23, ?24",
+        GeometryKind::Point => ", ?19",
         GeometryKind::Polygon | GeometryKind::Line => "",
     };
     let sql = format!(
         "INSERT INTO {table}
-         (geom, USER_ID, DMCODE, DMFIGTYPE, DMMOVE, DMSKIP, DMATTR, DMPREC, DMYYMM, DMFILE{extra_names})
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10{extra_values})"
+         (geom, USER_ID, DMCODE, LEVEL, DMFIGTYPE, DMMOVE, DMSKIP, DMATTR, DMPREC, DMYYMM,
+          DMREGION, DMINFO, DMELEMID, DMATTRKIND, DMUPYYMM, DMDELYYMM, DMATTRDATA,
+          DMFILE{extra_names})
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16,
+                 ?17, ?18{extra_values})"
     );
     let mut statement = transaction.prepare_cached(&sql)?;
     match layer.kind {
@@ -563,12 +574,20 @@ fn insert_feature(
             blob,
             user_id,
             feature.dmcode,
+            feature.map_level,
             feature.attributes.dmfigtype,
             feature.attributes.dmmove,
             feature.attributes.dmskip,
             feature.attributes.dmattr,
             feature.attributes.dmprec,
             feature.attributes.dmyymm,
+            feature.attributes.dmregion,
+            feature.attributes.dminfo,
+            feature.attributes.dmelemid,
+            feature.attributes.dmattrkind,
+            feature.attributes.dmupyymm,
+            feature.attributes.dmdelyymm,
+            feature.attributes.dmattrdata,
             feature.source_file,
             feature.attributes.angle,
             feature.attributes.size,
@@ -581,12 +600,20 @@ fn insert_feature(
             blob,
             user_id,
             feature.dmcode,
+            feature.map_level,
             feature.attributes.dmfigtype,
             feature.attributes.dmmove,
             feature.attributes.dmskip,
             feature.attributes.dmattr,
             feature.attributes.dmprec,
             feature.attributes.dmyymm,
+            feature.attributes.dmregion,
+            feature.attributes.dminfo,
+            feature.attributes.dmelemid,
+            feature.attributes.dmattrkind,
+            feature.attributes.dmupyymm,
+            feature.attributes.dmdelyymm,
+            feature.attributes.dmattrdata,
             feature.source_file,
             feature.attributes.angle,
         ])?,
@@ -594,12 +621,20 @@ fn insert_feature(
             blob,
             user_id,
             feature.dmcode,
+            feature.map_level,
             feature.attributes.dmfigtype,
             feature.attributes.dmmove,
             feature.attributes.dmskip,
             feature.attributes.dmattr,
             feature.attributes.dmprec,
             feature.attributes.dmyymm,
+            feature.attributes.dmregion,
+            feature.attributes.dminfo,
+            feature.attributes.dmelemid,
+            feature.attributes.dmattrkind,
+            feature.attributes.dmupyymm,
+            feature.attributes.dmdelyymm,
+            feature.attributes.dmattrdata,
             feature.source_file,
         ])?,
     };
@@ -926,6 +961,16 @@ mod tests {
         let mut writer =
             GeoPackageWriter::create(&path, &BTreeSet::from([key]), &BTreeSet::new(), 1, false)
                 .unwrap();
+        let attributes = Attributes {
+            dmregion: Some(3),
+            dminfo: Some(42),
+            dmelemid: Some(123),
+            dmattrkind: Some(9),
+            dmupyymm: Some(1401),
+            dmdelyymm: Some(1502),
+            dmattrdata: Some("OWNER=ABC".to_string()),
+            ..Attributes::default()
+        };
         writer
             .write(
                 Feature {
@@ -947,7 +992,7 @@ mod tests {
                             z: None,
                         },
                     ]),
-                    attributes: Attributes::default(),
+                    attributes,
                     warnings: Vec::new(),
                 },
                 1,
@@ -977,9 +1022,51 @@ mod tests {
                 |row| row.get(0),
             )
             .unwrap();
+        let attrs: (
+            Option<i64>,
+            Option<i64>,
+            Option<i64>,
+            Option<i64>,
+            Option<i64>,
+            Option<i64>,
+            Option<i64>,
+            Option<String>,
+        ) = connection
+            .query_row(
+                "SELECT LEVEL, DMREGION, DMINFO, DMELEMID, DMATTRKIND,
+                        DMUPYYMM, DMDELYYMM, DMATTRDATA
+                 FROM dm_2100_line_08_2500",
+                [],
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                        row.get(5)?,
+                        row.get(6)?,
+                        row.get(7)?,
+                    ))
+                },
+            )
+            .unwrap();
         assert_eq!(count, 1);
         assert_eq!(rtree_count, 1);
         assert_eq!(srs, "EPSG");
+        assert_eq!(
+            attrs,
+            (
+                Some(2500),
+                Some(3),
+                Some(42),
+                Some(123),
+                Some(9),
+                Some(1401),
+                Some(1502),
+                Some("OWNER=ABC".to_string()),
+            )
+        );
         fs::remove_file(path).unwrap();
     }
 

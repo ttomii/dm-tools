@@ -61,6 +61,13 @@ pub struct Attributes {
     pub dmattr: Option<i64>,
     pub dmprec: Option<i64>,
     pub dmyymm: Option<i64>,
+    pub dmregion: Option<i64>,
+    pub dminfo: Option<i64>,
+    pub dmelemid: Option<i64>,
+    pub dmattrkind: Option<i64>,
+    pub dmupyymm: Option<i64>,
+    pub dmdelyymm: Option<i64>,
+    pub dmattrdata: Option<String>,
     pub angle: Option<f64>,
     pub size: Option<f64>,
     pub char_spacing: Option<f64>,
@@ -297,12 +304,18 @@ impl<R: BufRead> DmParser<R> {
         let following = required_i64(header, 20, 1, "following record type")?;
         let data_count = required_i64(header, 27, 4, "data count")?.max(0) as usize;
         let mut attributes = Attributes {
+            dmregion: number_i64(header, 6, 2),
+            dminfo: number_i64(header, 8, 4),
+            dmelemid: number_i64(header, 12, 4),
             dmfigtype: number_i64(header, 18, 2),
             dmprec: number_i64(header, 21, 2),
             dmmove: number_i64(header, 24, 2),
             dmskip: number_i64(header, 26, 1),
             dmattr: number_i64(header, 49, 7),
+            dmattrkind: number_i64(header, 56, 2),
             dmyymm: number_i64(header, 65, 4),
+            dmupyymm: number_i64(header, 69, 4),
+            dmdelyymm: number_i64(header, 73, 4),
             ..Attributes::default()
         };
         let direct_point = || -> Result<Coordinate, String> {
@@ -408,7 +421,10 @@ impl<R: BufRead> DmParser<R> {
                 attributes.text = Some(text.into_owned());
                 (GeometryKind::Text, Geometry::TextPoint(point))
             }
-            b'8' => return Err("attribute detail records are not supported".to_string()),
+            b'8' => {
+                attributes.dmattrdata = attribute_data(self.config.encoding, rows);
+                (GeometryKind::Point, Geometry::Point(direct_point()?))
+            }
             _ => return Err(format!("unsupported element type E{}", record_type as char)),
         };
         Ok(Feature {
@@ -549,6 +565,16 @@ fn decode_jis_x0208_gl_annotation(bytes: &[u8]) -> Option<std::borrow::Cow<'stat
         return None;
     }
     Some(std::borrow::Cow::Owned(text.into_owned()))
+}
+
+fn attribute_data(encoding: &'static Encoding, rows: &[Vec<u8>]) -> Option<String> {
+    let mut bytes = Vec::with_capacity(rows.len() * 84);
+    for row in rows {
+        bytes.extend_from_slice(&row[..row.len().min(84)]);
+    }
+    let (text, _, _) = encoding.decode(&bytes);
+    let text = text.trim();
+    (!text.is_empty()).then(|| text.to_string())
 }
 
 fn japanese_char_count(text: &str) -> usize {
@@ -820,6 +846,9 @@ mod tests {
         let header = fixed_line(&[
             (0, "E2"),
             (2, "2100"),
+            (6, "03"),
+            (8, "0042"),
+            (12, "0123"),
             (18, "04"),
             (20, "2"),
             (21, "30"),
@@ -828,7 +857,10 @@ mod tests {
             (27, "0002"),
             (31, "0001"),
             (49, "     12"),
+            (56, "09"),
             (65, "1312"),
+            (69, "1401"),
+            (73, "1502"),
         ]);
         let coords = fixed_line(&[
             (0, "0000010"),
@@ -851,8 +883,14 @@ mod tests {
         assert_eq!(feature.dmcode, 2100);
         assert_eq!(feature.plane_rectangular_zone, Some(8));
         assert_eq!(feature.map_level, Some(2500));
+        assert_eq!(feature.attributes.dmregion, Some(3));
+        assert_eq!(feature.attributes.dminfo, Some(42));
+        assert_eq!(feature.attributes.dmelemid, Some(123));
         assert_eq!(feature.attributes.dmfigtype, Some(4));
         assert_eq!(feature.attributes.dmattr, Some(12));
+        assert_eq!(feature.attributes.dmattrkind, Some(9));
+        assert_eq!(feature.attributes.dmupyymm, Some(1401));
+        assert_eq!(feature.attributes.dmdelyymm, Some(1502));
         assert_eq!(
             feature.geometry,
             Geometry::LineString(vec![
@@ -1066,6 +1104,53 @@ mod tests {
         assert_eq!(feature.attributes.char_spacing, Some(12.0));
         assert_eq!(feature.attributes.line_no, Some(3));
         assert_eq!(feature.attributes.text.as_deref(), Some("TEST"));
+    }
+
+    #[test]
+    fn parses_attribute_record_as_point_with_raw_attribute_data() {
+        let header = fixed_line(&[
+            (0, "E8"),
+            (2, "9000"),
+            (20, "5"),
+            (27, "0001"),
+            (31, "0001"),
+            (35, "0000010"),
+            (42, "0000020"),
+            (58, "A10"),
+        ]);
+        let row = fixed_line(&[(0, "OWNER=ABC")]);
+        let events: Vec<_> = DmParser::new(
+            Cursor::new(sample(header, vec![row])),
+            "test.dm",
+            ParserConfig::default(),
+        )
+        .collect::<Result<_, _>>()
+        .unwrap();
+        let feature = events
+            .iter()
+            .find_map(|event| match event {
+                ParseEvent::Feature(feature) => Some(feature),
+                ParseEvent::Metadata(_) | ParseEvent::Warning(_) => None,
+            })
+            .unwrap();
+
+        assert_eq!(
+            events
+                .iter()
+                .filter(|event| matches!(event, ParseEvent::Warning(_)))
+                .count(),
+            0
+        );
+        assert_eq!(feature.geometry_kind, GeometryKind::Point);
+        assert_eq!(
+            feature.geometry,
+            Geometry::Point(Coordinate {
+                x: 200020.0,
+                y: 100010.0,
+                z: None,
+            })
+        );
+        assert_eq!(feature.attributes.dmattrdata.as_deref(), Some("OWNER=ABC"));
     }
 
     #[test]
