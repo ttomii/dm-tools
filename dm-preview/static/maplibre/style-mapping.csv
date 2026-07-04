@@ -317,7 +317,8 @@ LEVEL,DMCODE,GEOM,SLD_FILE,STYLE_LAYER_ID,SPRITE_ID,DECORATION,STATUS,NOTE
 2500,7201,point,DM_7201.sld,dm-7201-point-2500-symbol,dm-7201,,supported,2 mm high (土) centered on point
 2500,7202,line,DM_7202.sld,dm-7202-line-2500-line,,,supported,
 2500,7206,point,DM_7206.sld,dm-7206-point-2500-symbol,dm-7206,,supported,
-2500,7211,line,DM_7211.sld,dm-7211-line-2500-line,dm-7211,,supported,
+2500,7211,line,DM_7211.sld,dm-7211-line-2500-line,dm-7211,,supported,DMFIGTYPE != 12
+2500,7211,line,DM_7211.sld,dm-7211-line-2500-line-figtype-12,dm-7211,,supported,DMFIGTYPE == 12 uses 1 mm dash and 1 mm gap
 2500,7211,point,DM_7211.sld,dm-7211-point-2500-symbol,dm-7211,,supported,2 mm high (岩) centered on point
 2500,7212,line,DM_7212.sld,dm-7212-line-2500-line,,,supported,
 2500,7213,line,DM_7213.sld,dm-7213-line-2500-line,,,supported,
@@ -644,7 +645,8 @@ LEVEL,DMCODE,GEOM,SLD_FILE,STYLE_LAYER_ID,SPRITE_ID,DECORATION,STATUS,NOTE
 5000,7201,point,DM_7201.sld,dm-7201-point-5000-symbol,dm-7201,,supported,2 mm high (土) centered on point
 5000,7202,line,DM_7202.sld,dm-7202-line-5000-line,,,supported,
 5000,7206,point,DM_7206.sld,dm-7206-point-5000-symbol,dm-7206,,supported,
-5000,7211,line,DM_7211.sld,dm-7211-line-5000-line,dm-7211,,supported,
+5000,7211,line,DM_7211.sld,dm-7211-line-5000-line,dm-7211,,supported,DMFIGTYPE != 12
+5000,7211,line,DM_7211.sld,dm-7211-line-5000-line-figtype-12,dm-7211,,supported,DMFIGTYPE == 12 uses 1 mm dash and 1 mm gap
 5000,7211,point,DM_7211.sld,dm-7211-point-5000-symbol,dm-7211,,supported,2 mm high (岩) centered on point
 5000,7212,line,DM_7212.sld,dm-7212-line-5000-line,,,supported,
 5000,7213,line,DM_7213.sld,dm-7213-line-5000-line,,,supported,

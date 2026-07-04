@@ -8544,12 +8544,23 @@
       "source": "dm",
       "source-layer": "dm_7211_line",
       "filter": [
-        "==",
+        "all",
         [
-          "get",
-          "LEVEL"
+          "==",
+          [
+            "get",
+            "LEVEL"
+          ],
+          1000
         ],
-        1000
+        [
+          "!=",
+          [
+            "get",
+            "DMFIGTYPE"
+          ],
+          12
+        ]
       ],
       "type": "line",
       "minzoom": 14,
@@ -8568,6 +8579,53 @@
           0.0258737,
           24,
           26.4946692
+        ]
+      }
+    },
+    {
+      "id": "dm-7211-line-1000-line-figtype-12",
+      "source": "dm",
+      "source-layer": "dm_7211_line",
+      "filter": [
+        "all",
+        [
+          "==",
+          [
+            "get",
+            "LEVEL"
+          ],
+          1000
+        ],
+        [
+          "==",
+          [
+            "get",
+            "DMFIGTYPE"
+          ],
+          12
+        ]
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.0258737,
+          24,
+          26.4946692
+        ],
+        "line-dasharray": [
+          10,
+          10
         ]
       }
     },

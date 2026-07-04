@@ -2055,6 +2055,9 @@ test("codes 7106, 7107, 7199, 7201, 7202, 7211, 7212, 7213, and 7214 are zero po
       assert.equal(layer["source-layer"], `dm_${code}_line`, id);
       assert.equal(layer.paint["line-color"], "#000000", id);
       assert.equal(layer.minzoom, minzoom, id);
+      if (code === 7211) {
+        assert.deepEqual(layer.filter, ["all", ["==", ["get", "LEVEL"], level], ["!=", ["get", "DMFIGTYPE"], 12]], id);
+      }
       assert.deepEqual(layer.paint["line-dasharray"], expectedDash, id);
       assert.deepEqual(layer.paint["line-width"], [
         "interpolate",
@@ -2066,6 +2069,35 @@ test("codes 7106, 7107, 7199, 7201, 7202, 7211, 7212, 7213, and 7214 are zero po
         width24,
       ]);
     }
+  }
+});
+
+test("code 7211 renders figtype 12 as one millimeter dashed zero point one millimeter lines", () => {
+  const widths = new Map([
+    [500, [15, 0.0258737, 13.2473346]],
+    [1000, [14, 0.0258737, 26.4946692]],
+    [2500, [15, 0.1293685, 66.236673]],
+    [5000, [14, 0.1293685, 132.473346]],
+  ]);
+  for (const [style, level] of ALL_STYLES) {
+    const [minzoom, widthAtMinzoom, width24] = widths.get(level);
+    const id = `dm-7211-line-${level}-line-figtype-12`;
+    const layer = byId(style, id);
+    assert.equal(layer.type, "line", id);
+    assert.equal(layer["source-layer"], "dm_7211_line", id);
+    assert.equal(layer.paint["line-color"], "#000000", id);
+    assert.equal(layer.minzoom, minzoom, id);
+    assert.deepEqual(layer.filter, ["all", ["==", ["get", "LEVEL"], level], ["==", ["get", "DMFIGTYPE"], 12]], id);
+    assert.deepEqual(layer.paint["line-dasharray"], [10, 10], id);
+    assert.deepEqual(layer.paint["line-width"], [
+      "interpolate",
+      ["exponential", 2],
+      ["zoom"],
+      minzoom,
+      widthAtMinzoom,
+      24,
+      width24,
+    ]);
   }
 });
 
