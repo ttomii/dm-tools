@@ -1,9 +1,9 @@
 <svg width="102.3mm" height="52.8mm" viewBox="-24.15 -133.4 1497.3 772.8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" overflow="hidden">
 <g transform="translate(-1176 -1185)">
-<path d="M1183.5 1687.5 1537.82 1188.5 2617.5 1188.5 2263.18 1687.5Z" stroke="#000000" stroke-width="3.3mm" vector-effect="non-scaling-stroke" stroke-miterlimit="8" fill="none" fill-rule="evenodd"/>
-<path d="M0 0 354.816 499.125" stroke="#000000" stroke-width="3.3mm" vector-effect="non-scaling-stroke" stroke-miterlimit="8" fill="none" fill-rule="evenodd" transform="matrix(1 0 0 -1 1539.5 1687.62)"/>
-<path d="M0 0 354.816 499.125" stroke="#000000" stroke-width="3.3mm" vector-effect="non-scaling-stroke" stroke-miterlimit="8" fill="none" fill-rule="evenodd" transform="matrix(1 0 0 -1 1903.5 1687.62)"/>
-<path d="M1360.5 1438.5 2440.22 1438.5" stroke="#000000" stroke-width="3.3mm" vector-effect="non-scaling-stroke" stroke-miterlimit="8" fill="none" fill-rule="evenodd"/>
-<path d="M0 0 351.934 248.188" stroke="#000000" stroke-width="3.3mm" vector-effect="non-scaling-stroke" stroke-miterlimit="8" fill="none" fill-rule="evenodd" transform="matrix(1 0 0 -1 2267.5 1687.69)"/>
+<path d="M1183.5 1687.5 1537.82 1188.5 2617.5 1188.5 2263.18 1687.5Z" stroke="#000000" stroke-width="6.6mm" vector-effect="non-scaling-stroke" stroke-miterlimit="8" fill="none" fill-rule="evenodd"/>
+<path d="M0 0 354.816 499.125" stroke="#000000" stroke-width="6.6mm" vector-effect="non-scaling-stroke" stroke-miterlimit="8" fill="none" fill-rule="evenodd" transform="matrix(1 0 0 -1 1539.5 1687.62)"/>
+<path d="M0 0 354.816 499.125" stroke="#000000" stroke-width="6.6mm" vector-effect="non-scaling-stroke" stroke-miterlimit="8" fill="none" fill-rule="evenodd" transform="matrix(1 0 0 -1 1903.5 1687.62)"/>
+<path d="M1360.5 1438.5 2440.22 1438.5" stroke="#000000" stroke-width="6.6mm" vector-effect="non-scaling-stroke" stroke-miterlimit="8" fill="none" fill-rule="evenodd"/>
+<path d="M0 0 351.934 248.188" stroke="#000000" stroke-width="6.6mm" vector-effect="non-scaling-stroke" stroke-miterlimit="8" fill="none" fill-rule="evenodd" transform="matrix(1 0 0 -1 2267.5 1687.69)"/>
 </g>
 </svg>

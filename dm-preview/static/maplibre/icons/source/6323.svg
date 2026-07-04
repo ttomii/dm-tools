@@ -1,7 +1,7 @@
 <svg width="56.17mm" height="19.46mm" viewBox="-120 -120 2254 781" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" overflow="hidden">
 <g transform="translate(-985 -848)">
-<path d="M999 1118.5C999 976.839 1113.62 862 1255 862 1396.39 862 1511 976.839 1511 1118.5 1511 1260.16 1396.39 1375 1255 1375 1113.62 1375 999 1260.16 999 1118.5Z" stroke="#000000" stroke-width="6.6mm" vector-effect="non-scaling-stroke" stroke-miterlimit="8" fill="none" fill-rule="evenodd"/>
-<path d="M1881 1184.5C1881 1079.29 1966.29 994 2071.5 994 2176.71 994 2262 1079.29 2262 1184.5 2262 1289.71 2176.71 1375 2071.5 1375 1966.29 1375 1881 1289.71 1881 1184.5Z" stroke="#000000" stroke-width="6.6mm" vector-effect="non-scaling-stroke" stroke-miterlimit="8" fill="none" fill-rule="evenodd"/>
-<path d="M2746 1255C2746 1188.73 2799.5 1135 2865.5 1135 2931.5 1135 2985 1188.73 2985 1255 2985 1321.27 2931.5 1375 2865.5 1375 2799.5 1375 2746 1321.27 2746 1255Z" stroke="#000000" stroke-width="6.6mm" vector-effect="non-scaling-stroke" stroke-miterlimit="8" fill="none" fill-rule="evenodd"/>
+<path d="M999 1118.5C999 976.839 1113.62 862 1255 862 1396.39 862 1511 976.839 1511 1118.5 1511 1260.16 1396.39 1375 1255 1375 1113.62 1375 999 1260.16 999 1118.5Z" stroke="#000000" stroke-width="13.2mm" vector-effect="non-scaling-stroke" stroke-miterlimit="8" fill="none" fill-rule="evenodd"/>
+<path d="M1881 1184.5C1881 1079.29 1966.29 994 2071.5 994 2176.71 994 2262 1079.29 2262 1184.5 2262 1289.71 2176.71 1375 2071.5 1375 1966.29 1375 1881 1289.71 1881 1184.5Z" stroke="#000000" stroke-width="13.2mm" vector-effect="non-scaling-stroke" stroke-miterlimit="8" fill="none" fill-rule="evenodd"/>
+<path d="M2746 1255C2746 1188.73 2799.5 1135 2865.5 1135 2931.5 1135 2985 1188.73 2985 1255 2985 1321.27 2931.5 1375 2865.5 1375 2799.5 1375 2746 1321.27 2746 1255Z" stroke="#000000" stroke-width="13.2mm" vector-effect="non-scaling-stroke" stroke-miterlimit="8" fill="none" fill-rule="evenodd"/>
 </g>
 </svg>
