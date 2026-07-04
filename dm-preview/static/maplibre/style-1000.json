@@ -8204,6 +8204,38 @@
       }
     },
     {
+      "id": "dm-7105-line-1000-decoration",
+      "source": "dm",
+      "source-layer": "dm_7105_line_deco_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        1000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.051746986668,
+          24,
+          52.988914348
+        ]
+      }
+    },
+    {
       "id": "dm-7106-line-1000-line",
       "source": "dm",
       "source-layer": "dm_7106_line",
@@ -8240,6 +8272,38 @@
       }
     },
     {
+      "id": "dm-7106-line-1000-decoration",
+      "source": "dm",
+      "source-layer": "dm_7106_line_deco_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        1000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.051746986668,
+          24,
+          52.988914348
+        ]
+      }
+    },
+    {
       "id": "dm-7107-line-1000-line",
       "source": "dm",
       "source-layer": "dm_7107_line",
@@ -8272,6 +8336,38 @@
         "line-dasharray": [
           100,
           5
+        ]
+      }
+    },
+    {
+      "id": "dm-7107-line-1000-decoration",
+      "source": "dm",
+      "source-layer": "dm_7107_line_deco_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        1000
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.051746986668,
+          24,
+          52.988914348
         ]
       }
     },

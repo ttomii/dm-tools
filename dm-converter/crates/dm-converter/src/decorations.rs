@@ -21,6 +21,8 @@ const ATTACHED_TRIANGLE_SIDE_MM: f64 = 0.5;
 const CODE_6130_DASH_LENGTH_MM: f64 = 2.0;
 const CODE_6130_CYCLE_MM: f64 = 3.5;
 const CODE_6130_CIRCLE_OFFSET_MM: f64 = 2.75;
+const CODE_7105_7107_TICK_INTERVAL_MM: f64 = 3.0;
+const CODE_7105_7107_TICK_LENGTH_MM: f64 = 0.5;
 
 #[derive(Debug, Clone, Copy)]
 struct Vec2 {
@@ -161,6 +163,21 @@ const DECORATION_DEFS: &[DecorationDef] = &[
         dmcode: 6140,
         source_kind: GeometryKind::Line,
         specs: wall_symbol_specs,
+    },
+    DecorationDef {
+        dmcode: 7105,
+        source_kind: GeometryKind::Line,
+        specs: code_7105_7107_right_tick_specs,
+    },
+    DecorationDef {
+        dmcode: 7106,
+        source_kind: GeometryKind::Line,
+        specs: code_7105_7107_right_tick_specs,
+    },
+    DecorationDef {
+        dmcode: 7107,
+        source_kind: GeometryKind::Line,
+        specs: code_7105_7107_right_tick_specs,
     },
 ];
 
@@ -431,10 +448,9 @@ fn is_decoration_target(feature: &Feature) -> bool {
 }
 
 fn is_supported_decoration_level(dmcode: i64, level: Option<i64>) -> bool {
-    if dmcode == 1101 {
-        matches!(level, Some(500 | 1000 | 2500 | 5000))
-    } else {
-        matches!(level, Some(2500 | 5000))
+    match dmcode {
+        1101 | 7105 | 7106 | 7107 => matches!(level, Some(500 | 1000 | 2500 | 5000)),
+        _ => matches!(level, Some(2500 | 5000)),
     }
 }
 
@@ -561,6 +577,16 @@ fn wall_symbol_specs() -> Vec<LineDecorationSpec> {
         decoration: "wall_symbol",
         interval_mm: 4.0,
         length_mm: 0.5,
+        one_sided_right: true,
+        along_tangent: false,
+    }]
+}
+
+fn code_7105_7107_right_tick_specs() -> Vec<LineDecorationSpec> {
+    vec![LineDecorationSpec::LineSymbols {
+        decoration: "right_perpendicular_tick_0_5mm",
+        interval_mm: CODE_7105_7107_TICK_INTERVAL_MM,
+        length_mm: CODE_7105_7107_TICK_LENGTH_MM,
         one_sided_right: true,
         along_tangent: false,
     }]
@@ -1681,6 +1707,28 @@ mod tests {
         assert_coordinate(first_points[0], 1.25, 0.0);
         assert_coordinate(first_points[1], 1.25, -1.25);
         assert_length(first_points, 1.25);
+    }
+
+    #[test]
+    fn generates_code_7105_7107_right_side_perpendicular_ticks() {
+        for dmcode in [7105, 7106, 7107] {
+            let feature = line_feature(dmcode);
+            let key = LayerKey::from_feature(&feature);
+            let rows = generate(&feature, &key, "dm_7105_line_08_2500", 1);
+            assert!(
+                rows.iter()
+                    .all(|row| row.decoration == "right_perpendicular_tick_0_5mm")
+            );
+
+            let first_points = line_points(&rows[0].geometry);
+            assert_coordinate(first_points[0], 1.25, 0.0);
+            assert_coordinate(first_points[1], 1.25, -1.25);
+            assert_length(first_points, 1.25);
+
+            let second_points = line_points(&rows[1].geometry);
+            assert_coordinate(second_points[0], 8.75, 0.0);
+            assert_coordinate(second_points[1], 8.75, -1.25);
+        }
     }
 
     #[test]

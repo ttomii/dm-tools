@@ -12157,6 +12157,38 @@
       }
     },
     {
+      "id": "dm-7105-line-2500-decoration",
+      "source": "dm",
+      "source-layer": "dm_7105_line_deco_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        2500
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.12936746667,
+          24,
+          132.47228587008
+        ]
+      }
+    },
+    {
       "id": "dm-7106-line-2500-line",
       "source": "dm",
       "source-layer": "dm_7106_line",
@@ -12185,6 +12217,38 @@
           0.1293685,
           24,
           66.236673
+        ]
+      }
+    },
+    {
+      "id": "dm-7106-line-2500-decoration",
+      "source": "dm",
+      "source-layer": "dm_7106_line_deco_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        2500
+      ],
+      "type": "line",
+      "minzoom": 15,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          15,
+          0.25873493334,
+          24,
+          132.47228587008
         ]
       }
     },
@@ -12221,6 +12285,38 @@
         "line-dasharray": [
           100,
           5
+        ]
+      }
+    },
+    {
+      "id": "dm-7107-line-2500-decoration",
+      "source": "dm",
+      "source-layer": "dm_7107_line_deco_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        2500
+      ],
+      "type": "line",
+      "minzoom": 15,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          15,
+          0.25873493334,
+          24,
+          132.47228587008
         ]
       }
     },

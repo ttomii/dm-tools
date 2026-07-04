@@ -2002,6 +2002,37 @@ test("code 7105 is a zero point two millimeter line", () => {
   }
 });
 
+test("codes 7105, 7106, and 7107 render zero point two millimeter right tick decorations", () => {
+  const widths = new Map([
+    [500, [26.4946692, new Map([[14, 0.0258737003906], [15, 0.0517474007813]])]],
+    [1000, [52.988914348, new Map([[14, 0.051746986668]])]],
+    [2500, [132.47228587008, new Map([[14, 0.12936746667], [15, 0.25873493334]])]],
+    [5000, [264.94457174016, new Map([[14, 0.25873493334]])]],
+  ]);
+  for (const [style, level] of ALL_STYLES) {
+    const [width24, widthByMinzoom] = widths.get(level);
+    for (const code of [7105, 7106, 7107]) {
+      const line = byId(style, `dm-${code}-line-${level}-line`);
+      const id = `dm-${code}-line-${level}-decoration`;
+      const layer = byId(style, id);
+      assert.equal(layer.type, "line", id);
+      assert.equal(layer["source-layer"], `dm_${code}_line_deco_line`, id);
+      assert.equal(layer.paint["line-color"], "#000000", id);
+      assert.equal(layer.minzoom, line.minzoom, id);
+      assert.equal(layer.paint["line-dasharray"], undefined, id);
+      assert.deepEqual(layer.paint["line-width"], [
+        "interpolate",
+        ["exponential", 2],
+        ["zoom"],
+        line.minzoom,
+        widthByMinzoom.get(line.minzoom),
+        24,
+        width24,
+      ]);
+    }
+  }
+});
+
 test("codes 7106, 7107, 7199, 7201, 7202, 7211, 7212, 7213, and 7214 are zero point one millimeter lines", () => {
   const widths = new Map([
     [500, [15, 0.0258737, 13.2473346]],
@@ -2175,7 +2206,8 @@ test("line layers remain visible one zoom below five hundredths of a millimeter"
 
       const widthAtMinzoom = width[4];
       assert.ok(widthAtMinzoom * 2 >= minScreenWidthPx, `${id}: the next zoom is below 0.05mm`);
-      if (minzoom > MIN_ZOOM) {
+      const isDecorationLayer = layer["source-layer"].includes("_deco_");
+      if (minzoom > MIN_ZOOM && !isDecorationLayer) {
         assert.ok(widthAtMinzoom < minScreenWidthPx, `${id}: zoom ${minzoom} is not one level below 0.05mm`);
       }
     }
