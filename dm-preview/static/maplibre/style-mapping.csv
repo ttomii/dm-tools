@@ -320,7 +320,8 @@ LEVEL,DMCODE,GEOM,SLD_FILE,STYLE_LAYER_ID,SPRITE_ID,DECORATION,STATUS,NOTE
 2500,7211,line,DM_7211.sld,dm-7211-line-2500-line,dm-7211,,supported,DMFIGTYPE != 12
 2500,7211,line,DM_7211.sld,dm-7211-line-2500-line-figtype-12,dm-7211,,supported,DMFIGTYPE == 12 uses 1 mm dash and 1 mm gap
 2500,7211,point,DM_7211.sld,dm-7211-point-2500-symbol,dm-7211,,supported,2 mm high (岩) centered on point
-2500,7212,line,DM_7212.sld,dm-7212-line-2500-line,,,supported,
+2500,7212,line,DM_7212.sld,dm-7212-line-2500-arc-symbols,,right_arc_with_center_chord,supported,1.5 mm wide and 0.75 mm high right-side arc symbols with 0.5 mm centered chord lines at 1.5 mm intervals
+2500,7212,line,DM_7212.sld,dm-7212-line-2500-line,,,supported,hidden base line for right-side arc symbol decoration
 2500,7213,line,DM_7213.sld,dm-7213-line-2500-line,,,supported,
 2500,7213,point,DM_7213.sld,dm-7213-point-2500-symbol,dm-7213,,supported,
 2500,7214,line,DM_7214.sld,dm-7214-line-2500-line,,,supported,
@@ -648,7 +649,8 @@ LEVEL,DMCODE,GEOM,SLD_FILE,STYLE_LAYER_ID,SPRITE_ID,DECORATION,STATUS,NOTE
 5000,7211,line,DM_7211.sld,dm-7211-line-5000-line,dm-7211,,supported,DMFIGTYPE != 12
 5000,7211,line,DM_7211.sld,dm-7211-line-5000-line-figtype-12,dm-7211,,supported,DMFIGTYPE == 12 uses 1 mm dash and 1 mm gap
 5000,7211,point,DM_7211.sld,dm-7211-point-5000-symbol,dm-7211,,supported,2 mm high (岩) centered on point
-5000,7212,line,DM_7212.sld,dm-7212-line-5000-line,,,supported,
+5000,7212,line,DM_7212.sld,dm-7212-line-5000-arc-symbols,,right_arc_with_center_chord,supported,1.5 mm wide and 0.75 mm high right-side arc symbols with 0.5 mm centered chord lines at 1.5 mm intervals
+5000,7212,line,DM_7212.sld,dm-7212-line-5000-line,,,supported,hidden base line for right-side arc symbol decoration
 5000,7213,line,DM_7213.sld,dm-7213-line-5000-line,,,supported,
 5000,7213,point,DM_7213.sld,dm-7213-point-5000-symbol,dm-7213,,supported,
 5000,7214,line,DM_7214.sld,dm-7214-line-5000-line,,,supported,

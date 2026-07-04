@@ -23,6 +23,10 @@ const CODE_6130_CYCLE_MM: f64 = 3.5;
 const CODE_6130_CIRCLE_OFFSET_MM: f64 = 2.75;
 const CODE_7105_7107_TICK_INTERVAL_MM: f64 = 3.0;
 const CODE_7105_7107_TICK_LENGTH_MM: f64 = 0.5;
+const CODE_7212_SYMBOL_INTERVAL_MM: f64 = 1.5;
+const CODE_7212_SYMBOL_WIDTH_MM: f64 = 1.5;
+const CODE_7212_SYMBOL_HEIGHT_MM: f64 = 0.75;
+const CODE_7212_CENTER_LINE_LENGTH_MM: f64 = 0.5;
 
 #[derive(Debug, Clone, Copy)]
 struct Vec2 {
@@ -93,6 +97,14 @@ enum LineDecorationSpec {
         decoration: &'static str,
         dash_length_mm: f64,
         cycle_mm: f64,
+    },
+    ArcLineSymbols {
+        arc_decoration: &'static str,
+        center_decoration: &'static str,
+        interval_mm: f64,
+        width_mm: f64,
+        height_mm: f64,
+        center_line_length_mm: f64,
     },
 }
 
@@ -178,6 +190,11 @@ const DECORATION_DEFS: &[DecorationDef] = &[
         dmcode: 7107,
         source_kind: GeometryKind::Line,
         specs: code_7105_7107_right_tick_specs,
+    },
+    DecorationDef {
+        dmcode: 7212,
+        source_kind: GeometryKind::Line,
+        specs: code_7212_arc_symbol_specs,
     },
 ];
 
@@ -422,6 +439,33 @@ pub fn generate(
                     rows.len() as i64,
                 ));
             }
+            LineDecorationSpec::ArcLineSymbols {
+                arc_decoration,
+                center_decoration,
+                interval_mm,
+                width_mm,
+                height_mm,
+                center_line_length_mm,
+            } => {
+                let Geometry::LineString(points) = &feature.geometry else {
+                    continue;
+                };
+                rows.extend(arc_line_symbol_features(
+                    feature,
+                    &key,
+                    source_layer,
+                    source_user_id,
+                    points,
+                    level,
+                    arc_decoration,
+                    center_decoration,
+                    interval_mm,
+                    width_mm,
+                    height_mm,
+                    center_line_length_mm,
+                    rows.len() as i64,
+                ));
+            }
         }
     }
     rows
@@ -437,7 +481,8 @@ fn spec_geometry_kind(spec: &LineDecorationSpec) -> GeometryKind {
         | LineDecorationSpec::BridgeEnd { .. }
         | LineDecorationSpec::LineSymbols { .. }
         | LineDecorationSpec::AttachedTriangles { .. }
-        | LineDecorationSpec::DashSegments { .. } => GeometryKind::Line,
+        | LineDecorationSpec::DashSegments { .. }
+        | LineDecorationSpec::ArcLineSymbols { .. } => GeometryKind::Line,
     }
 }
 
@@ -449,7 +494,9 @@ fn is_decoration_target(feature: &Feature) -> bool {
 
 fn is_supported_decoration_level(dmcode: i64, level: Option<i64>) -> bool {
     match dmcode {
-        1101 | 7105 | 7106 | 7107 => matches!(level, Some(500 | 1000 | 2500 | 5000)),
+        1101 | 7105 | 7106 | 7107 | 7212 => {
+            matches!(level, Some(500 | 1000 | 2500 | 5000))
+        }
         _ => matches!(level, Some(2500 | 5000)),
     }
 }
@@ -589,6 +636,17 @@ fn code_7105_7107_right_tick_specs() -> Vec<LineDecorationSpec> {
         length_mm: CODE_7105_7107_TICK_LENGTH_MM,
         one_sided_right: true,
         along_tangent: false,
+    }]
+}
+
+fn code_7212_arc_symbol_specs() -> Vec<LineDecorationSpec> {
+    vec![LineDecorationSpec::ArcLineSymbols {
+        arc_decoration: "right_arc",
+        center_decoration: "center_chord",
+        interval_mm: CODE_7212_SYMBOL_INTERVAL_MM,
+        width_mm: CODE_7212_SYMBOL_WIDTH_MM,
+        height_mm: CODE_7212_SYMBOL_HEIGHT_MM,
+        center_line_length_mm: CODE_7212_CENTER_LINE_LENGTH_MM,
     }]
 }
 
@@ -923,6 +981,116 @@ fn dash_segment_features(
         start += cycle;
     }
     rows
+}
+
+#[allow(clippy::too_many_arguments)]
+fn arc_line_symbol_features(
+    feature: &Feature,
+    key: &DecorationLayerKey,
+    source_layer: &str,
+    source_user_id: i64,
+    points: &[Coordinate],
+    level: i64,
+    arc_decoration: &str,
+    center_decoration: &str,
+    interval_mm: f64,
+    width_mm: f64,
+    height_mm: f64,
+    center_line_length_mm: f64,
+    start_index: i64,
+) -> Vec<DecorationFeature> {
+    let total = line_length(points);
+    let interval = mm_to_meter(interval_mm, level);
+    let half_width = mm_to_meter(width_mm, level) / 2.0;
+    let height = mm_to_meter(height_mm, level);
+    let center_len = mm_to_meter(center_line_length_mm, level);
+    if interval < MIN_DECORATION_LENGTH
+        || half_width < MIN_DECORATION_LENGTH
+        || height < MIN_DECORATION_LENGTH
+        || center_len < MIN_DECORATION_LENGTH
+        || total <= half_width * 2.0
+    {
+        return Vec::new();
+    }
+
+    let mut rows = Vec::new();
+    let mut distance = half_width;
+    while distance <= total - half_width {
+        if let Some(sample) = sample_at(points, distance) {
+            rows.extend(arc_line_symbol_rows(
+                feature,
+                key,
+                source_layer,
+                source_user_id,
+                sample,
+                arc_decoration,
+                center_decoration,
+                half_width,
+                height,
+                center_len,
+                start_index + rows.len() as i64,
+            ));
+        }
+        distance += interval;
+    }
+    rows
+}
+
+#[allow(clippy::too_many_arguments)]
+fn arc_line_symbol_rows(
+    feature: &Feature,
+    key: &DecorationLayerKey,
+    source_layer: &str,
+    source_user_id: i64,
+    sample: Sample,
+    arc_decoration: &str,
+    center_decoration: &str,
+    half_width: f64,
+    height: f64,
+    center_len: f64,
+    start_index: i64,
+) -> Vec<DecorationFeature> {
+    [
+        (arc_decoration, right_arc_line(sample, half_width, height)),
+        (
+            center_decoration,
+            centered_short_line(
+                translate(sample.point, sample.tangent.right_normal().scale(height)),
+                sample.tangent,
+                center_len,
+            ),
+        ),
+    ]
+    .into_iter()
+    .enumerate()
+    .filter_map(|(index, (decoration, geometry))| {
+        decoration_feature(
+            feature,
+            key,
+            source_layer,
+            source_user_id,
+            decoration,
+            start_index + index as i64 + 1,
+            Geometry::LineString(geometry),
+        )
+    })
+    .collect()
+}
+
+fn right_arc_line(sample: Sample, half_width: f64, height: f64) -> Vec<Coordinate> {
+    let right = sample.tangent.right_normal();
+    (0..=PIPE_SYMBOL_ARC_SEGMENTS)
+        .map(|index| {
+            let theta = std::f64::consts::PI * index as f64 / PIPE_SYMBOL_ARC_SEGMENTS as f64;
+            translate(
+                sample.point,
+                sample
+                    .tangent
+                    .scale(half_width * theta.cos())
+                    .add(right.scale(height * (1.0 - theta.sin()))),
+            )
+        })
+        .collect()
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -1729,6 +1897,37 @@ mod tests {
             assert_coordinate(second_points[0], 8.75, 0.0);
             assert_coordinate(second_points[1], 8.75, -1.25);
         }
+    }
+
+    #[test]
+    fn generates_code_7212_right_side_arc_symbols() {
+        let feature = line_feature(7212);
+        let key = LayerKey::from_feature(&feature);
+        assert_eq!(
+            decoration_layer_key_for(&feature, &key).unwrap().kind,
+            GeometryKind::Line
+        );
+
+        let rows = generate(&feature, &key, "dm_7212_line_08_2500", 1);
+        assert!(!rows.is_empty());
+        assert!(rows.iter().all(|row| row.key.kind == GeometryKind::Line));
+
+        let first_arc = line_points(&rows[0].geometry);
+        assert_eq!(rows[0].decoration, "right_arc");
+        assert_eq!(first_arc.len(), PIPE_SYMBOL_ARC_SEGMENTS + 1);
+        assert_coordinate(first_arc[0], 3.75, -1.875);
+        assert_coordinate(first_arc[4], 1.875, 0.0);
+        assert_coordinate(first_arc[8], 0.0, -1.875);
+
+        let first_center = line_points(&rows[1].geometry);
+        assert_eq!(rows[1].decoration, "center_chord");
+        assert_coordinate(first_center[0], 1.25, -1.875);
+        assert_coordinate(first_center[1], 2.5, -1.875);
+
+        let second_arc = line_points(&rows[2].geometry);
+        assert_coordinate(second_arc[0], 7.5, -1.875);
+        assert_coordinate(second_arc[4], 5.625, 0.0);
+        assert_coordinate(second_arc[8], 3.75, -1.875);
     }
 
     #[test]

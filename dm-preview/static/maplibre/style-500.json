@@ -8691,6 +8691,41 @@
           24,
           13.2473346
         ]
+      },
+      "layout": {
+        "visibility": "none"
+      }
+    },
+    {
+      "id": "dm-7212-line-500-arc-symbols",
+      "source": "dm",
+      "source-layer": "dm_7212_line_deco_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        500
+      ],
+      "type": "line",
+      "minzoom": 15,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          15,
+          0.0258737,
+          24,
+          13.2473346
+        ]
       }
     },
     {
