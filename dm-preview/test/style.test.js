@@ -1615,6 +1615,9 @@ test("codes 4265, 6101, and 6102 are zero point one millimeter solid lines", () 
       assert.equal(layer.type, "line", id);
       assert.equal(layer["source-layer"], `dm_${code}_line`, id);
       assert.equal(layer.minzoom, minzoom, id);
+      if (code === 6101) {
+        assert.deepEqual(layer.filter, ["all", ["==", ["get", "LEVEL"], level], ["!=", ["get", "DMFIGTYPE"], 12]], id);
+      }
       assert.equal(layer.paint["line-dasharray"], undefined, id);
       assert.deepEqual(layer.paint["line-width"], [
         "interpolate",

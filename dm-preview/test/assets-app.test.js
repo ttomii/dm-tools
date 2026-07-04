@@ -153,7 +153,7 @@ test("browser preview stores selected feature layer in URL parameters", () => {
   assert.equal(new URL(replaced.at(-1)).searchParams.has("layers"), false);
 });
 
-test("core hides DMSKIP features in runtime and bundled DM styles", () => {
+test("core hides non-rendered features in runtime and bundled DM styles", () => {
   const baseStyle = {
     version: 8,
     sources: {dm: {type: "vector"}},
@@ -189,6 +189,7 @@ test("core hides DMSKIP features in runtime and bundled DM styles", () => {
     "all",
     ["==", ["get", "LEVEL"], 2500],
     ["!=", ["get", "DMSKIP"], 1],
+    ["!=", ["get", "DMFIGTYPE"], 12],
   ]);
   assert.deepEqual(byLayerId(runtime, "default-line-7101").filter, ["!=", ["get", "DMSKIP"], 1]);
 
@@ -197,6 +198,7 @@ test("core hides DMSKIP features in runtime and bundled DM styles", () => {
     "all",
     ["==", ["get", "LEVEL"], 2500],
     ["!=", ["get", "DMSKIP"], 1],
+    ["!=", ["get", "DMFIGTYPE"], 12],
   ]);
 });
 

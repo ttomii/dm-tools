@@ -10091,12 +10091,23 @@
       "source": "dm",
       "source-layer": "dm_6101_line",
       "filter": [
-        "==",
+        "all",
         [
-          "get",
-          "LEVEL"
+          "==",
+          [
+            "get",
+            "LEVEL"
+          ],
+          2500
         ],
-        2500
+        [
+          "!=",
+          [
+            "get",
+            "DMFIGTYPE"
+          ],
+          12
+        ]
       ],
       "type": "line",
       "minzoom": 15,

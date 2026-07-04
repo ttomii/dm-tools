@@ -6403,12 +6403,23 @@
       "source": "dm",
       "source-layer": "dm_6101_line",
       "filter": [
-        "==",
+        "all",
         [
-          "get",
-          "LEVEL"
+          "==",
+          [
+            "get",
+            "LEVEL"
+          ],
+          500
         ],
-        500
+        [
+          "!=",
+          [
+            "get",
+            "DMFIGTYPE"
+          ],
+          12
+        ]
       ],
       "type": "line",
       "minzoom": 14,
