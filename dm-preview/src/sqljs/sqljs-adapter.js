@@ -1,14 +1,22 @@
+import {existsSync} from "node:fs";
+import {createRequire} from "node:module";
 import path from "node:path";
-import {fileURLToPath} from "node:url";
 import initSqlJs from "sql.js";
 
+const require = createRequire(import.meta.url);
 let sqlModule;
 
 export const openDatabase = async (bytes) => {
   sqlModule ??= await initSqlJs({
-    locateFile: (file) => path.join(path.dirname(fileURLToPath(import.meta.resolve("sql.js"))), file),
+    locateFile: resolveSqlWasmPath,
   });
   return new sqlModule.Database(bytes);
+};
+
+export const resolveSqlWasmPath = (file) => {
+  const packagedPath = path.join(path.dirname(process.execPath), "vendor", file);
+  if (existsSync(packagedPath)) return packagedPath;
+  return require.resolve(`sql.js/dist/${file}`);
 };
 
 export const queryRows = (database, sql, params = []) => {
