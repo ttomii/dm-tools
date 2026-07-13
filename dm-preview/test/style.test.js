@@ -582,7 +582,7 @@ test("fixed styles anchor annotations at their specified origins", () => {
     for (const [dmcode] of ANNOTATION_SIZES) {
       const horizontalId = `dm-${dmcode}-text-${level}-label`;
       assert.equal(byId(style, horizontalId).layout["text-anchor"], "bottom-left", horizontalId);
-      assert.equal(byId(style, `${horizontalId}-vertical`).layout["text-anchor"], "top-left", `${horizontalId}-vertical`);
+      assert.equal(byId(style, `${horizontalId}-vertical`).layout["text-anchor"], "bottom-left", `${horizontalId}-vertical`);
     }
   }
 });
