@@ -5,7 +5,7 @@ import {featureMeta, featureTitle} from "../src/core/feature-labels.js";
 import {featureCenter, geometryBounds, normalizeHighlightProperties, toGeoJsonFeature} from "../src/core/geometry.js";
 import {getCoords, getInitialCamera, getScale, getScaleByZoom, getZoomByScale} from "../src/core/map-scale.js";
 import {featureLayerParameter, updateFeatureLayerParameter, updateStatus} from "../static/assets/browser/browser-preview-app.js";
-import {filterFeatureLayers} from "../static/assets/browser/feature-panel.js";
+import {filterFeatureLayers, getClickedDmFeatures} from "../static/assets/browser/feature-panel.js";
 import {
   annotationTextField,
   setVerticalLongSoundAnnotationStyle,
@@ -172,6 +172,46 @@ test("browser preview filters feature layers by kind and partial layer name", ()
   assert.deepEqual(filterFeatureLayers(layers, {query: "710"}), ["dm_7101_line", "dm_7102_line"]);
   assert.deepEqual(filterFeatureLayers(layers, {kind: "line", query: "7102"}), ["dm_7102_line"]);
   assert.deepEqual(filterFeatureLayers(layers, {kind: "line", query: "text"}), []);
+});
+
+test("browser preview prioritizes geometry clicks and adds a buffer only for lines", () => {
+  const queries = [];
+  const map = {
+    getStyle: () => ({layers: [
+      {id: "point", source: "dm", "source-layer": "dm_1101_point", type: "circle"},
+      {id: "line", source: "dm", "source-layer": "dm_2101_line", type: "line"},
+      {id: "polygon", source: "dm", "source-layer": "dm_3101_polygon", type: "line"},
+      {id: "text", source: "dm", "source-layer": "dm_8110_text", type: "symbol"},
+    ]}),
+    getLayoutProperty: () => "visible",
+    queryRenderedFeatures: (geometry, options) => {
+      queries.push({geometry, options});
+      return options.layers.includes("line")
+        ? [
+          {sourceLayer: "dm_2101_line"},
+          {sourceLayer: "dm_2101_line"},
+        ]
+        : [
+          {sourceLayer: "dm_8110_text", id: 4},
+          {sourceLayer: "dm_3101_polygon", id: 3},
+          {sourceLayer: "dm_1101_point", id: 1},
+        ];
+    },
+  };
+
+  const features = getClickedDmFeatures(map, {x: 100, y: 200});
+
+  assert.deepEqual(features.map((feature) => feature.sourceLayer), [
+    "dm_1101_point",
+    "dm_2101_line",
+    "dm_2101_line",
+    "dm_3101_polygon",
+    "dm_8110_text",
+  ]);
+  assert.deepEqual(queries, [
+    {geometry: {x: 100, y: 200}, options: {layers: ["point", "polygon", "text"]}},
+    {geometry: [[94, 194], [106, 206]], options: {layers: ["line"]}},
+  ]);
 });
 
 test("core hides non-rendered features in runtime and bundled DM styles", () => {

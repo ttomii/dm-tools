@@ -4,6 +4,8 @@ import {featureCenter, geometryBounds, toGeoJsonFeature} from "../core/geometry.
 
 const HIGHLIGHT_SOURCE_ID = "dm-highlight";
 const EMPTY_FEATURES = {type: "FeatureCollection", features: []};
+const LINE_CLICK_BUFFER_PIXELS = 6;
+const FEATURE_KIND_PRIORITY = {point: 0, line: 1, polygon: 2, text: 3};
 
 export const setupFeatureLayerOptions = (select, style, options = {}) => {
   const kind = typeof options === "string" ? options : options.kind ?? "";
@@ -132,14 +134,32 @@ export const addHighlightLayers = (map) => {
 };
 
 export const getClickedDmFeatures = (map, point) => {
-  const layers = map
+  const dmLayers = map
     .getStyle()
     .layers
-    .filter((layer) => layer.source === "dm" && map.getLayoutProperty(layer.id, "visibility") !== "none")
+    .filter((layer) => layer.source === "dm" && map.getLayoutProperty(layer.id, "visibility") !== "none");
+  const lineLayers = dmLayers
+    .filter((layer) => getSourceLayerKind(layer["source-layer"]) === "line")
     .map((layer) => layer.id);
-  if (layers.length === 0) return [];
-  return map.queryRenderedFeatures(point, {layers});
+  const layers = dmLayers
+    .filter((layer) => getSourceLayerKind(layer["source-layer"]) !== "line")
+    .map((layer) => layer.id);
+  if (layers.length === 0 && lineLayers.length === 0) return [];
+  const clicked = layers.length === 0 ? [] : map.queryRenderedFeatures(point, {layers});
+  const nearbyLines = lineLayers.length === 0
+    ? []
+    : map.queryRenderedFeatures(clickBuffer(point, LINE_CLICK_BUFFER_PIXELS), {layers: lineLayers});
+  return prioritizeClickedFeatures([...clicked, ...nearbyLines]);
 };
+
+const clickBuffer = (point, pixels) => [
+  [point.x - pixels, point.y - pixels],
+  [point.x + pixels, point.y + pixels],
+];
+
+const prioritizeClickedFeatures = (features) => features.sort((a, b) => featurePriority(a) - featurePriority(b));
+
+const featurePriority = (feature) => FEATURE_KIND_PRIORITY[getSourceLayerKind(feature.sourceLayer)] ?? Number.MAX_SAFE_INTEGER;
 
 export const setSelectedFeature = (map, properties, feature) => {
   setHighlightedFeature(map, feature);
