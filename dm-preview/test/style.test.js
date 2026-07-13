@@ -577,12 +577,12 @@ test("fixed styles split horizontal and vertical annotations", () => {
   }
 });
 
-test("fixed styles anchor annotations to the right of the point", () => {
-  for (const [style, level] of STYLES) {
+test("fixed styles anchor annotations at their specified origins", () => {
+  for (const [style, level] of ALL_STYLES) {
     for (const [dmcode] of ANNOTATION_SIZES) {
       const horizontalId = `dm-${dmcode}-text-${level}-label`;
-      assert.equal(byId(style, horizontalId).layout["text-anchor"], "left", horizontalId);
-      assert.equal(byId(style, `${horizontalId}-vertical`).layout["text-anchor"], "left", `${horizontalId}-vertical`);
+      assert.equal(byId(style, horizontalId).layout["text-anchor"], "bottom-left", horizontalId);
+      assert.equal(byId(style, `${horizontalId}-vertical`).layout["text-anchor"], "top-left", `${horizontalId}-vertical`);
     }
   }
 });
