@@ -8,6 +8,7 @@ const resolveElements = (document) => ({
   dmToggle: document.getElementById("dm"),
   properties: document.getElementById("properties"),
   featureKindSelect: document.getElementById("feature-kind"),
+  featureLayerFilter: document.getElementById("feature-layer-filter"),
   featureLayerSelect: document.getElementById("feature-layer"),
   featureList: document.getElementById("feature-list"),
   featureListStatus: document.getElementById("feature-list-status"),

@@ -7,9 +7,10 @@ const EMPTY_FEATURES = {type: "FeatureCollection", features: []};
 
 export const setupFeatureLayerOptions = (select, style, options = {}) => {
   const kind = typeof options === "string" ? options : options.kind ?? "";
+  const query = typeof options === "string" ? "" : options.query ?? "";
   const selected = typeof options === "string" ? select.value : options.selectedLayer ?? select.value;
   select.replaceChildren();
-  const sourceLayers = getDmSourceLayers(style).filter((sourceLayer) => !kind || getSourceLayerKind(sourceLayer) === kind);
+  const sourceLayers = filterFeatureLayers(getDmSourceLayers(style), {kind, query});
   for (const sourceLayer of sourceLayers) {
     const option = document.createElement("option");
     option.value = sourceLayer;
@@ -18,6 +19,14 @@ export const setupFeatureLayerOptions = (select, style, options = {}) => {
   }
   select.disabled = sourceLayers.length === 0;
   if (selected && [...select.options].some((option) => option.value === selected)) select.value = selected;
+};
+
+export const filterFeatureLayers = (sourceLayers, {kind = "", query = ""} = {}) => {
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  return sourceLayers.filter((sourceLayer) => (
+    (!kind || getSourceLayerKind(sourceLayer) === kind)
+    && (!normalizedQuery || sourceLayer.toLocaleLowerCase().includes(normalizedQuery))
+  ));
 };
 
 export const clearFeatureList = (list, status, page, prev, next) => {

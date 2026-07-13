@@ -243,6 +243,7 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
     });
     setupFeatureLayerOptions(elements.featureLayerSelect, runtimeStyle, {
       kind: elements.featureKindSelect.value,
+      query: elements.featureLayerFilter.value,
       selectedLayer: featureLayerParameter(location),
     });
     updateFeatureLayerParameter(location, history, elements.featureLayerSelect.value);
@@ -311,7 +312,21 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
     elements.tabStyleEditor.addEventListener("click", () => setDetailTab("style-editor"));
     elements.tabFeatureDetails.addEventListener("click", () => setDetailTab("feature-details"));
     elements.featureKindSelect.addEventListener("change", () => {
-      setupFeatureLayerOptions(elements.featureLayerSelect, state.map.getStyle(), elements.featureKindSelect.value);
+      setupFeatureLayerOptions(elements.featureLayerSelect, state.map.getStyle(), {
+        kind: elements.featureKindSelect.value,
+        query: elements.featureLayerFilter.value,
+      });
+      updateFeatureLayerParameter(location, history, elements.featureLayerSelect.value);
+      loadFeaturePage(1).catch((error) => {
+        elements.featureListStatus.textContent = String(error);
+        elements.featureList.replaceChildren();
+      });
+    });
+    elements.featureLayerFilter.addEventListener("input", () => {
+      setupFeatureLayerOptions(elements.featureLayerSelect, state.map.getStyle(), {
+        kind: elements.featureKindSelect.value,
+        query: elements.featureLayerFilter.value,
+      });
       updateFeatureLayerParameter(location, history, elements.featureLayerSelect.value);
       loadFeaturePage(1).catch((error) => {
         elements.featureListStatus.textContent = String(error);

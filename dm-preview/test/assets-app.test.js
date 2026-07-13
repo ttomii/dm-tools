@@ -5,6 +5,7 @@ import {featureMeta, featureTitle} from "../src/core/feature-labels.js";
 import {featureCenter, geometryBounds, normalizeHighlightProperties, toGeoJsonFeature} from "../src/core/geometry.js";
 import {getCoords, getInitialCamera, getScale, getScaleByZoom, getZoomByScale} from "../src/core/map-scale.js";
 import {featureLayerParameter, updateFeatureLayerParameter} from "../static/assets/browser/browser-preview-app.js";
+import {filterFeatureLayers} from "../static/assets/browser/feature-panel.js";
 import {
   annotationTextField,
   setVerticalLongSoundAnnotationStyle,
@@ -151,6 +152,14 @@ test("browser preview stores selected feature layer in URL parameters", () => {
 
   updateFeatureLayerParameter(location, history, "");
   assert.equal(new URL(replaced.at(-1)).searchParams.has("layers"), false);
+});
+
+test("browser preview filters feature layers by kind and partial layer name", () => {
+  const layers = ["dm_2101_point", "dm_7101_line", "dm_7102_line", "dm_8110_text"];
+
+  assert.deepEqual(filterFeatureLayers(layers, {query: "710"}), ["dm_7101_line", "dm_7102_line"]);
+  assert.deepEqual(filterFeatureLayers(layers, {kind: "line", query: "7102"}), ["dm_7102_line"]);
+  assert.deepEqual(filterFeatureLayers(layers, {kind: "line", query: "text"}), []);
 });
 
 test("core hides non-rendered features in runtime and bundled DM styles", () => {

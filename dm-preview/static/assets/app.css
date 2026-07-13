@@ -32,9 +32,9 @@ header { grid-column: 1 / 3; }
 .style-option-toggle { color: #333; }
 #style-layer { min-width: 0; }
 #style-save { white-space: nowrap; }
-.feature-list-controls { display: flex; min-width: 0; gap: .4rem; }
+.feature-list-controls { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); min-width: 0; gap: .4rem; }
 #feature-kind { flex: 0 0 auto; max-width: 6rem; }
-#feature-layer { min-width: 0; max-width: 15rem; }
+#feature-layer-filter, #feature-layer { min-width: 0; width: 100%; }
 #feature-list-status { padding: .45rem .75rem; color: #555; border-bottom: 1px solid #eee; }
 #feature-list { min-height: 0; overflow: auto; margin: 0; padding: 0; list-style: none; }
 .feature-list-item { display: block; width: 100%; padding: .55rem .75rem; border: 0; border-bottom: 1px solid #eee; background: #fff; text-align: left; cursor: pointer; }
