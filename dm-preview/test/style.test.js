@@ -597,6 +597,22 @@ test("fixed styles always show annotations regardless of overlap", () => {
   }
 });
 
+test("fixed styles scale annotation outlines with the text strokes", () => {
+  for (const [style, level] of ALL_STYLES) {
+    for (const [dmcode] of ANNOTATION_SIZES) {
+      const id = `dm-${dmcode}-text-${level}-label`;
+      const textSize = byId(style, id).layout["text-size"];
+      const expected = [
+        "interpolate", textSize[1], textSize[2],
+        textSize[3], textSize[4] * 0.1,
+        textSize[5], textSize[6] * 0.1,
+      ];
+      assert.deepEqual(byId(style, id).paint["text-halo-width"], expected, id);
+      assert.deepEqual(byId(style, `${id}-vertical`).paint["text-halo-width"], expected, `${id}-vertical`);
+    }
+  }
+});
+
 test("fixed styles use annotation sizes in millimeters", () => {
   for (const [style, level] of STYLES) {
     const scale = level / 2500;
