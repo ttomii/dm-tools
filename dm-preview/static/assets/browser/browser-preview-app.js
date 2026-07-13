@@ -253,8 +253,9 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
     });
     state.map.addControl(new maplibregl.NavigationControl());
     state.map.on("load", () => addHighlightLayers(state.map));
+    updateStatus(elements.status, state.map);
+    state.map.on("move", () => updateStatus(elements.status, state.map));
     state.map.on("moveend", () => updateMapParameters(location, history, state.map));
-    state.map.on("mousemove", (event) => updateStatus(elements.status, state.map, event));
     state.map.on("click", (event) => {
       const features = getClickedDmFeatures(state.map, event.point);
       setDetailTab("feature-details");
@@ -383,9 +384,9 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
   return {start};
 };
 
-const updateStatus = (status, map, event) => {
+export const updateStatus = (status, map) => {
   const center = map.getCenter();
-  status.textContent = `z${map.getZoom().toFixed(2)} center ${center.lng.toFixed(6)},${center.lat.toFixed(6)} cursor ${event.lngLat.lng.toFixed(6)},${event.lngLat.lat.toFixed(6)}`;
+  status.textContent = `z${map.getZoom().toFixed(2)} center ${center.lng.toFixed(6)},${center.lat.toFixed(6)}`;
 };
 
 const updateMapParameters = (location, history, map) => {

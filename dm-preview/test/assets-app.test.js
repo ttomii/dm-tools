@@ -4,7 +4,7 @@ import {compareLayerName, expandDefaultStyleLayers, getDmSourceLayers, getSource
 import {featureMeta, featureTitle} from "../src/core/feature-labels.js";
 import {featureCenter, geometryBounds, normalizeHighlightProperties, toGeoJsonFeature} from "../src/core/geometry.js";
 import {getCoords, getInitialCamera, getScale, getScaleByZoom, getZoomByScale} from "../src/core/map-scale.js";
-import {featureLayerParameter, updateFeatureLayerParameter} from "../static/assets/browser/browser-preview-app.js";
+import {featureLayerParameter, updateFeatureLayerParameter, updateStatus} from "../static/assets/browser/browser-preview-app.js";
 import {filterFeatureLayers} from "../static/assets/browser/feature-panel.js";
 import {
   annotationTextField,
@@ -152,6 +152,18 @@ test("browser preview stores selected feature layer in URL parameters", () => {
 
   updateFeatureLayerParameter(location, history, "");
   assert.equal(new URL(replaced.at(-1)).searchParams.has("layers"), false);
+});
+
+test("browser preview status reflects the current map zoom without cursor coordinates", () => {
+  const status = {textContent: ""};
+  const map = {
+    getCenter: () => ({lng: 139.75123456, lat: 35.68123456}),
+    getZoom: () => 16.789,
+  };
+
+  updateStatus(status, map);
+
+  assert.equal(status.textContent, "z16.79 center 139.751235,35.681235");
 });
 
 test("browser preview filters feature layers by kind and partial layer name", () => {
