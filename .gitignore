@@ -4,6 +4,7 @@
 /dm-preview/node_modules/
 /dm-preview/static/maplibre/icons/png/
 /dm-preview/dist/
+/dist/
 *.gpkg
 *.gpkg-shm
 *.gpkg-wal
