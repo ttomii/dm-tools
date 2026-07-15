@@ -1,6 +1,7 @@
 import {getDmSourceLayers, getSourceLayerKind} from "../core/dm-source-layers.js";
-import {featureDetails, featureMeta, featureTitle} from "../core/feature-labels.js";
+import {featureDetails} from "../core/feature-labels.js";
 import {featureCenter, geometryBounds, toGeoJsonFeature} from "../core/geometry.js";
+import {renderFeatureItems} from "./feature-list.js";
 
 const HIGHLIGHT_SOURCE_ID = "dm-highlight";
 const EMPTY_FEATURES = {type: "FeatureCollection", features: []};
@@ -46,7 +47,7 @@ export const clearFeatureList = (list, status, page, prev, next) => {
 };
 
 export const renderFeatureList = ({result, list, status, page, prev, next, onSelect}) => {
-  list.replaceChildren(...result.features.map((feature) => createFeatureListItem(feature, onSelect)));
+  renderFeatureItems({features: result.features, list, onSelect});
   const lastPage = Math.max(1, Math.ceil(result.total / result.pageSize));
   status.textContent = `${result.total}件`;
   page.textContent = `${result.page} / ${lastPage}`;
@@ -69,9 +70,7 @@ export const renderHitFeatures = ({features, list, status, onSelect}) => {
     clearHitFeatures(list, status);
     return;
   }
-  list.replaceChildren(...features.map((feature) => createFeatureListItem(feature, onSelect)));
-  const firstSelected = list.querySelector(".feature-list-item");
-  if (firstSelected) firstSelected.classList.add("selected");
+  renderFeatureItems({features, list, onSelect, selectedIndex: 0});
   status.textContent = features.length === 1 ? "1件" : `${features.length}件重なっています`;
 };
 
@@ -169,32 +168,57 @@ const featurePriority = (feature) => FEATURE_KIND_PRIORITY[getSourceLayerKind(fe
 
 export const setSelectedFeature = (map, properties, feature) => {
   setHighlightedFeature(map, feature);
-  properties.textContent = feature
-    ? JSON.stringify(featureDetails(feature), undefined, 2)
-    : "";
+  renderFeatureDetails(properties, feature ? featureDetails(feature) : undefined);
+};
+
+const renderFeatureDetails = (container, details) => {
+  container.replaceChildren();
+  if (!details) return;
+  container.append(createFeatureDetailsTable(details));
+};
+
+const createFeatureDetailsTable = (details) => {
+  const table = document.createElement("table");
+  table.className = "feature-properties-table";
+  table.append(createFeatureDetailsHeader(), createFeatureDetailsBody(details));
+  return table;
+};
+
+const createFeatureDetailsHeader = () => {
+  const header = document.createElement("thead");
+  const row = document.createElement("tr");
+  row.append(createText("th", "", "項目"), createText("th", "", "値"));
+  header.append(row);
+  return header;
+};
+
+const createFeatureDetailsBody = (details) => {
+  const body = document.createElement("tbody");
+  const metadata = [
+    ["sourceLayer", details.sourceLayer],
+    ["id", details.id],
+    ["layerName", details.layerName],
+  ];
+  const rows = [...metadata, ...Object.entries(details.properties ?? {})];
+  body.append(...rows.map(([name, value]) => createFeatureDetailRow(name, value)));
+  return body;
+};
+
+const createFeatureDetailRow = (name, value) => {
+  const row = document.createElement("tr");
+  row.append(createText("th", "", name), createText("td", "", formatFeatureDetailValue(value)));
+  return row;
+};
+
+const formatFeatureDetailValue = (value) => {
+  if (value === undefined) return "";
+  if (value === null) return "null";
+  return typeof value === "object" ? JSON.stringify(value) : String(value);
 };
 
 export const setHighlightedFeature = (map, feature) => {
   const source = map.getSource(HIGHLIGHT_SOURCE_ID);
   source.setData(feature ? {type: "FeatureCollection", features: [toGeoJsonFeature(feature)]} : EMPTY_FEATURES);
-};
-
-const createFeatureListItem = (feature, onSelect) => {
-  const item = document.createElement("li");
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = "feature-list-item";
-  button.append(createText("span", "feature-list-title", featureTitle(feature)));
-  button.append(createText("span", "feature-list-meta", featureMeta(feature)));
-  button.addEventListener("click", () => {
-    for (const selected of document.querySelectorAll(".feature-list-item.selected")) {
-      selected.classList.remove("selected");
-    }
-    button.classList.add("selected");
-    onSelect(feature);
-  });
-  item.append(button);
-  return item;
 };
 
 const createText = (tag, className, text) => {

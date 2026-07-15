@@ -7,6 +7,7 @@ import {featureCenter, geometryBounds, normalizeHighlightProperties, toGeoJsonFe
 import {getCoords, getInitialCamera, getScale, getScaleByZoom, getZoomByScale} from "../src/core/map-scale.js";
 import {featureLayerParameter, updateFeatureLayerParameter, updateStatus} from "../static/assets/browser/browser-preview-app.js";
 import {filterFeatureLayers, getClickedDmFeatures, setSelectedFeature, setupFeatureLayerOptions} from "../static/assets/browser/feature-panel.js";
+import {renderFeatureItems} from "../static/assets/browser/feature-list.js";
 import {
   annotationTextField,
   setVerticalLongSoundAnnotationStyle,
@@ -101,10 +102,30 @@ test("core derives sorted DM source layers and feature labels", () => {
   assert.equal(dmLayerName("2511", "dm_2511_text"), "多角点名称");
   assert.equal(dmLayerName(9998, "dm_9998_line"), "");
 
-  const properties = {textContent: ""};
+  const originalDocument = globalThis.document;
+  const document = createDocument();
+  const properties = document.createElement("div");
   const map = {getSource: () => ({setData: () => {}})};
-  setSelectedFeature(map, properties, feature);
-  assert.equal(JSON.parse(properties.textContent).layerName, "道路縁（街区線）");
+  globalThis.document = document;
+  try {
+    setSelectedFeature(map, properties, feature);
+  } finally {
+    globalThis.document = originalDocument;
+  }
+
+  const table = properties.children[0];
+  assert.equal(table.tagName, "TABLE");
+  assert.deepEqual(table.children[1].children.map((row) => (
+    row.children.map((cell) => cell.textContent)
+  )), [
+    ["sourceLayer", "dm_2_line"],
+    ["id", "15"],
+    ["layerName", "道路縁（街区線）"],
+    ["USER_ID", "U-001"],
+    ["TEXT", "道路"],
+    ["DMCODE", "2101"],
+    ["DMFILE", "sample.dm"],
+  ]);
 });
 
 test("core calculates geometry bounds, centers, and highlight properties", () => {
@@ -203,6 +224,31 @@ test("browser preview requires an explicit feature-layer selection", () => {
 
   assert.equal(select.value, "");
   assert.deepEqual(select.options.map((option) => option.value), ["", "dm_7101_line"]);
+});
+
+test("browser preview uses an independent selectable feature-list component", () => {
+  const originalDocument = globalThis.document;
+  const document = createDocument();
+  const list = document.createElement("ol");
+  const otherList = document.createElement("ol");
+  const selected = [];
+  const features = [
+    {id: 1, sourceLayer: "dm_2101_line", properties: {USER_ID: "U-001", DMCODE: 2101}},
+    {id: 2, sourceLayer: "dm_2101_line", properties: {USER_ID: "U-002", DMCODE: 2101}},
+  ];
+  globalThis.document = document;
+  try {
+    renderFeatureItems({features, list, onSelect: (feature) => selected.push(feature), selectedIndex: 0});
+    renderFeatureItems({features, list: otherList, onSelect: () => {}, selectedIndex: 0});
+    list.children[1].children[0].click();
+  } finally {
+    globalThis.document = originalDocument;
+  }
+
+  assert.equal(list.children[0].children[0].classList.contains("selected"), false);
+  assert.equal(list.children[1].children[0].classList.contains("selected"), true);
+  assert.equal(otherList.children[0].children[0].classList.contains("selected"), true);
+  assert.equal(selected[0], features[1]);
 });
 
 test("browser preview prioritizes geometry clicks and adds a buffer only for lines", () => {
@@ -343,3 +389,50 @@ const createSelect = () => ({
     this.options = [];
   },
 });
+
+const createDocument = () => ({createElement: (tagName) => createElement(tagName)});
+
+const createElement = (tagName) => {
+  const classes = new Set();
+  const listeners = new Map();
+  const element = {
+    tagName: tagName.toUpperCase(),
+    children: [],
+    textContent: "",
+    classList: {
+      add: (...names) => names.forEach((name) => classes.add(name)),
+      remove: (...names) => names.forEach((name) => classes.delete(name)),
+      contains: (name) => classes.has(name),
+    },
+    append(...children) {
+      this.children.push(...children);
+    },
+    addEventListener(type, listener) {
+      listeners.set(type, listener);
+    },
+    click() {
+      listeners.get("click")?.();
+    },
+    querySelectorAll(selector) {
+      return descendants(this).filter((candidate) => matches(candidate, selector));
+    },
+    replaceChildren(...children) {
+      this.children = children;
+    },
+  };
+  Object.defineProperty(element, "className", {
+    get: () => [...classes].join(" "),
+    set: (value) => {
+      classes.clear();
+      value.split(/\s+/).filter(Boolean).forEach((name) => classes.add(name));
+    },
+  });
+  return element;
+};
+
+const descendants = (element) => element.children.flatMap((child) => [child, ...descendants(child)]);
+
+const matches = (element, selector) => selector
+  .split(".")
+  .filter(Boolean)
+  .every((className) => element.classList.contains(className));
