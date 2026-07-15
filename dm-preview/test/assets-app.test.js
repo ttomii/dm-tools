@@ -91,7 +91,11 @@ test("core derives sorted DM source layers and feature labels", () => {
     },
   };
   assert.equal(featureTitle(feature), "USER_ID U-001 道路");
-  assert.equal(featureMeta(feature), "dm_2_line / ID 15 / 道路縁（街区線） (DMCODE 2101) / sample.dm");
+  assert.equal(featureMeta(feature), "dm_2_line / 道路縁（街区線） / sample.dm");
+  assert.equal(featureMeta({
+    sourceLayer: feature.sourceLayer,
+    properties: feature.properties,
+  }), featureMeta(feature));
   assert.deepEqual(plain(featureDetails(feature)), {
     sourceLayer: "dm_2_line",
     id: 15,
@@ -239,7 +243,8 @@ test("browser preview uses an independent selectable feature-list component", ()
   globalThis.document = document;
   try {
     renderFeatureItems({features, list, onSelect: (feature) => selected.push(feature), selectedIndex: 0});
-    renderFeatureItems({features, list: otherList, onSelect: () => {}, selectedIndex: 0});
+    const hitFeatures = features.map(({id: _id, ...feature}) => feature);
+    renderFeatureItems({features: hitFeatures, list: otherList, onSelect: () => {}, selectedIndex: 0});
     list.children[1].children[0].click();
   } finally {
     globalThis.document = originalDocument;
@@ -248,6 +253,10 @@ test("browser preview uses an independent selectable feature-list component", ()
   assert.equal(list.children[0].children[0].classList.contains("selected"), false);
   assert.equal(list.children[1].children[0].classList.contains("selected"), true);
   assert.equal(otherList.children[0].children[0].classList.contains("selected"), true);
+  assert.equal(
+    list.children[0].children[0].children[1].textContent,
+    otherList.children[0].children[0].children[1].textContent,
+  );
   assert.equal(selected[0], features[1]);
 });
 

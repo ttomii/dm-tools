@@ -6,14 +6,10 @@ export const featureTitle = (feature) => {
 };
 
 export const featureMeta = (feature) => {
-  const featureId = feature.id ?? feature.fid;
   const dmcode = getDmCode(feature);
   const layerName = dmLayerName(dmcode, feature.sourceLayer);
-  const dmcodeLabel = dmcode || dmcode === 0
-    ? `${layerName ? `${layerName} (` : ""}DMCODE ${dmcode}${layerName ? ")" : ""}`
-    : "";
   const dmfile = feature.properties.DMFILE ?? feature.properties.SRC_DMFILE ?? "";
-  return [feature.sourceLayer, featureId !== undefined && `ID ${featureId}`, dmcodeLabel, dmfile]
+  return [feature.sourceLayer, layerName, dmfile]
     .filter(Boolean)
     .join(" / ");
 };
