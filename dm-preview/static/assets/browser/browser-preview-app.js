@@ -97,14 +97,6 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
     elements.styleEditorStatus.textContent = "未保存の変更があります";
   };
 
-  const isLayerIconColor = (id) => {
-    const layer = baseLayer(id);
-    return Boolean(layer && editableColorProperties(layer).includes("icon-image"));
-  };
-
-  const isKindIconColor = (kind) => state.styleEditorState.editableLayers
-    .some((layer) => layer.colorKind === kind && isLayerIconColor(layer.id));
-
   const applyLayerColor = async (id, color, dirty = true) => {
     setDetailTab("style-editor");
     const layer = baseLayer(id);
@@ -277,34 +269,26 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
   };
 
   const wireEvents = (manifest) => {
-    const paintColorScheduler = createLatestAsyncScheduler({
+    const colorChangeScheduler = createLatestAsyncScheduler({
       delay: 16,
-      onError: (error) => {
-        elements.styleEditorStatus.textContent = String(error);
-      },
-    });
-    const iconColorScheduler = createLatestAsyncScheduler({
-      delay: 180,
       onError: (error) => {
         elements.styleEditorStatus.textContent = String(error);
       },
     });
     elements.select.addEventListener("change", () => loadStyle(manifest));
     for (const [kind, input] of Object.entries(elements.styleKindInputs)) {
-      input.addEventListener("input", () => {
-        const scheduler = isKindIconColor(kind) ? iconColorScheduler : paintColorScheduler;
-        scheduler.schedule(() => applyKindColor(kind, input.value));
+      input.addEventListener("change", () => {
+        colorChangeScheduler.schedule(() => applyKindColor(kind, input.value));
       });
     }
     elements.styleLayerSelect.addEventListener("change", renderSelectedStyleLayer);
     elements.styleLayerVisible.addEventListener("change", () => applyLayerVisibility(elements.styleLayerSelect.value, elements.styleLayerVisible.checked));
     elements.styleVerticalLongSound.addEventListener("change", () => applyVerticalLongSoundAnnotationStyle(elements.styleVerticalLongSound.checked));
-    elements.styleLayerColor.addEventListener("input", () => {
-      const scheduler = isLayerIconColor(elements.styleLayerSelect.value) ? iconColorScheduler : paintColorScheduler;
-      scheduler.schedule(() => applyLayerColor(elements.styleLayerSelect.value, elements.styleLayerColor.value));
+    elements.styleLayerColor.addEventListener("change", () => {
+      colorChangeScheduler.schedule(() => applyLayerColor(elements.styleLayerSelect.value, elements.styleLayerColor.value));
     });
     elements.styleSave.addEventListener("click", () => {
-      Promise.all([paintColorScheduler.flush(), iconColorScheduler.flush()])
+      colorChangeScheduler.flush()
         .then(() => saveStyleEditor(manifest))
         .catch((error) => {
           elements.styleEditorStatus.textContent = String(error);
