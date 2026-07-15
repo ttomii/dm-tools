@@ -13,6 +13,12 @@ export const setupFeatureLayerOptions = (select, style, options = {}) => {
   const selected = typeof options === "string" ? select.value : options.selectedLayer ?? select.value;
   select.replaceChildren();
   const sourceLayers = filterFeatureLayers(getDmSourceLayers(style), {kind, query});
+  if (sourceLayers.length) {
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = "レイヤを選択してください";
+    select.append(placeholder);
+  }
   for (const sourceLayer of sourceLayers) {
     const option = document.createElement("option");
     option.value = sourceLayer;
@@ -20,7 +26,7 @@ export const setupFeatureLayerOptions = (select, style, options = {}) => {
     select.append(option);
   }
   select.disabled = sourceLayers.length === 0;
-  if (selected && [...select.options].some((option) => option.value === selected)) select.value = selected;
+  select.value = selected && sourceLayers.includes(selected) ? selected : "";
 };
 
 export const filterFeatureLayers = (sourceLayers, {kind = "", query = ""} = {}) => {

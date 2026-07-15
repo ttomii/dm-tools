@@ -5,7 +5,7 @@ import {featureMeta, featureTitle} from "../src/core/feature-labels.js";
 import {featureCenter, geometryBounds, normalizeHighlightProperties, toGeoJsonFeature} from "../src/core/geometry.js";
 import {getCoords, getInitialCamera, getScale, getScaleByZoom, getZoomByScale} from "../src/core/map-scale.js";
 import {featureLayerParameter, updateFeatureLayerParameter, updateStatus} from "../static/assets/browser/browser-preview-app.js";
-import {filterFeatureLayers, getClickedDmFeatures} from "../static/assets/browser/feature-panel.js";
+import {filterFeatureLayers, getClickedDmFeatures, setupFeatureLayerOptions} from "../static/assets/browser/feature-panel.js";
 import {
   annotationTextField,
   setVerticalLongSoundAnnotationStyle,
@@ -174,6 +174,22 @@ test("browser preview filters feature layers by kind and partial layer name", ()
   assert.deepEqual(filterFeatureLayers(layers, {kind: "line", query: "text"}), []);
 });
 
+test("browser preview requires an explicit feature-layer selection", () => {
+  const originalDocument = globalThis.document;
+  const select = createSelect();
+  globalThis.document = {createElement: () => ({})};
+  try {
+    setupFeatureLayerOptions(select, {
+      layers: [{source: "dm", "source-layer": "dm_7101_line"}],
+    });
+  } finally {
+    globalThis.document = originalDocument;
+  }
+
+  assert.equal(select.value, "");
+  assert.deepEqual(select.options.map((option) => option.value), ["", "dm_7101_line"]);
+});
+
 test("browser preview prioritizes geometry clicks and adds a buffer only for lines", () => {
   const queries = [];
   const map = {
@@ -300,3 +316,15 @@ const byLayerId = (style, id) => {
   assert.ok(layer, `missing layer ${id}`);
   return layer;
 };
+
+const createSelect = () => ({
+  disabled: false,
+  options: [],
+  value: "",
+  append(option) {
+    this.options.push(option);
+  },
+  replaceChildren() {
+    this.options = [];
+  },
+});
