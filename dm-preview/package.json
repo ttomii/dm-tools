@@ -20,13 +20,12 @@
     "build": "bun build --compile bin/dm-preview.js --outfile dist/dm-preview && node scripts/build.mjs"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=22.13"
   },
   "license": "Apache-2.0",
   "dependencies": {
     "maplibre-gl": "5.24.0",
     "pmtiles": "4.3.0",
-    "proj4": "^2.20.9",
-    "sql.js": "^1.14.1"
+    "proj4": "^2.20.9"
   }
 }

@@ -28,6 +28,16 @@ test("parseArguments accepts preview port option", () => {
   });
 });
 
+test("parseArguments accepts verbose preview diagnostics", () => {
+  assert.deepEqual(parseArguments(["preview", "output", "--verbose"]), {
+    command: "preview",
+    help: false,
+    noOpen: false,
+    output: "output",
+    verbose: true,
+  });
+});
+
 test("parseArguments keeps legacy preview form", () => {
   assert.deepEqual(parseArguments(["output", "--no-open"]), {
     command: "preview",
@@ -63,6 +73,7 @@ test("createHelpText explains commands, options, URL parameters, and exit codes"
   assert.match(help, /dm-preview bundle PMTILES OUTPUT/);
   assert.match(help, /--no-open\s+Print the preview URL/);
   assert.match(help, /--port PORT\s+Listen on PORT/);
+  assert.match(help, /--verbose\s+Print asset roots/);
   assert.match(help, /layers=NAME\s+Selected feature-list layer/);
   assert.match(help, /Exit codes:/);
 });

@@ -1,4 +1,4 @@
-import {readFile, stat} from "node:fs/promises";
+import {stat} from "node:fs/promises";
 import path from "node:path";
 import {
   ApiInputError,
@@ -17,11 +17,16 @@ export class GpkgFeatureStore {
       throw new ApiInputError(`GeoPackage is missing: ${path.basename(gpkg)}`, 404);
     });
     const adapter = requiredDatabaseAdapter(options.databaseAdapter);
-    const database = await adapter.openDatabase(await readFile(gpkg));
-    return new GpkgFeatureStore(database, readLayers(database, manifest.sourceLayers ?? [], adapter), {
-      ...options,
-      databaseAdapter: adapter,
-    });
+    const database = await adapter.openDatabase(gpkg);
+    try {
+      return new GpkgFeatureStore(database, readLayers(database, manifest.sourceLayers ?? [], adapter), {
+        ...options,
+        databaseAdapter: adapter,
+      });
+    } catch (error) {
+      adapter.closeDatabase(database);
+      throw error;
+    }
   }
 
   constructor(database, layers, options) {
@@ -29,6 +34,7 @@ export class GpkgFeatureStore {
     this.databaseAdapter = options.databaseAdapter;
     this.layers = layers;
     this.projectGeometry = options.projectGeometry ?? identityProjection;
+    this.closed = false;
   }
 
   search(query) {
@@ -42,6 +48,12 @@ export class GpkgFeatureStore {
     });
     return {layer, page, pageSize, total, features};
   }
+
+  close() {
+    if (this.closed) return;
+    this.closed = true;
+    this.databaseAdapter.closeDatabase(this.database);
+  }
 }
 
 export const createLazyFeatureStore = (root, manifest, options = {}) => {
@@ -50,6 +62,9 @@ export const createLazyFeatureStore = (root, manifest, options = {}) => {
     search: async (query) => {
       storePromise ??= GpkgFeatureStore.create(root, manifest, options);
       return (await storePromise).search(query);
+    },
+    close: () => {
+      storePromise?.then((store) => store.close()).catch(() => {});
     },
   };
 };
@@ -111,6 +126,6 @@ const quoteIdentifier = (identifier) => `"${identifier.replaceAll("\"", "\"\"")}
 const identityProjection = (geometry) => geometry;
 
 const requiredDatabaseAdapter = (adapter) => {
-  if (adapter?.openDatabase && adapter?.queryRows && adapter?.countRows) return adapter;
+  if (adapter?.openDatabase && adapter?.closeDatabase && adapter?.queryRows && adapter?.countRows) return adapter;
   throw new ApiInputError("GeoPackage database adapter is not configured", 500);
 };

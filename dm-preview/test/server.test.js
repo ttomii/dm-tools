@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import {mkdir, mkdtemp, readFile, rm, writeFile} from "node:fs/promises";
+import {DatabaseSync} from "node:sqlite";
 import os from "node:os";
 import path from "node:path";
 import {test} from "node:test";
-import initSqlJs from "sql.js";
 import {parseGeometry} from "../src/core/gpkg-feature-policy.js";
 import {projectGeometry} from "../src/proj4/gpkg-projection.js";
 import {parseRange, startServer} from "../src/server.js";
-import * as databaseAdapter from "../src/sqljs/sqljs-adapter.js";
+import * as databaseAdapter from "../src/sqlite/sqlite-adapter.js";
 
 test("parseRange supports explicit, open, and suffix ranges", () => {
   assert.deepEqual(parseRange("bytes=10-19", 100), {start: 10, end: 19, status: 206});
@@ -64,6 +64,42 @@ test("server handles output files, ranges, methods, and traversal", async (conte
   assert.equal(await (await fetch(url)).text(), "preview");
 });
 
+test("server fails before listening when the preview index is missing", async (context) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "dm-preview-"));
+  context.after(() => rm(root, {recursive: true, force: true}));
+  const output = path.join(root, "output");
+  await mkdir(output);
+
+  await assert.rejects(
+    startServer(output, {appAssets: path.join(root, "missing-assets"), vendorFiles: new Map()}),
+    /required preview asset is missing/,
+  );
+});
+
+test("server reports asset roots and static 404s in verbose mode", async (context) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "dm-preview-"));
+  context.after(() => rm(root, {recursive: true, force: true}));
+  const output = path.join(root, "output");
+  await mkdir(output);
+  const diagnostics = [];
+  const {server, url} = await startServer(output, {
+    diagnosticLog: (event) => diagnostics.push(event),
+    verbose: true,
+  });
+  context.after(() => server.close());
+
+  assert.equal((await fetch(`${new URL(url).origin}/preview/maplibre/missing.json`)).status, 404);
+  assert.equal(diagnostics[0].event, "startup");
+  assert.equal(diagnostics[0].output, output);
+  assert.deepEqual(diagnostics[1], {
+    event: "not-found",
+    pathname: "/preview/maplibre/missing.json",
+    output,
+    appAssets: diagnostics[0].assetRoots.appAssets,
+    maplibreAssets: diagnostics[0].assetRoots.maplibreAssets,
+  });
+});
+
 test("server serves bundled maplibre style, sprite, and glyph assets", async (context) => {
   const root = await mkdtemp(path.join(os.tmpdir(), "dm-preview-"));
   context.after(() => rm(root, {recursive: true, force: true}));
@@ -71,14 +107,17 @@ test("server serves bundled maplibre style, sprite, and glyph assets", async (co
   const maplibre = path.join(root, "maplibre");
   const fontstack = "Test Font";
   await mkdir(output);
+  const assets = path.join(root, "assets");
   await mkdir(path.join(maplibre, "sprite"), {recursive: true});
   await mkdir(path.join(maplibre, "glyphs", fontstack), {recursive: true});
+  await mkdir(assets);
+  await writeFile(path.join(assets, "index.html"), "preview");
   await writeFile(path.join(maplibre, "style-2500.json"), JSON.stringify({version: 8}));
   await writeFile(path.join(maplibre, "sprite", "sprite.json"), "{}");
   await writeFile(path.join(maplibre, "sprite", "sprite.png"), "png");
   await writeFile(path.join(maplibre, "glyphs", fontstack, "0-255.pbf"), "pbf");
   const {server, url} = await startServer(output, {
-    appAssets: path.join(root, "missing-assets"),
+    appAssets: assets,
     vendorFiles: new Map(),
     maplibreAssets: maplibre,
   });
@@ -130,6 +169,7 @@ test("server serves style bundle assets from output directory", async (context) 
   assert.match(await (await fetch(url)).text(), /DM MapLibre Preview/);
   assert.deepEqual(await (await fetch(`${origin}/preview/pmtiles-manifest.json`)).json(), manifest);
   assert.equal(await (await fetch(`${origin}/preview/style.json`)).text(), "{}");
+  assert.equal((await fetch(`${origin}/preview/maplibre/style-2500.json`)).status, 200);
   assert.equal((await fetch(`${origin}/preview/sprite.json`)).status, 200);
   assert.equal((await fetch(`${origin}/preview/glyphs/Test%20Font/0-255.pbf`)).status, 200);
 });
@@ -326,9 +366,8 @@ test("feature API rejects invalid query values", async (context) => {
 });
 
 const writeFeatureGpkg = async (file) => {
-  const SQL = await initSqlJs();
-  const database = new SQL.Database();
-  database.run(`
+  const database = new DatabaseSync(file);
+  database.exec(`
     CREATE TABLE gpkg_contents (
       table_name TEXT NOT NULL PRIMARY KEY,
       data_type TEXT NOT NULL,
@@ -364,35 +403,35 @@ const writeFeatureGpkg = async (file) => {
       TEXT TEXT NOT NULL
     );
   `);
-  database.run(
+  const run = (sql, params) => database.prepare(sql).run(...params);
+  run(
     "INSERT INTO gpkg_contents (table_name, data_type, identifier, srs_id) VALUES (?, 'features', ?, ?)",
     ["dm_7100_point_09_2500", "dm_7100_point_09_2500", 6677],
   );
-  database.run(
+  run(
     "INSERT INTO gpkg_contents (table_name, data_type, identifier, srs_id) VALUES (?, 'features', ?, ?)",
     ["dm_8110_text_09_2500", "dm_8110_text_09_2500", 6677],
   );
-  database.run(
+  run(
     "INSERT INTO gpkg_geometry_columns VALUES (?, 'geom', 'POINT', ?, 0, 0)",
     ["dm_7100_point_09_2500", 6677],
   );
-  database.run(
+  run(
     "INSERT INTO gpkg_geometry_columns VALUES (?, 'geom', 'POINT', ?, 0, 0)",
     ["dm_8110_text_09_2500", 6677],
   );
-  database.run(
+  run(
     "INSERT INTO dm_7100_point_09_2500 (geom, USER_ID, DMCODE, DMFILE, ANGLE) VALUES (?, 101, 7100, 'a.dm', 0)",
     [pointBlob(0, 0)],
   );
-  database.run(
+  run(
     "INSERT INTO dm_7100_point_09_2500 (geom, USER_ID, DMCODE, DMFILE, ANGLE) VALUES (?, 102, 7100, 'b.dm', 90)",
     [pointBlob(10, 20)],
   );
-  database.run(
+  run(
     "INSERT INTO dm_8110_text_09_2500 (geom, USER_ID, DMCODE, DMFILE, TEXT) VALUES (?, 201, 8110, 'c.dm', '大阪市')",
     [pointBlob(30, 40)],
   );
-  await writeFile(file, database.export());
   database.close();
 };
 

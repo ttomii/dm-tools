@@ -26,7 +26,9 @@ export const resolveFile = async (pathname, root, options) => {
   }
   if (vendorFiles.has(normalized)) return vendorFiles.get(normalized);
   if (normalized.startsWith("/maplibre/")) {
-    return secureFile(maplibreAssets, normalized.slice("/maplibre".length));
+    const relativePath = normalized.slice("/maplibre".length);
+    return await secureFile(maplibreAssets, relativePath)
+      ?? secureFile(defaults.maplibreAssets, relativePath);
   }
   if (ROOT_SPRITE_FILES.has(normalized)) {
     return secureFile(path.join(maplibreAssets, "sprite"), normalized);

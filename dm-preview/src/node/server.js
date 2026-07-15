@@ -1,4 +1,4 @@
-import {realpath} from "node:fs/promises";
+import {access, realpath} from "node:fs/promises";
 import {createServer as createHttpServer} from "node:http";
 import path from "node:path";
 import {createOutputAssetRoots} from "./asset-roots.js";
@@ -13,23 +13,31 @@ export {parseRange};
 export const startServer = async (output, options = {}) => {
   const root = await realpath(output);
   const assetRoots = options.assetRoots ?? createOutputAssetRoots(root);
+  const effectiveOptions = {...assetRoots, ...options};
+  if (options.appAssets && !options.indexHtml) {
+    effectiveOptions.indexHtml = path.join(options.appAssets, "index.html");
+  }
+  await validateRequiredAssets(effectiveOptions);
   const featureStore = options.manifest
     ? createLazyFeatureStore(root, options.manifest, {
       databaseAdapter: options.databaseAdapter,
       projectGeometry: options.projectGeometry,
     })
     : undefined;
-  const effectiveOptions = {...assetRoots, ...options, featureStore};
-  if (options.appAssets && !options.indexHtml) {
-    effectiveOptions.indexHtml = path.join(options.appAssets, "index.html");
-  }
+  effectiveOptions.featureStore = featureStore;
+  reportDiagnostic(effectiveOptions, {event: "startup", output: root, assetRoots});
   const server = createHttpServer((request, response) => {
     respond(request, response, root, effectiveOptions).catch((error) => {
       console.error(`preview server error: ${error.message}`);
       if (!response.headersSent) response.writeHead(500);
       response.end();
+      if (error.code === "ENOENT") {
+        server.previewError = error;
+        server.close();
+      }
     });
   });
+  server.once("close", () => featureStore?.close());
   await listen(server, options.port ?? 0);
   const address = server.address();
   const url = `http://127.0.0.1:${address.port}/preview/`;
@@ -57,11 +65,33 @@ const respond = async (request, response, root, options) => {
   }
   const file = await resolveFile(pathname, root, options);
   if (!file) {
+    reportDiagnostic(options, {
+      event: "not-found",
+      pathname,
+      output: root,
+      appAssets: options.appAssets,
+      maplibreAssets: options.maplibreAssets,
+    });
     response.writeHead(404);
     response.end();
     return;
   }
   await sendFile(request, response, file);
+};
+
+const reportDiagnostic = (options, event) => {
+  if (options.verbose) options.diagnosticLog?.(event);
+};
+
+const validateRequiredAssets = async ({indexHtml}) => {
+  try {
+    await access(indexHtml);
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      throw Object.assign(new Error(`required preview asset is missing: ${indexHtml}`), {code: error.code});
+    }
+    throw error;
+  }
 };
 
 const listen = (server, port) => new Promise((resolve, reject) => {

@@ -15,12 +15,19 @@ export const resolveVendorFile = (pkg, file) => {
   return existsSync(fromVendor) ? fromVendor : packagePath("node_modules", pkg, "dist", file);
 };
 
-export const createDefaultAssetRoots = () => ({
-  appAssets: packagePath("static", "assets"),
-  indexHtml: packagePath("static", "assets", "index.html"),
-  maplibreAssets: packagePath("static", "maplibre"),
-  vendorFiles: createVendorFiles(resolveVendorFile),
-});
+export const createDefaultAssetRoots = () => {
+  const root = resolveDefaultAssetRoot(PACKAGE_ROOT, existsSync);
+  return {
+    appAssets: path.join(root, "assets"),
+    indexHtml: path.join(root, "assets", "index.html"),
+    maplibreAssets: path.join(root, "maplibre"),
+    vendorFiles: createVendorFiles(resolveVendorFile),
+  };
+};
+
+export const resolveDefaultAssetRoot = (packageRoot, fileExists) => fileExists(path.join(packageRoot, "assets", "index.html"))
+  ? packageRoot
+  : path.join(packageRoot, "static");
 
 export const createOutputAssetRoots = (root) => {
   if (existsSync(path.join(root, "style.json"))) {

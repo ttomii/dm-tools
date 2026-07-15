@@ -24,7 +24,7 @@
 | `src/node/` | Node.js依存の処理。HTTPサーバー、静的ファイル配信、manifest、bundle、APIを扱う。 |
 | `src/core/` | Style変換、source-layer、sprite規則などの共有ルール。 |
 | `src/proj4/` | GeoPackage地物の座標変換。 |
-| `src/sqljs/` | sql.jsを使ったGeoPackage読み取り。 |
+| `src/sqlite/` | ファイル直読みSQLiteを使ったGeoPackage読み取り。 |
 
 ## `static/`
 
@@ -51,7 +51,7 @@ dm-preview
       -> dm-preview/src/node/*
       -> dm-preview/src/core/*
       -> dm-preview/src/proj4/*
-      -> dm-preview/src/sqljs/*
+      -> dm-preview/src/sqlite/*
 ```
 
 ## `scripts/`
