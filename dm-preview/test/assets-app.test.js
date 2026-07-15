@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import {test} from "node:test";
 import {compareLayerName, expandDefaultStyleLayers, getDmSourceLayers, getSourceLayerKind} from "../src/core/dm-source-layers.js";
-import {featureMeta, featureTitle} from "../src/core/feature-labels.js";
+import {featureDetails, featureMeta, featureTitle} from "../src/core/feature-labels.js";
+import {dmLayerName} from "../src/core/dm-layer-names.js";
 import {featureCenter, geometryBounds, normalizeHighlightProperties, toGeoJsonFeature} from "../src/core/geometry.js";
 import {getCoords, getInitialCamera, getScale, getScaleByZoom, getZoomByScale} from "../src/core/map-scale.js";
 import {featureLayerParameter, updateFeatureLayerParameter, updateStatus} from "../static/assets/browser/browser-preview-app.js";
-import {filterFeatureLayers, getClickedDmFeatures, setupFeatureLayerOptions} from "../static/assets/browser/feature-panel.js";
+import {filterFeatureLayers, getClickedDmFeatures, setSelectedFeature, setupFeatureLayerOptions} from "../static/assets/browser/feature-panel.js";
 import {
   annotationTextField,
   setVerticalLongSoundAnnotationStyle,
@@ -89,7 +90,21 @@ test("core derives sorted DM source layers and feature labels", () => {
     },
   };
   assert.equal(featureTitle(feature), "USER_ID U-001 道路");
-  assert.equal(featureMeta(feature), "dm_2_line / ID 15 / DMCODE 2101 / sample.dm");
+  assert.equal(featureMeta(feature), "dm_2_line / ID 15 / 道路縁（街区線） (DMCODE 2101) / sample.dm");
+  assert.deepEqual(plain(featureDetails(feature)), {
+    sourceLayer: "dm_2_line",
+    id: 15,
+    layerName: "道路縁（街区線）",
+    properties: feature.properties,
+  });
+  assert.equal(dmLayerName(2511, "dm_2511_point"), "多角点（記号）");
+  assert.equal(dmLayerName("2511", "dm_2511_text"), "多角点名称");
+  assert.equal(dmLayerName(9998, "dm_9998_line"), "");
+
+  const properties = {textContent: ""};
+  const map = {getSource: () => ({setData: () => {}})};
+  setSelectedFeature(map, properties, feature);
+  assert.equal(JSON.parse(properties.textContent).layerName, "道路縁（街区線）");
 });
 
 test("core calculates geometry bounds, centers, and highlight properties", () => {

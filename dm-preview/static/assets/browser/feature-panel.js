@@ -1,5 +1,5 @@
 import {getDmSourceLayers, getSourceLayerKind} from "../core/dm-source-layers.js";
-import {featureMeta, featureTitle} from "../core/feature-labels.js";
+import {featureDetails, featureMeta, featureTitle} from "../core/feature-labels.js";
 import {featureCenter, geometryBounds, toGeoJsonFeature} from "../core/geometry.js";
 
 const HIGHLIGHT_SOURCE_ID = "dm-highlight";
@@ -170,7 +170,7 @@ const featurePriority = (feature) => FEATURE_KIND_PRIORITY[getSourceLayerKind(fe
 export const setSelectedFeature = (map, properties, feature) => {
   setHighlightedFeature(map, feature);
   properties.textContent = feature
-    ? JSON.stringify({sourceLayer: feature.sourceLayer, id: feature.id, properties: feature.properties}, undefined, 2)
+    ? JSON.stringify(featureDetails(feature), undefined, 2)
     : "";
 };
 
