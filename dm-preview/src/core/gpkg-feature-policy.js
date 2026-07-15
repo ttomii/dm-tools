@@ -1,6 +1,7 @@
 const PAGE_SIZE_DEFAULT = 50;
 const PAGE_SIZE_MAX = 100;
 const WKB_OFFSET = 40;
+const MAX_COORDINATES = 1_000_000;
 
 export class ApiInputError extends Error {
   constructor(message, status = 400) {
@@ -136,6 +137,11 @@ class BlobReader {
   }
 
   coordinates() {
-    return Array.from({length: this.u32()}, () => this.coordinate());
+    const count = this.u32();
+    const available = this.length - this.offset;
+    if (count > MAX_COORDINATES || count > Math.floor(available / 16)) {
+      throw new ApiInputError("invalid GeoPackage coordinate count", 500);
+    }
+    return Array.from({length: count}, () => this.coordinate());
   }
 }

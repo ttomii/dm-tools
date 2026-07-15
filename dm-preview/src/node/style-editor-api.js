@@ -1,4 +1,4 @@
-import {cp, mkdir, readFile, realpath, stat, writeFile} from "node:fs/promises";
+import {cp, mkdir, mkdtemp, readFile, realpath, rename, rm, stat, writeFile} from "node:fs/promises";
 import path from "node:path";
 import {editableKinds, editableLayers} from "../core/style-editing.js";
 import {SPRITE_FILES} from "../core/sprite-policy.js";
@@ -82,30 +82,54 @@ const stylePathStatus = async (stylePath) => {
 };
 
 const saveStyleEditorState = async (request, response, root, options, body) => {
+  let staging;
   try {
-    await writeFile(path.join(root, "style.json"), `${JSON.stringify(body.style, undefined, 2)}\n`);
-    if (body.sprites) {
-      await writeSpriteFiles(root, body.sprites);
-    } else {
-      await copyStyleAssetDirectory(root, options.maplibreAssets, "sprite");
+    staging = await mkdtemp(path.join(root, ".dm-preview-style-"));
+    await stageStyleAssets(root, staging, options.maplibreAssets, body.sprites);
+    await writeFile(path.join(staging, "style.json"), `${JSON.stringify(body.style, undefined, 2)}\n`);
+    await publishAssetDirectory(root, staging, "sprite");
+    if (await exists(path.join(staging, "glyphs"))) {
+      await publishAssetDirectory(root, staging, "glyphs");
     }
-    await copyStyleAssetDirectory(root, options.maplibreAssets, "glyphs");
+    await rename(path.join(staging, "style.json"), path.join(root, "style.json"));
   } catch (error) {
     sendJson(request, response, 500, {error: `style editor save failed: ${error.message}`});
     return;
+  } finally {
+    if (staging) await rm(staging, {recursive: true, force: true});
   }
   sendJson(request, response, 200, {ok: true});
 };
 
-const copyStyleAssetDirectory = async (root, maplibreAssets, name) => {
-  if (!maplibreAssets) return;
-  const source = path.join(maplibreAssets, name);
-  const destination = path.join(root, name);
-  if (await exists(destination)) return;
+const stageStyleAssets = async (root, staging, maplibreAssets, sprites) => {
+  await copyStyleAssetDirectory(root, staging, maplibreAssets, "sprite", true);
+  if (sprites) await writeSpriteFiles(staging, sprites);
+  await copyStyleAssetDirectory(root, staging, maplibreAssets, "glyphs", false);
+};
+
+const copyStyleAssetDirectory = async (root, staging, maplibreAssets, name, required) => {
+  const existing = path.join(root, name);
+  const source = await exists(existing) ? existing : path.join(maplibreAssets ?? "", name);
   const sourceReal = await realpath(source).catch(() => undefined);
-  if (!sourceReal) return;
-  if (sourceReal === root || sourceReal.startsWith(`${root}${path.sep}`)) return;
-  await cp(sourceReal, destination, {recursive: true});
+  if (!sourceReal || !(await isDirectory(sourceReal))) {
+    if (required) throw new Error(`${name} assets are not available`);
+    return;
+  }
+  await cp(sourceReal, path.join(staging, name), {recursive: true});
+};
+
+const publishAssetDirectory = async (root, staging, name) => {
+  const destination = path.join(root, name);
+  const backup = path.join(root, `.${name}.backup`);
+  await rm(backup, {recursive: true, force: true});
+  if (await exists(destination)) await rename(destination, backup);
+  try {
+    await rename(path.join(staging, name), destination);
+  } catch (error) {
+    if (await exists(backup)) await rename(backup, destination);
+    throw error;
+  }
+  await rm(backup, {recursive: true, force: true});
 };
 
 const writeSpriteFiles = async (root, sprites) => {
@@ -131,6 +155,8 @@ const decodePngDataUrl = (value) => {
 };
 
 const exists = async (file) => stat(file).then(() => true, () => false);
+
+const isDirectory = async (file) => (await stat(file)).isDirectory();
 
 const isRecord = (value) => typeof value === "object" && Boolean(value) && !Array.isArray(value);
 

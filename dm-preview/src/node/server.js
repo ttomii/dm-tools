@@ -2,7 +2,7 @@ import {realpath} from "node:fs/promises";
 import {createServer as createHttpServer} from "node:http";
 import path from "node:path";
 import {createOutputAssetRoots} from "./asset-roots.js";
-import {GpkgFeatureStore} from "./gpkg-features.js";
+import {createLazyFeatureStore} from "./gpkg-features.js";
 import {FEATURES_PATH, respondFeatures} from "./features-api.js";
 import {requestPath, sendJson} from "./http-response.js";
 import {parseRange, resolveFile, sendFile} from "./static-files.js";
@@ -14,10 +14,10 @@ export const startServer = async (output, options = {}) => {
   const root = await realpath(output);
   const assetRoots = options.assetRoots ?? createOutputAssetRoots(root);
   const featureStore = options.manifest
-    ? await GpkgFeatureStore.create(root, options.manifest, {
+    ? createLazyFeatureStore(root, options.manifest, {
       databaseAdapter: options.databaseAdapter,
       projectGeometry: options.projectGeometry,
-    }).catch((error) => error)
+    })
     : undefined;
   const effectiveOptions = {...assetRoots, ...options, featureStore};
   if (options.appAssets && !options.indexHtml) {
@@ -48,7 +48,7 @@ const respond = async (request, response, root, options) => {
     return;
   }
   if (pathname === FEATURES_PATH) {
-    respondFeatures(request, response, options.featureStore);
+    await respondFeatures(request, response, options.featureStore);
     return;
   }
   if (pathname === "/preview/pmtiles-manifest.json" && options.manifest) {

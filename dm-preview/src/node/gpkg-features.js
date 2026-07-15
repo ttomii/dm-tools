@@ -44,6 +44,16 @@ export class GpkgFeatureStore {
   }
 }
 
+export const createLazyFeatureStore = (root, manifest, options = {}) => {
+  let storePromise;
+  return {
+    search: async (query) => {
+      storePromise ??= GpkgFeatureStore.create(root, manifest, options);
+      return (await storePromise).search(query);
+    },
+  };
+};
+
 const gpkgPath = (root, layerName) => {
   if (typeof layerName !== "string" || !layerName || layerName.includes("/") || layerName.includes("\\")) {
     throw new ApiInputError("manifest layerName cannot be used as a GeoPackage file name", 500);

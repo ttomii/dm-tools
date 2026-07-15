@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import {test} from "node:test";
 import initSqlJs from "sql.js";
+import {parseGeometry} from "../src/core/gpkg-feature-policy.js";
 import {projectGeometry} from "../src/proj4/gpkg-projection.js";
 import {parseRange, startServer} from "../src/server.js";
 import * as databaseAdapter from "../src/sqljs/sqljs-adapter.js";
@@ -18,6 +19,18 @@ test("parseRange rejects multiple and out-of-bounds ranges", () => {
   assert.throws(() => parseRange("bytes=0-1,4-5", 100));
   assert.throws(() => parseRange("bytes=0-1-2", 100));
   assert.throws(() => parseRange("bytes=100-", 100));
+});
+
+test("GeoPackage geometry rejects coordinate counts larger than the remaining bytes", () => {
+  const blob = new Uint8Array(49);
+  const view = new DataView(blob.buffer);
+  blob[0] = "G".charCodeAt(0);
+  blob[1] = "P".charCodeAt(0);
+  blob[40] = 1;
+  view.setUint32(41, 2, true);
+  view.setUint32(45, 0xffffffff, true);
+
+  assert.throws(() => parseGeometry(blob, "line"), /invalid GeoPackage coordinate count/);
 });
 
 test("server handles output files, ranges, methods, and traversal", async (context) => {
@@ -184,7 +197,7 @@ test("style editor API reads and writes bundled style assets", async (context) =
       },
     }),
   });
-  assert.equal(save.status, 200);
+  assert.equal(save.status, 200, await save.text());
   assert.equal(JSON.parse(await readFile(path.join(output, "style.json"), "utf8")).name, "edited");
   assert.deepEqual(JSON.parse(await readFile(path.join(output, "sprite", "sprite.json"), "utf8")), {
     "dm-test": {width: 1, height: 1, x: 0, y: 0, pixelRatio: 1},
@@ -220,6 +233,26 @@ test("style editor API creates bundled style assets on first save", async (conte
   assert.equal(JSON.parse(await readFile(path.join(output, "style.json"), "utf8")).version, 8);
   assert.equal(await readFile(path.join(output, "sprite", "sprite.png"), "utf8"), "png");
   assert.equal(await readFile(path.join(output, "glyphs", "Test Font", "0-255.pbf"), "utf8"), "pbf");
+});
+
+test("style editor leaves the current style unchanged when required assets cannot be staged", async (context) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "dm-preview-"));
+  context.after(() => rm(root, {recursive: true, force: true}));
+  const output = path.join(root, "output");
+  await mkdir(output);
+  const style = {version: 8, sources: {dm: {}}, layers: [], name: "current"};
+  await writeFile(path.join(output, "style.json"), JSON.stringify(style));
+  const {server, url} = await startServer(output, {vendorFiles: new Map()});
+  context.after(() => server.close());
+
+  const response = await fetch(`${new URL(url).origin}/preview/api/style-editor/state`, {
+    method: "PUT",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({style: {version: 8, sources: {dm: {}}, layers: []}}),
+  });
+
+  assert.equal(response.status, 500);
+  assert.equal(JSON.parse(await readFile(path.join(output, "style.json"), "utf8")).name, "current");
 });
 
 test("feature API reads paged GeoPackage features", async (context) => {
