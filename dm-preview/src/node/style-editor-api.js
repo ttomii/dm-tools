@@ -1,8 +1,9 @@
-import {cp, mkdir, mkdtemp, readFile, realpath, rename, rm, stat, writeFile} from "node:fs/promises";
+import {cp, mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile} from "node:fs/promises";
 import path from "node:path";
 import {editableKinds, editableLayers} from "../core/style-editing.js";
 import {SPRITE_FILES} from "../core/sprite-policy.js";
 import {readBody, sendJson} from "./http-response.js";
+import {publishStyleBundle} from "./style-bundle-publisher.js";
 
 export const STYLE_EDITOR_PATH = "/preview/api/style-editor/state";
 
@@ -87,11 +88,9 @@ const saveStyleEditorState = async (request, response, root, options, body) => {
     staging = await mkdtemp(path.join(root, ".dm-preview-style-"));
     await stageStyleAssets(root, staging, options.maplibreAssets, body.sprites);
     await writeFile(path.join(staging, "style.json"), `${JSON.stringify(body.style, undefined, 2)}\n`);
-    await publishAssetDirectory(root, staging, "sprite");
-    if (await exists(path.join(staging, "glyphs"))) {
-      await publishAssetDirectory(root, staging, "glyphs");
-    }
-    await rename(path.join(staging, "style.json"), path.join(root, "style.json"));
+    await publishStyleBundle(root, staging, {
+      reportCleanupError: (error) => options.diagnosticLog?.({event: "style-backup-cleanup-failed", error: error.message}),
+    });
   } catch (error) {
     sendJson(request, response, 500, {error: `style editor save failed: ${error.message}`});
     return;
@@ -116,20 +115,6 @@ const copyStyleAssetDirectory = async (root, staging, maplibreAssets, name, requ
     return;
   }
   await cp(sourceReal, path.join(staging, name), {recursive: true});
-};
-
-const publishAssetDirectory = async (root, staging, name) => {
-  const destination = path.join(root, name);
-  const backup = path.join(root, `.${name}.backup`);
-  await rm(backup, {recursive: true, force: true});
-  if (await exists(destination)) await rename(destination, backup);
-  try {
-    await rename(path.join(staging, name), destination);
-  } catch (error) {
-    if (await exists(backup)) await rename(backup, destination);
-    throw error;
-  }
-  await rm(backup, {recursive: true, force: true});
 };
 
 const writeSpriteFiles = async (root, sprites) => {
