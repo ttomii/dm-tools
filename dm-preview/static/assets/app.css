@@ -6,7 +6,7 @@ header { grid-column: 1 / 3; }
 .layer-toggle { display: flex; align-items: center; gap: .25rem; }
 #status { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #map { min-width: 0; min-height: 0; }
-#sidebar { display: grid; grid-template-rows: minmax(0, 45%) minmax(0, 1fr); min-width: 0; min-height: 0; overflow: hidden; border-left: 1px solid #ccc; }
+#sidebar { display: grid; grid-template-rows: minmax(0, 35%) minmax(0, 1fr); min-width: 0; min-height: 0; overflow: hidden; border-left: 1px solid #ccc; }
 .panel-heading {
   display: flex;
   align-items: center;
@@ -43,7 +43,7 @@ header { grid-column: 1 / 3; }
 .feature-list-title { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .feature-list-meta { display: block; margin-top: .15rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #666; font-size: 12px; }
 #feature-list-pager { display: flex; align-items: center; justify-content: center; gap: .75rem; padding: .5rem; border-top: 1px solid #ddd; background: #f8f8f8; }
-#feature-details { min-height: 0; overflow: hidden; display: grid; grid-template-rows: auto auto minmax(0, 1fr); background: #fff; }
+#feature-details { min-height: 0; overflow: hidden; display: grid; grid-template-rows: fit-content(30%) minmax(0, 1fr); background: #fff; }
 #hit-results { min-height: 0; overflow: hidden; display: grid; grid-template-rows: auto minmax(0, 1fr); border-bottom: 1px solid #ddd; }
 #hit-list-status { padding: .45rem .75rem; color: #555; border-bottom: 1px solid #eee; }
 #hit-list { min-height: 0; overflow: auto; margin: 0; padding: 0; list-style: none; }
