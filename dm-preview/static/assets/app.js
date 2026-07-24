@@ -1,4 +1,5 @@
 import {createBrowserPreviewApp} from "./browser/browser-preview-app.js";
+import * as maplibregl from "../vendor/maplibre-gl.mjs";
 
 const resolveElements = (document) => ({
   status: document.getElementById("status"),
@@ -39,7 +40,7 @@ const app = createBrowserPreviewApp({
   elements: resolveElements(document),
   location,
   history,
-  maplibregl: window.maplibregl,
+  maplibregl,
   pmtiles: window.pmtiles,
   fetch: window.fetch.bind(window),
 });

@@ -83,8 +83,8 @@ struct PendingDecoration {
 }
 
 enum PendingWrite {
-    Feature(PendingFeature),
-    Decoration(PendingDecoration),
+    Feature(Box<PendingFeature>),
+    Decoration(Box<PendingDecoration>),
 }
 
 pub struct GeoPackageWriter {
@@ -400,11 +400,12 @@ impl GeoPackageWriter {
             plane_rectangular_zone: feature.plane_rectangular_zone,
             map_level: feature.map_level,
         };
-        self.pending.push(PendingWrite::Feature(PendingFeature {
-            key,
-            feature,
-            user_id,
-        }));
+        self.pending
+            .push(PendingWrite::Feature(Box::new(PendingFeature {
+                key,
+                feature,
+                user_id,
+            })));
         if self.pending.len() >= self.batch_size {
             self.flush()?;
         }
@@ -429,11 +430,11 @@ impl GeoPackageWriter {
         user_id: i64,
     ) -> Result<(), WriterError> {
         self.pending
-            .push(PendingWrite::Decoration(PendingDecoration {
+            .push(PendingWrite::Decoration(Box::new(PendingDecoration {
                 key: feature.key.clone(),
                 feature,
                 user_id,
-            }));
+            })));
         if self.pending.len() >= self.batch_size {
             self.flush()?;
         }
@@ -916,6 +917,17 @@ mod tests {
     use std::fs;
     use std::time::{SystemTime, UNIX_EPOCH};
 
+    type StoredDmAttributes = (
+        Option<i64>,
+        Option<i64>,
+        Option<i64>,
+        Option<i64>,
+        Option<i64>,
+        Option<i64>,
+        Option<i64>,
+        Option<String>,
+    );
+
     #[test]
     fn arc_sweep_passes_through_expected_direction() {
         assert_eq!(arc_sweep(10.0, 80.0, false), 70.0);
@@ -1022,16 +1034,7 @@ mod tests {
                 |row| row.get(0),
             )
             .unwrap();
-        let attrs: (
-            Option<i64>,
-            Option<i64>,
-            Option<i64>,
-            Option<i64>,
-            Option<i64>,
-            Option<i64>,
-            Option<i64>,
-            Option<String>,
-        ) = connection
+        let attrs: StoredDmAttributes = connection
             .query_row(
                 "SELECT LEVEL, DMREGION, DMINFO, DMELEMID, DMATTRKIND,
                         DMUPYYMM, DMDELYYMM, DMATTRDATA

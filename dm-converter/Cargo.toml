@@ -3,7 +3,7 @@ members = ["crates/dm-parser", "crates/dm-converter"]
 resolver = "2"
 
 [workspace.package]
-version = "0.1.0"
+version = "1.0.0"
 edition = "2024"
 rust-version = "1.88"
 authors = ["TOMII, Tatsuru"]
@@ -14,10 +14,10 @@ publish = false
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
 clap = { version = "4.5", features = ["derive"] }
 encoding_rs = "0.8"
-rusqlite = { version = "0.37", features = ["bundled"] }
+rusqlite = { version = "0.40", features = ["bundled"] }
 thiserror = "2"
 flate2 = "1.1"
-geo = { version = "0.32", default-features = false }
+geo = { version = "0.33", default-features = false }
 pmtiles = { version = "0.23", default-features = false, features = ["write"] }
 proj4rs = "0.1"
 prost = "0.14"

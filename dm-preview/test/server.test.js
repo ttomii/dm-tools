@@ -38,6 +38,7 @@ test("server handles output files, ranges, methods, and traversal", async (conte
   context.after(() => rm(root, {recursive: true, force: true}));
   const output = path.join(root, "output");
   const assets = path.join(root, "assets");
+  const vendorModule = path.join(root, "maplibre-gl.mjs");
   await mkdir(output);
   await mkdir(assets);
   await mkdir(path.join(assets, "core"));
@@ -46,7 +47,11 @@ test("server handles output files, ranges, methods, and traversal", async (conte
   await writeFile(`${assets}/app.js`, "");
   await writeFile(`${assets}/app.css`, "");
   await writeFile(path.join(assets, "core", "dm-source-layers.js"), "");
-  const {server, url} = await startServer(output, {appAssets: assets, vendorFiles: new Map()});
+  await writeFile(vendorModule, "export const version = '6.0.0';");
+  const {server, url} = await startServer(output, {
+    appAssets: assets,
+    vendorFiles: new Map([["/vendor/maplibre-gl.mjs", vendorModule]]),
+  });
   context.after(() => server.close());
   const origin = new URL(url).origin;
 
@@ -61,6 +66,10 @@ test("server handles output files, ranges, methods, and traversal", async (conte
   assert.equal((await fetch(`${origin}/%2e%2e/secret`)).status, 404);
   assert.equal((await fetch(`${origin}/preview/assets/core/dm-source-layers.js`)).status, 200);
   assert.equal((await fetch(`${origin}/preview/assets/core/%2e%2e/secret`)).status, 404);
+  assert.match(
+    (await fetch(`${origin}/preview/vendor/maplibre-gl.mjs`)).headers.get("content-type"),
+    /text\/javascript/,
+  );
   assert.equal(await (await fetch(url)).text(), "preview");
 });
 

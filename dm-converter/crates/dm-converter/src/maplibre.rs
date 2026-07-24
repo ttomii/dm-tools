@@ -188,7 +188,10 @@ fn summarize_gpkg(
                 quote_identifier(&layer.table_name)
             ),
             [],
-            |row| row.get(0),
+            |row| {
+                let count = row.get::<_, i64>(0)?;
+                u64::try_from(count).map_err(|_| rusqlite::Error::IntegralValueOutOfRange(0, count))
+            },
         )?;
         summary.features += count;
         let corners = [

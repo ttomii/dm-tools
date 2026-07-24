@@ -685,8 +685,8 @@ fn major_dash_end_features(
     let mut rows = Vec::new();
     let mut dash_start = 0.0;
     while dash_start < total {
-        if let Some(geometry) = line_slice(points, dash_start, (dash_start + dash_len).min(total)) {
-            if let Some(row) = decoration_feature(
+        if let Some(geometry) = line_slice(points, dash_start, (dash_start + dash_len).min(total))
+            && let Some(row) = decoration_feature(
                 feature,
                 key,
                 source_layer,
@@ -694,9 +694,9 @@ fn major_dash_end_features(
                 major_decoration,
                 start_index + rows.len() as i64 + 1,
                 Geometry::LineString(geometry),
-            ) {
-                rows.push(row);
-            }
+            )
+        {
+            rows.push(row);
         }
 
         if let Some(sample) = sample_at(points, dash_start) {
@@ -714,41 +714,40 @@ fn major_dash_end_features(
         }
 
         let dash_end = dash_start + dash_len;
-        if dash_end <= total {
-            if let Some(sample) = sample_at(points, dash_end) {
-                rows.extend(major_dash_end_branches(
-                    feature,
-                    key,
-                    source_layer,
-                    source_user_id,
-                    end_decoration,
-                    start_index + rows.len() as i64,
-                    sample,
-                    false,
-                    branch_len,
-                ));
-            }
+        if dash_end <= total
+            && let Some(sample) = sample_at(points, dash_end)
+        {
+            rows.extend(major_dash_end_branches(
+                feature,
+                key,
+                source_layer,
+                source_user_id,
+                end_decoration,
+                start_index + rows.len() as i64,
+                sample,
+                false,
+                branch_len,
+            ));
         }
 
         let minor_start = dash_start + dash_len + major_to_minor_gap;
-        if minor_start < total {
-            if let Some(geometry) = line_slice(
+        if minor_start < total
+            && let Some(geometry) = line_slice(
                 points,
                 minor_start,
                 (minor_start + minor_dash_len).min(total),
-            ) {
-                if let Some(row) = decoration_feature(
-                    feature,
-                    key,
-                    source_layer,
-                    source_user_id,
-                    minor_decoration,
-                    start_index + rows.len() as i64 + 1,
-                    Geometry::LineString(geometry),
-                ) {
-                    rows.push(row);
-                }
-            }
+            )
+            && let Some(row) = decoration_feature(
+                feature,
+                key,
+                source_layer,
+                source_user_id,
+                minor_decoration,
+                start_index + rows.len() as i64 + 1,
+                Geometry::LineString(geometry),
+            )
+        {
+            rows.push(row);
         }
 
         dash_start += cycle;

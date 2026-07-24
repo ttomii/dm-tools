@@ -551,7 +551,7 @@ fn decode_annotation_text<'a>(
 }
 
 fn decode_jis_x0208_gl_annotation(bytes: &[u8]) -> Option<std::borrow::Cow<'static, str>> {
-    if bytes.len() % 2 != 0
+    if !bytes.len().is_multiple_of(2)
         || !bytes
             .chunks_exact(2)
             .all(|pair| (0x21..=0x7e).contains(&pair[0]) && (0x21..=0x7e).contains(&pair[1]))
