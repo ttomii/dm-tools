@@ -48,6 +48,7 @@ export const createOutputAssetRoots = (root) => {
 const createVendorFiles = (resolveFile) => new Map([
   ["/vendor/maplibre-gl.mjs", resolveFile("maplibre-gl", "maplibre-gl.mjs")],
   ["/vendor/maplibre-gl-shared.mjs", resolveFile("maplibre-gl", "maplibre-gl-shared.mjs")],
+  ["/vendor/maplibre-gl-worker.mjs", resolveFile("maplibre-gl", "maplibre-gl-worker.mjs")],
   ["/vendor/maplibre-gl.css", resolveFile("maplibre-gl", "maplibre-gl.css")],
   ["/vendor/pmtiles.js", resolveFile("pmtiles", "pmtiles.js")],
 ]);

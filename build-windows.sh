@@ -50,6 +50,11 @@ require_prerequisites() {
   fi
 }
 
+clean_build_outputs() {
+  echo "Cleaning previous build outputs..."
+  rm -rf "${CONVERTER_DIR}/target" "${PREVIEW_DIR}/dist" "${DIST_DIR}"
+}
+
 build_converter() {
   echo "Building dm-converter for Windows x64..."
   (
@@ -98,6 +103,7 @@ create_archive() {
 main() {
   add_bun_to_path
   require_prerequisites
+  clean_build_outputs
   build_converter
   build_preview
   create_archive

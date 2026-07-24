@@ -18,5 +18,6 @@ test("resolves MapLibre 6 ES modules as vendor assets", () => {
 
   assert.match(vendorFiles.get("/vendor/maplibre-gl.mjs"), /maplibre-gl\.mjs$/);
   assert.match(vendorFiles.get("/vendor/maplibre-gl-shared.mjs"), /maplibre-gl-shared\.mjs$/);
+  assert.match(vendorFiles.get("/vendor/maplibre-gl-worker.mjs"), /maplibre-gl-worker\.mjs$/);
   assert.equal(vendorFiles.has("/vendor/maplibre-gl.js"), false);
 });
