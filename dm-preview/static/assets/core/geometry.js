@@ -24,8 +24,9 @@ export const featureCenter = (geometry) => {
 };
 
 export const normalizeHighlightProperties = (properties) => {
-  if ("ROTATION" in properties || !properties.ANGLE) return properties;
-  return {...properties, ROTATION: properties.ANGLE};
+  const normalized = {...properties};
+  if ("ROTATION" in normalized || !normalized.ANGLE) return normalized;
+  return {...normalized, ROTATION: normalized.ANGLE};
 };
 
 export const toGeoJsonFeature = (feature) => ({

@@ -6,7 +6,13 @@ import {dmLayerName} from "../src/core/dm-layer-names.js";
 import {featureCenter, geometryBounds, normalizeHighlightProperties, toGeoJsonFeature} from "../src/core/geometry.js";
 import {getCoords, getInitialCamera, getScale, getScaleByZoom, getZoomByScale} from "../src/core/map-scale.js";
 import {featureLayerParameter, updateFeatureLayerParameter, updateStatus} from "../static/assets/browser/browser-preview-app.js";
-import {filterFeatureLayers, getClickedDmFeatures, setSelectedFeature, setupFeatureLayerOptions} from "../static/assets/browser/feature-panel.js";
+import {
+  addHighlightLayers,
+  filterFeatureLayers,
+  getClickedDmFeatures,
+  setSelectedFeature,
+  setupFeatureLayerOptions,
+} from "../static/assets/browser/feature-panel.js";
 import {renderFeatureItems} from "../static/assets/browser/feature-list.js";
 import {
   annotationTextField,
@@ -160,6 +166,18 @@ test("core calculates geometry bounds, centers, and highlight properties", () =>
   });
 });
 
+test("core converts rendered feature properties into a worker-serializable object", () => {
+  const properties = Object.assign(Object.create(null), {DMCODE: 7101, NAME: "contour"});
+
+  const feature = toGeoJsonFeature({
+    geometry: {type: "LineString", coordinates: [[139.7, 35.6], [139.8, 35.7]]},
+    properties,
+  });
+
+  assert.equal(Object.getPrototypeOf(feature.properties), Object.prototype);
+  assert.deepEqual(feature.properties, {DMCODE: 7101, NAME: "contour"});
+});
+
 test("core reads camera parameters and converts map scale", () => {
   const url = new URL("http://localhost/preview/?coords=139.75,35.68&scale=2500");
   const zoom = getZoomByScale(2500, 35.68);
@@ -298,6 +316,20 @@ test("browser preview prioritizes geometry clicks and adds a buffer only for lin
     {geometry: {x: 100, y: 200}, options: {layers: ["point", "polygon", "text"]}},
     {geometry: [[94, 194], [106, 206]], options: {layers: ["line"]}},
   ]);
+});
+
+test("browser preview uses the bundled font for highlight arrows", () => {
+  const layers = [];
+  addHighlightLayers({
+    addSource: () => {},
+    addLayer: (layer) => layers.push(layer),
+  });
+
+  const arrowLayers = layers.filter((layer) => layer.layout?.["text-field"] === "▶");
+  assert.equal(arrowLayers.length, 2);
+  for (const layer of arrowLayers) {
+    assert.deepEqual(layer.layout["text-font"], ["BIZ UDPGothic Regular"]);
+  }
 });
 
 test("core hides non-rendered features in runtime and bundled DM styles", () => {

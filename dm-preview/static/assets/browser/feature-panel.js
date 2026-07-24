@@ -103,6 +103,7 @@ export const addHighlightLayers = (map) => {
       "symbol-placement": "line",
       "symbol-spacing": 72,
       "text-field": "▶",
+      "text-font": ["BIZ UDPGothic Regular"],
       "text-size": 18,
       "text-allow-overlap": true,
       "text-ignore-placement": true,
@@ -125,6 +126,7 @@ export const addHighlightLayers = (map) => {
     filter: ["in", ["geometry-type"], ["literal", ["Point", "MultiPoint"]]],
     layout: {
       "text-field": "▶",
+      "text-font": ["BIZ UDPGothic Regular"],
       "text-size": 10,
       "text-anchor": "left",
       "text-offset": [0.65, 0],
