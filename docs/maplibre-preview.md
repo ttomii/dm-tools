@@ -31,7 +31,7 @@ pmtiles-manifest.json
 ## Preview
 
 ```bash
-dm-preview preview OUTPUT [--no-open]
+dm-preview preview OUTPUT [--distribution DIR] [--no-open]
 ```
 
 `OUTPUT/pmtiles-manifest.json`とPMTilesを検証し、出力ディレクトリを
@@ -42,6 +42,38 @@ dm-preview preview OUTPUT [--no-open]
 `bundle`で作成した配布フォルダを渡した場合は、そのフォルダ内のStyleやマップ
 アセットを優先して表示します。
 
+GeoPackageを含むプレビュー用データを指定した場合は、既定で`OUTPUT/public`を配布用
+ディレクトリとして使用します。配布先を変更する場合は`--distribution`を指定します。
+
+```text
+preview-data/
+  {layer-name}.pmtiles
+  {layer-name}.gpkg
+  pmtiles-manifest.json
+preview-data/public/
+  {layer-name}.pmtiles
+  style.json
+  sprite/
+  glyphs/
+```
+
+次のコマンドは`preview-data/public/`が存在しない場合に配布用bundleを作成し、存在する
+場合はそのbundleを再利用してプレビューを起動します。
+
+```bash
+dm-preview preview ./preview-data
+```
+
+地物一覧・地物選択APIは`preview-data`のGeoPackageを読み取り、Style編集の保存先と
+MapLibreが参照するPMTilesは`preview-data/public`になります。配布用ディレクトリには
+GeoPackageやプレビュー画面の資材を含めず、そのまま静的配布できます。
+
+別の配布先を使う場合は次のように指定します。
+
+```bash
+dm-preview preview ./preview-data --distribution ./public
+```
+
 ## Bundle
 
 ```bash
@@ -50,6 +82,8 @@ dm-preview bundle PMTILES OUTPUT
 
 `PMTILES`と同じフォルダにある`pmtiles-manifest.json`を検証し、`OUTPUT`に
 `style.json`、PMTiles、`sprite/`、`glyphs/`を配置します。
+入力フォルダに保存済みの`style.json`、`sprite/`、`glyphs/`がある場合は、保存済みの
+内容を引き継ぎます。ない場合は同梱の標準Style・アセットを使用します。
 `style.json`は同じフォルダにあるPMTiles、sprite、glyphsを相対参照します。
 作成した`OUTPUT`をHTTPサーバーに配置すると、MapLibre GL JSからそのまま参照できます。
 プレビュー画面の`index.html`、`assets/`、`vendor/`は出力しません。
@@ -72,9 +106,11 @@ Style内のPMTiles URL、sprite URL、glyph URLは、プレビュー時に配信
 ## スタイル編集
 
 `OUTPUT`を`preview`で開いた場合、プレビュー画面からDMスタイルを編集できます。
-`bundle`で作成した`OUTPUT`では既存の`style.json`を更新します。通常のプレビューで
-パッケージ同梱Styleを参照している場合は、保存時に`OUTPUT/style.json`と
-不足している`sprite/`、`glyphs/`を作成します。
+`bundle`で作成した`OUTPUT`では既存の`style.json`を更新します。GeoPackageを含む
+MapLibre出力をプレビューする場合は、既定で`OUTPUT/public`へ配布用bundleを作成し、
+そこへ保存します。
+`--distribution DIR`を指定した場合は、これらの保存先が`DIR`になります。指定しない場合は
+GeoPackageがある`OUTPUT`に対して`OUTPUT/public`が保存先です。
 
 編集対象はMapLibre Style内のDMレイヤです。アイコン、ライン、ポリゴン、
 テキストの種別単位で色を一括変更できます。レイヤ単位では色と表示・非表示を
@@ -84,10 +120,10 @@ Style内のPMTiles URL、sprite URL、glyph URLは、プレビュー時に配信
 同梱Styleでは既定で有効です。表示用属性`TEXT_VERTICAL`がない地物は元の`TEXT`へ
 フォールバックします。
 
-保存時は`OUTPUT/style.json`を作成または更新します。アイコン色を変更した場合は、
-あわせて`OUTPUT/sprite/sprite.json`、`OUTPUT/sprite/sprite.png`、
-`OUTPUT/sprite/sprite@2x.json`、`OUTPUT/sprite/sprite@2x.png`を更新します。
-更新後の`OUTPUT`を再度`preview`で指定すると、保存済みのStyleとspriteが適用されます。
+保存時は配布用ディレクトリの`style.json`を作成または更新します。アイコン色を変更した場合は、
+あわせて保存先の`sprite/sprite.json`、`sprite/sprite.png`、
+`sprite/sprite@2x.json`、`sprite/sprite@2x.png`を更新します。
+更新後は同じ`preview`コマンドを再度起動すると、保存済みのStyleとspriteが適用されます。
 
 ## API
 

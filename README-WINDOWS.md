@@ -17,7 +17,8 @@ PowerShellで、このREADMEがあるディレクトリから実行します。
 .\dm-converter.exe convert C:\path\to\dm-data C:\path\to\result.gpkg
 .\dm-converter.exe convert C:\path\to\dm-data C:\path\to\maplibre --format pmtiles --layer-name dm
 .\dm-preview\dm-preview.exe preview C:\path\to\maplibre
-.\dm-preview\dm-preview.exe bundle C:\path\to\maplibre\dm.pmtiles C:\path\to\public
+# 配布用bundleだけを作る場合は、上記とは別に次を実行します。
+.\dm-preview\dm-preview.exe bundle C:\path\to\maplibre\dm.pmtiles C:\path\to\public-direct
 ```
 
 引数とオプションの詳細は、それぞれ次で確認できます。

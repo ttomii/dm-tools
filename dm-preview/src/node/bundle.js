@@ -9,12 +9,12 @@ export const createBundle = async (pmtiles, output) => {
   const source = await readSource(pmtiles);
   const destination = await prepareOutput(output);
   const pmtilesName = path.basename(source.pmtiles);
-  const style = await createStyle(source.manifest, pmtilesName);
+  const style = await createStyle(source, pmtilesName);
 
   await Promise.all([
     cp(source.pmtiles, path.join(destination, pmtilesName)),
     writeFile(path.join(destination, "style.json"), `${JSON.stringify(style, undefined, 2)}\n`),
-    copyStyleAssets(destination),
+    copyStyleAssets(source.root, destination),
   ]);
   return destination;
 };
@@ -28,7 +28,7 @@ const readSource = async (pmtiles) => {
   if (manifestPmtiles !== pmtilesFile) {
     throw new InputError(`manifest pmtiles does not match input: ${manifest.pmtiles}`);
   }
-  return {manifest, pmtiles: pmtilesFile};
+  return {manifest, pmtiles: pmtilesFile, root};
 };
 
 const prepareOutput = async (output) => {
@@ -41,26 +41,58 @@ const prepareOutput = async (output) => {
   return realpath(output);
 };
 
-const createStyle = async (manifest, pmtilesName) => {
+const createStyle = async (source, pmtilesName) => {
+  const {manifest} = source;
   if (manifest.levels.length !== 1) {
     throw new InputError("bundle requires a manifest with exactly one level");
   }
-  const style = await readJson(packagePath("static", "maplibre", `style-${manifest.levels[0]}.json`));
+  const style = await readSavedStyle(source.root)
+    ?? await readJson(packagePath("static", "maplibre", `style-${manifest.levels[0]}.json`));
   return createBundledStyle(style, manifest, {pmtiles: pmtilesName});
 };
 
-const copyStyleAssets = async (destination) => {
+const copyStyleAssets = async (source, destination) => {
   await Promise.all([
-    copySpriteFiles(destination),
-    copyGlyphFiles(packagePath("static", "maplibre", "glyphs"), path.join(destination, "glyphs")),
+    copySpriteFiles(
+      await assetDirectory(source, "sprite", packagePath("static", "maplibre", "sprite")),
+      destination,
+    ),
+    copyGlyphFiles(
+      await assetDirectory(source, "glyphs", packagePath("static", "maplibre", "glyphs")),
+      path.join(destination, "glyphs"),
+    ),
   ]);
 };
 
-const copySpriteFiles = async (destination) => {
+const copySpriteFiles = async (source, destination) => {
   const spriteRoot = path.join(destination, "sprite");
   await mkdir(spriteRoot, {recursive: true});
   await Promise.all(["sprite.json", "sprite.png", "sprite@2x.json", "sprite@2x.png"]
-    .map((file) => cp(packagePath("static", "maplibre", "sprite", file), path.join(spriteRoot, file))));
+    .map((file) => cp(path.join(source, file), path.join(spriteRoot, file))));
+};
+
+const readSavedStyle = async (root) => {
+  const file = path.join(root, "style.json");
+  try {
+    const metadata = await stat(file);
+    if (!metadata.isFile()) throw new InputError(`saved style is not a file: ${file}`);
+  } catch (error) {
+    if (error.code === "ENOENT") return undefined;
+    throw error;
+  }
+  return readJson(file);
+};
+
+const assetDirectory = async (root, name, fallback) => {
+  const candidate = path.join(root, name);
+  try {
+    const metadata = await stat(candidate);
+    if (!metadata.isDirectory()) throw new InputError(`saved ${name} is not a directory: ${candidate}`);
+    return candidate;
+  } catch (error) {
+    if (error.code === "ENOENT" && fallback) return fallback;
+    throw error;
+  }
 };
 
 const copyGlyphFiles = async (source, destination) => {

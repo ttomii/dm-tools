@@ -19,7 +19,7 @@ export const startServer = async (output, options = {}) => {
   }
   await validateRequiredAssets(effectiveOptions);
   const featureStore = options.manifest
-    ? createLazyFeatureStore(root, options.manifest, {
+    ? createLazyFeatureStore(options.featureRoot ?? root, options.featureManifest ?? options.manifest, {
       databaseAdapter: options.databaseAdapter,
       projectGeometry: options.projectGeometry,
     })

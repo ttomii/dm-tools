@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import {mkdir, mkdtemp, readFile, rm, writeFile} from "node:fs/promises";
+import {mkdir, mkdtemp, readFile, rm, stat, writeFile} from "node:fs/promises";
 import {DatabaseSync} from "node:sqlite";
 import os from "node:os";
 import path from "node:path";
@@ -289,6 +289,48 @@ test("style editor API creates bundled style assets on first save", async (conte
   assert.equal(JSON.parse(await readFile(path.join(output, "style.json"), "utf8")).version, 8);
   assert.equal(await readFile(path.join(output, "sprite", "sprite.png"), "utf8"), "png");
   assert.equal(await readFile(path.join(output, "glyphs", "Test Font", "0-255.pbf"), "utf8"), "pbf");
+});
+
+test("server stores edited styles in distribution while reading features from preview data", async (context) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "dm-preview-"));
+  context.after(() => rm(root, {recursive: true, force: true}));
+  const preview = path.join(root, "preview-data");
+  const distribution = path.join(root, "public");
+  await mkdir(preview);
+  await mkdir(path.join(distribution, "sprite"), {recursive: true});
+  await writeFeatureGpkg(path.join(preview, "dm-sample.gpkg"));
+  await writeFile(path.join(distribution, "style.json"), JSON.stringify({
+    version: 8,
+    sources: {dm: {type: "vector", url: "pmtiles://./dm-sample.pmtiles"}},
+    layers: [],
+  }));
+  await writeFile(path.join(distribution, "sprite", "sprite.json"), "{}");
+  const manifest = {
+    layerName: "dm-sample",
+    sourceLayers: ["dm_7100_point"],
+  };
+  const {server, url} = await startServer(distribution, {
+    databaseAdapter,
+    featureManifest: manifest,
+    featureRoot: preview,
+    manifest,
+    projectGeometry,
+  });
+  context.after(() => server.close());
+  const origin = new URL(url).origin;
+
+  const features = await fetch(`${origin}/preview/api/features?layer=dm_7100_point`);
+  assert.equal(features.status, 200);
+  assert.equal((await features.json()).total, 2);
+
+  const save = await fetch(`${origin}/preview/api/style-editor/state`, {
+    method: "PUT",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({style: {version: 8, sources: {dm: {}}, layers: [], name: "saved"}}),
+  });
+  assert.equal(save.status, 200, await save.text());
+  assert.equal(JSON.parse(await readFile(path.join(distribution, "style.json"), "utf8")).name, "saved");
+  await assert.rejects(stat(path.join(preview, "style.json")), /ENOENT/);
 });
 
 test("style editor leaves the current style unchanged when required assets cannot be staged", async (context) => {

@@ -44,12 +44,15 @@ DMファイル、DMディレクトリ、または本ツールで生成したGeoP
 ```bash
 npm install --global ./dm-preview
 dm-preview preview OUTPUT [--no-open]
+dm-preview preview OUTPUT --distribution DIR [--no-open]
 dm-preview bundle PMTILES OUTPUT
 ```
 
 Node.jsパッケージがMapLibre出力ディレクトリをローカルHTTPサーバーで公開し、
 同梱のStyle・sprite・glyphとあわせて配信します。通常はブラウザを自動的に開きます。
 `--no-open`を指定すると、ブラウザを開かずURLだけを表示します。
+GeoPackageを含むMapLibre出力を指定した場合は、既定で`OUTPUT/public`を配布用ディレクトリ
+として使用します。別の場所へ出力する場合は`--distribution DIR`を指定します。
 `bundle`はPMTiles、`style.json`、sprite、glyphを配布用フォルダにまとめます。詳細は
 [dm-preview README](dm-preview/README.md)を参照してください。
 

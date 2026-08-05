@@ -56,12 +56,23 @@ test("parseArguments accepts bundle command", () => {
   });
 });
 
+test("parseArguments accepts a separate distribution directory for preview", () => {
+  assert.deepEqual(parseArguments(["preview", "preview-data", "--distribution", "public", "--no-open"]), {
+    command: "preview",
+    distribution: "public",
+    help: false,
+    noOpen: true,
+    output: "preview-data",
+  });
+});
+
 test("parseArguments rejects unknown and missing arguments", () => {
   assert.throws(() => parseArguments(["--unknown", "output"]), /unknown option/);
   assert.throws(() => parseArguments(["preview"]), /preview requires exactly one OUTPUT/);
   assert.throws(() => parseArguments(["preview", "output", "--port", "0"]), /port must be an integer/);
   assert.throws(() => parseArguments(["preview", "output", "--port", "65536"]), /port must be an integer/);
   assert.throws(() => parseArguments(["preview", "output", "--port", "abc"]), /port must be an integer/);
+  assert.throws(() => parseArguments(["preview", "output", "--distribution"]), /distribution requires a directory/);
   assert.throws(() => parseArguments(["bundle", "input.pmtiles"]), /bundle requires PMTILES and OUTPUT/);
   assert.throws(() => parseArguments([]), /preview requires exactly one OUTPUT/);
 });
@@ -69,8 +80,9 @@ test("parseArguments rejects unknown and missing arguments", () => {
 test("createHelpText explains commands, options, URL parameters, and exit codes", () => {
   const help = createHelpText();
 
-  assert.match(help, /dm-preview preview OUTPUT \[--no-open\] \[--port PORT\]/);
+  assert.match(help, /dm-preview preview OUTPUT \[--distribution DIR\] \[--no-open\]/);
   assert.match(help, /dm-preview bundle PMTILES OUTPUT/);
+  assert.match(help, /--distribution DIR\s+Override the default distribution directory/);
   assert.match(help, /--no-open\s+Print the preview URL/);
   assert.match(help, /--port PORT\s+Listen on PORT/);
   assert.match(help, /--verbose\s+Print asset roots/);

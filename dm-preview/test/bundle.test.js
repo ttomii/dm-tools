@@ -44,6 +44,38 @@ test("createBundle writes style and referenced data only", async (context) => {
   await assert.rejects(stat(path.join(output, "maplibre")), /ENOENT/);
 });
 
+test("createBundle carries saved style assets into the distribution directory", async (context) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "dm-preview-"));
+  context.after(() => rm(root, {recursive: true, force: true}));
+  const source = path.join(root, "source");
+  const output = path.join(root, "public");
+  await mkdir(path.join(source, "sprite"), {recursive: true});
+  await mkdir(path.join(source, "glyphs", "Saved Font"), {recursive: true});
+  await writeFile(path.join(source, "pmtiles-manifest.json"), JSON.stringify(manifest));
+  await writeFile(path.join(source, "dm-sample.pmtiles"), "pmtiles");
+  await writeFile(path.join(source, "dm-sample.gpkg"), "geopackage");
+  await writeFile(path.join(source, "style.json"), JSON.stringify({
+    version: 8,
+    name: "saved-style",
+    sources: {dm: {type: "vector", url: "pmtiles://./dm-sample.pmtiles"}},
+    layers: [],
+  }));
+  await writeFile(path.join(source, "sprite", "sprite.json"), "saved-sprite-json");
+  await writeFile(path.join(source, "sprite", "sprite.png"), "saved-sprite-png");
+  await writeFile(path.join(source, "sprite", "sprite@2x.json"), "saved-sprite-2x-json");
+  await writeFile(path.join(source, "sprite", "sprite@2x.png"), "saved-sprite-2x-png");
+  await writeFile(path.join(source, "glyphs", "Saved Font", "0-255.pbf"), "saved-glyph");
+
+  await createBundle(path.join(source, "dm-sample.pmtiles"), output);
+
+  const savedStyle = JSON.parse(await readFile(path.join(output, "style.json"), "utf8"));
+  assert.equal(savedStyle.name, "saved-style");
+  assert.equal(await readFile(path.join(output, "sprite", "sprite.json"), "utf8"), "saved-sprite-json");
+  assert.equal(await readFile(path.join(output, "glyphs", "Saved Font", "0-255.pbf"), "utf8"), "saved-glyph");
+  await assert.rejects(stat(path.join(output, "dm-sample.gpkg")), /ENOENT/);
+  await assert.rejects(stat(path.join(output, "pmtiles-manifest.json")), /ENOENT/);
+});
+
 test("createBundle rejects pmtiles not referenced by manifest", async (context) => {
   const root = await mkdtemp(path.join(os.tmpdir(), "dm-preview-"));
   context.after(() => rm(root, {recursive: true, force: true}));

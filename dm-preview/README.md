@@ -24,12 +24,16 @@ npm install --prefix ./dm-preview
 リポジトリルートから`node`で起動します。
 
 ```bash
-node ./dm-preview/bin/dm-preview.js preview OUTPUT [--no-open] [--port PORT]
+node ./dm-preview/bin/dm-preview.js preview OUTPUT [--distribution DIR] [--no-open] [--port PORT]
 node ./dm-preview/bin/dm-preview.js bundle PMTILES OUTPUT
 ```
 
 `preview`の`OUTPUT`は実行時のカレントディレクトリを基準に解決します。
 `--port`を省略した場合は空いているポートを自動で使用します。
+`OUTPUT`にGeoPackageがある場合は、既定で`OUTPUT/public`を配布用bundleとして作成または
+再利用します。プレビュー用のGeoPackageは`OUTPUT`に残り、スタイル編集で更新する
+`style.json`、sprite、glyphsは`OUTPUT/public`へ保存されます。配布先を変更する場合は
+`--distribution DIR`を指定してください。`DIR`は`OUTPUT`とは別のディレクトリを指定します。
 
 配布用の静的ファイル一式を作成する場合は`bundle`を使います。
 
@@ -38,6 +42,8 @@ node ./dm-preview/bin/dm-preview.js bundle ./maplibre/dm.pmtiles ./public
 ```
 
 `bundle`の出力内容は[MapLibre出力とプレビュー](../docs/maplibre-preview.md)を参照してください。
+入力側の`OUTPUT`に保存済みの`style.json`、sprite、glyphsがある場合は、それらを配布用bundleへ
+引き継ぎます。配布用bundleにはGeoPackageやプレビュー画面の資材は含まれません。
 
 ### スタイル編集
 
