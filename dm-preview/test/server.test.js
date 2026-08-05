@@ -278,7 +278,7 @@ test("style editor API creates bundled style assets on first save", async (conte
 
   const state = await fetch(`${origin}/preview/api/style-editor/state`);
   assert.equal(state.status, 200);
-  assert.equal((await state.json()).writable, true);
+  assert.deepEqual(await state.json(), {writable: true, style: null, editableKinds: [], editableLayers: []});
 
   const save = await fetch(`${origin}/preview/api/style-editor/state`, {
     method: "PUT",

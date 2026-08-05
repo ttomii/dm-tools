@@ -5,17 +5,18 @@ import {createBundledStyle} from "../core/style-transform.js";
 import {packagePath} from "./asset-roots.js";
 import {resolveOutputPath} from "./manifest.js";
 
-export const createBundle = async (pmtiles, output) => {
+export const createBundle = async (pmtiles, output, options = {}) => {
   const source = await readSource(pmtiles);
   const destination = await prepareOutput(output);
   const pmtilesName = path.basename(source.pmtiles);
-  const style = await createStyle(source, pmtilesName);
-
-  await Promise.all([
+  const style = await createStyle(source, pmtilesName, options);
+  const files = [
     cp(source.pmtiles, path.join(destination, pmtilesName)),
-    writeFile(path.join(destination, "style.json"), `${JSON.stringify(style, undefined, 2)}\n`),
     copyStyleAssets(source.root, destination),
-  ]);
+  ];
+  if (style) files.push(writeFile(path.join(destination, "style.json"), `${JSON.stringify(style, undefined, 2)}\n`));
+
+  await Promise.all(files);
   return destination;
 };
 
@@ -41,13 +42,15 @@ const prepareOutput = async (output) => {
   return realpath(output);
 };
 
-const createStyle = async (source, pmtilesName) => {
+const createStyle = async (source, pmtilesName, options) => {
   const {manifest} = source;
   if (manifest.levels.length !== 1) {
     throw new InputError("bundle requires a manifest with exactly one level");
   }
-  const style = await readSavedStyle(source.root)
-    ?? await readJson(packagePath("static", "maplibre", `style-${manifest.levels[0]}.json`));
+  const savedStyle = await readSavedStyle(source.root);
+  if (savedStyle) return createBundledStyle(savedStyle, manifest, {pmtiles: pmtilesName});
+  if (options.includeDefaultStyle === false) return undefined;
+  const style = await readJson(packagePath("static", "maplibre", `style-${manifest.levels[0]}.json`));
   return createBundledStyle(style, manifest, {pmtiles: pmtilesName});
 };
 

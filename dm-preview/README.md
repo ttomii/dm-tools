@@ -34,6 +34,8 @@ node ./dm-preview/bin/dm-preview.js bundle PMTILES OUTPUT
 再利用します。プレビュー用のGeoPackageは`OUTPUT`に残り、スタイル編集で更新する
 `style.json`、sprite、glyphsは`OUTPUT/public`へ保存されます。配布先を変更する場合は
 `--distribution DIR`を指定してください。`DIR`は`OUTPUT`とは別のディレクトリを指定します。
+保存済みの`style.json`がない場合は同梱の標準Styleを表示し、初回保存時に
+`OUTPUT/public/style.json`を作成します。
 
 配布用の静的ファイル一式を作成する場合は`bundle`を使います。
 

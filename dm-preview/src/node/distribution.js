@@ -2,7 +2,7 @@ import {readdir, realpath, stat} from "node:fs/promises";
 import path from "node:path";
 import {InputError} from "../core/manifest-policy.js";
 import {createBundle} from "./bundle.js";
-import {readManifest, resolveOutputPath} from "./manifest.js";
+import {MANIFEST_FILENAME, readManifest, resolveOutputPath} from "./manifest.js";
 
 export const defaultDistributionPath = async (previewRoot, manifest) =>
   await hasPreviewGeoPackage(previewRoot, manifest) ? path.join(previewRoot, "public") : previewRoot;
@@ -14,9 +14,20 @@ export const prepareDistribution = async (previewRoot, manifest, output) => {
   }
   const state = await directoryState(destination);
   if (state === "missing" || state === "empty") {
-    await createBundle(resolveOutputPath(previewRoot, manifest.pmtiles), destination);
+    await createBundle(resolveOutputPath(previewRoot, manifest.pmtiles), destination, {includeDefaultStyle: false});
   }
-  return readManifest(destination);
+  return readDistributionManifest(destination, manifest);
+};
+
+const readDistributionManifest = async (root, fallback) => {
+  const hasManifest = await isFile(path.join(root, MANIFEST_FILENAME));
+  const hasStyle = await isFile(path.join(root, "style.json"));
+  if (hasManifest || hasStyle) return readManifest(root);
+  const pmtiles = path.basename(fallback.pmtiles);
+  if (!await isFile(resolveOutputPath(root, pmtiles))) {
+    throw new InputError(`distribution is missing: ${pmtiles}`);
+  }
+  return {manifest: {...fallback, pmtiles}, root};
 };
 
 const hasPreviewGeoPackage = async (root, manifest) => {
@@ -47,6 +58,15 @@ const directoryState = async (directory) => {
     return (await readdir(directory)).length ? "non-empty" : "empty";
   } catch (error) {
     if (error.code === "ENOENT") return "missing";
+    throw error;
+  }
+};
+
+const isFile = async (file) => {
+  try {
+    return (await stat(file)).isFile();
+  } catch (error) {
+    if (error.code === "ENOENT") return false;
     throw error;
   }
 };

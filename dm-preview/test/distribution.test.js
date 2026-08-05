@@ -43,15 +43,36 @@ test("prepareDistribution creates a clean bundle beside preview data", async (co
   const result = await prepareDistribution(preview, manifest, distribution);
 
   assert.equal(result.root, distribution);
-  assert.equal(result.manifest.styles[0], "style.json");
+  assert.deepEqual(result.manifest, manifest);
   assert.equal(await readFile(path.join(distribution, "dm-sample.pmtiles"), "utf8"), "pmtiles");
   await assert.rejects(stat(path.join(distribution, "dm-sample.gpkg")), /ENOENT/);
+  await assert.rejects(stat(path.join(distribution, "style.json")), /ENOENT/);
   assert.deepEqual((await readdir(distribution)).sort(), [
     "dm-sample.pmtiles",
     "glyphs",
     "sprite",
-    "style.json",
   ]);
+});
+
+test("prepareDistribution carries a saved style into a clean distribution", async (context) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "dm-preview-"));
+  context.after(() => rm(root, {recursive: true, force: true}));
+  const preview = path.join(root, "preview-data");
+  const distribution = path.join(root, "public");
+  await mkdir(preview);
+  await writeFile(path.join(preview, "pmtiles-manifest.json"), JSON.stringify(manifest));
+  await writeFile(path.join(preview, "dm-sample.pmtiles"), "pmtiles");
+  await writeFile(path.join(preview, "style.json"), JSON.stringify({
+    version: 8,
+    name: "saved-style",
+    sources: {dm: {type: "vector", url: "pmtiles://./dm-sample.pmtiles"}},
+    layers: [],
+  }));
+
+  const result = await prepareDistribution(preview, manifest, distribution);
+
+  assert.equal(result.manifest.styles[0], "style.json");
+  assert.equal(JSON.parse(await readFile(path.join(distribution, "style.json"), "utf8")).name, "saved-style");
 });
 
 test("prepareDistribution reuses an existing distribution bundle", async (context) => {

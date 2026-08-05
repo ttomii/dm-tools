@@ -52,9 +52,9 @@ preview-data/
   pmtiles-manifest.json
 preview-data/public/
   {layer-name}.pmtiles
-  style.json
   sprite/
   glyphs/
+  style.json (初回保存後)
 ```
 
 次のコマンドは`preview-data/public/`が存在しない場合に配布用bundleを作成し、存在する
@@ -65,8 +65,10 @@ dm-preview preview ./preview-data
 ```
 
 地物一覧・地物選択APIは`preview-data`のGeoPackageを読み取り、Style編集の保存先と
-MapLibreが参照するPMTilesは`preview-data/public`になります。配布用ディレクトリには
-GeoPackageやプレビュー画面の資材を含めず、そのまま静的配布できます。
+MapLibreが参照するPMTilesは`preview-data/public`になります。保存済みStyleがない場合は
+同梱の標準Styleを使用し、初回保存時に`preview-data/public/style.json`を作成します。
+`style.json`保存後の配布用ディレクトリにはGeoPackageやプレビュー画面の資材を含めず、
+そのまま静的配布できます。
 
 別の配布先を使う場合は次のように指定します。
 
@@ -108,7 +110,8 @@ Style内のPMTiles URL、sprite URL、glyph URLは、プレビュー時に配信
 `OUTPUT`を`preview`で開いた場合、プレビュー画面からDMスタイルを編集できます。
 `bundle`で作成した`OUTPUT`では既存の`style.json`を更新します。GeoPackageを含む
 MapLibre出力をプレビューする場合は、既定で`OUTPUT/public`へ配布用bundleを作成し、
-そこへ保存します。
+そこへ保存します。保存済みStyleがない場合は同梱の標準Styleを表示し、初回保存時に
+配布用ディレクトリの`style.json`を作成します。
 `--distribution DIR`を指定した場合は、これらの保存先が`DIR`になります。指定しない場合は
 GeoPackageがある`OUTPUT`に対して`OUTPUT/public`が保存先です。
 
