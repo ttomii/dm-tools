@@ -11,7 +11,7 @@ const STYLE_EDITOR_BODY_LIMIT = 20 * 1024 * 1024;
 
 export const respondStyleEditor = async (request, response, root, options) => {
   if (request.method === "GET" || request.method === "HEAD") {
-    await respondStyleEditorState(request, response, root);
+    await respondStyleEditorState(request, response, root, options);
     return;
   }
   if (request.method === "PUT") {
@@ -22,7 +22,7 @@ export const respondStyleEditor = async (request, response, root, options) => {
   response.end();
 };
 
-const respondStyleEditorState = async (request, response, root) => {
+const respondStyleEditorState = async (request, response, root, options) => {
   const stylePath = path.join(root, "style.json");
   let style;
   try {
@@ -32,6 +32,7 @@ const respondStyleEditorState = async (request, response, root) => {
       sendJson(request, response, 200, {writable: true, style: null, editableKinds: [], editableLayers: []});
       return;
     }
+    reportStyleEditorError(options, "style.json cannot be read", error);
     sendJson(request, response, 500, {error: `style.json cannot be read: ${error.message}`});
     return;
   }
@@ -46,6 +47,7 @@ const respondStyleEditorState = async (request, response, root) => {
 const updateStyleEditorState = async (request, response, root, options) => {
   const stylePath = path.join(root, "style.json");
   const writable = await stylePathStatus(stylePath).catch((error) => {
+    reportStyleEditorError(options, "style.json cannot be checked", error);
     sendJson(request, response, 500, {error: `style.json cannot be checked: ${error.message}`});
     return "failed";
   });
@@ -92,6 +94,7 @@ const saveStyleEditorState = async (request, response, root, options, body) => {
       reportCleanupError: (error) => options.diagnosticLog?.({event: "style-backup-cleanup-failed", error: error.message}),
     });
   } catch (error) {
+    reportStyleEditorError(options, "style editor save failed", error);
     sendJson(request, response, 500, {error: `style editor save failed: ${error.message}`});
     return;
   } finally {
@@ -146,3 +149,8 @@ const isDirectory = async (file) => (await stat(file)).isDirectory();
 const isRecord = (value) => typeof value === "object" && Boolean(value) && !Array.isArray(value);
 
 const isStyle = (value) => isRecord(value) && value.version === 8 && isRecord(value.sources);
+
+const reportStyleEditorError = (options, message, error) => {
+  const detail = error instanceof Error ? error.stack ?? error.message : String(error);
+  (options.errorLog ?? console.error)(`${message}: ${detail}`);
+};

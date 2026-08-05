@@ -291,6 +291,31 @@ test("style editor API creates bundled style assets on first save", async (conte
   assert.equal(await readFile(path.join(output, "glyphs", "Test Font", "0-255.pbf"), "utf8"), "pbf");
 });
 
+test("style editor logs save errors with details", async (context) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "dm-preview-"));
+  context.after(() => rm(root, {recursive: true, force: true}));
+  const output = path.join(root, "output");
+  const maplibre = path.join(root, "maplibre");
+  const errors = [];
+  await mkdir(output);
+  await mkdir(maplibre);
+  const {server, url} = await startServer(output, {
+    errorLog: (message) => errors.push(message),
+    maplibreAssets: maplibre,
+    vendorFiles: new Map(),
+  });
+  context.after(() => server.close());
+  const origin = new URL(url).origin;
+
+  const save = await fetch(`${origin}/preview/api/style-editor/state`, {
+    method: "PUT",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({style: {version: 8, sources: {}, layers: []}}),
+  });
+  assert.equal(save.status, 500);
+  assert.match(errors[0], /style editor save failed: Error: sprite assets are not available/);
+});
+
 test("server stores edited styles in distribution while reading features from preview data", async (context) => {
   const root = await mkdtemp(path.join(os.tmpdir(), "dm-preview-"));
   context.after(() => rm(root, {recursive: true, force: true}));
@@ -340,7 +365,7 @@ test("style editor leaves the current style unchanged when required assets canno
   await mkdir(output);
   const style = {version: 8, sources: {dm: {}}, layers: [], name: "current"};
   await writeFile(path.join(output, "style.json"), JSON.stringify(style));
-  const {server, url} = await startServer(output, {vendorFiles: new Map()});
+  const {server, url} = await startServer(output, {errorLog: () => {}, vendorFiles: new Map()});
   context.after(() => server.close());
 
   const response = await fetch(`${new URL(url).origin}/preview/api/style-editor/state`, {
