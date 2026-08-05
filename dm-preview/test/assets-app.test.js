@@ -372,6 +372,14 @@ test("core hides non-rendered features in runtime and bundled DM styles", () => 
   ]);
   assert.deepEqual(byLayerId(runtime, "default-line-7101").filter, ["!=", ["get", "DMSKIP"], 1]);
 
+  const savedRuntime = createRuntimeStyle(baseStyle, {...manifest, styles: ["style.json"]}, {
+    resourceUrl: (value) => value,
+    basemapVisible: true,
+    dmVisible: true,
+    styleUrl: "style.json",
+  });
+  assert.equal(byLayerId(savedRuntime, "default-line")["source-layer"], "dm_default_line");
+
   const bundled = createBundledStyle(baseStyle, manifest);
   assert.equal(byLayerId(bundled, "default-line-7101")["source-layer"], "dm_7101_line");
   assert.deepEqual(byLayerId(bundled, "fixed-line").filter, [

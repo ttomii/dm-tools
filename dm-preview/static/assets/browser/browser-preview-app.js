@@ -224,6 +224,7 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
       basemapVisible: elements.basemap.checked,
       dmVisible: elements.dmToggle.checked,
       resourceUrl: api.resourceUrl,
+      styleUrl: elements.select.value,
     });
     if (state.map) state.map.remove();
     state.map = new maplibregl.Map({

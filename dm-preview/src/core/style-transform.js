@@ -8,7 +8,10 @@ export const createRuntimeStyle = (baseStyle, manifest, options) => {
   style.sources.dm.url = `pmtiles://${options.resourceUrl(manifest.pmtiles)}`;
   style.sprite = options.resourceUrl("sprite");
   style.glyphs = `${options.resourceUrl("glyphs")}/{fontstack}/{range}.pbf`;
-  style.layers = hideHiddenDmFeatures(expandDefaultStyleLayers(style.layers, manifest.sourceLayers ?? []));
+  const layers = shouldExpandDefaultStyleLayers(manifest, options)
+    ? expandDefaultStyleLayers(style.layers, manifest.sourceLayers ?? [])
+    : style.layers;
+  style.layers = hideHiddenDmFeatures(layers);
   style.sources.gsi = {
     type: "raster",
     tiles: [GSI_PALE_TILE_URL],
@@ -66,6 +69,11 @@ export const styleLabel = (styleUrl, manifest) => {
 
 const DMSKIP_VISIBLE_FILTER = ["!=", ["get", "DMSKIP"], 1];
 const DM6101_VISIBLE_FILTER = ["!=", ["get", "DMFIGTYPE"], 12];
+
+const shouldExpandDefaultStyleLayers = (manifest, options) => {
+  if (options.styleUrl) return options.styleUrl !== "style.json";
+  return !manifest.styles?.includes("style.json");
+};
 
 const hideHiddenDmFeatures = (layers) => layers.map((layer) => {
   if (layer.source !== "dm") return layer;
