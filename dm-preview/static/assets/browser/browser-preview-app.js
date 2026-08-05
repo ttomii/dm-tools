@@ -32,6 +32,9 @@ import {recolorSpriteIcon, spritePayload} from "./sprite-editor.js";
 const FEATURE_PAGE_SIZE = 50;
 const FEATURE_LAYER_PARAMETER = "layers";
 
+export const canSaveStyle = (styleEditorState, styleDirty) =>
+  styleEditorState.writable && (styleDirty || !styleEditorState.style);
+
 export const createBrowserPreviewApp = ({elements, location, history, maplibregl, pmtiles, fetch}) => {
   const appBase = new URL(".", location.href);
   const api = createApiClient({appBase, fetch});
@@ -86,14 +89,14 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
     elements.styleLayerColor.disabled = !state.styleEditorState.writable || layers.length === 0;
     elements.styleVerticalLongSound.disabled = !state.styleEditorState.writable;
     elements.styleVerticalLongSound.checked = verticalLongSoundAnnotationStyleEnabled(state.currentBaseStyle);
-    elements.styleSave.disabled = !state.styleEditorState.writable || !state.styleDirty;
+    elements.styleSave.disabled = !canSaveStyle(state.styleEditorState, state.styleDirty);
     elements.styleEditorStatus.textContent = state.styleEditorState.writable ? "保存できます" : "保存できません";
     renderSelectedStyleLayer();
   };
 
   const markStyleDirty = () => {
     state.styleDirty = true;
-    elements.styleSave.disabled = !state.styleEditorState.writable;
+    elements.styleSave.disabled = !canSaveStyle(state.styleEditorState, state.styleDirty);
     elements.styleEditorStatus.textContent = "未保存の変更があります";
   };
 

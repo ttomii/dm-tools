@@ -5,7 +5,12 @@ import {featureDetails, featureMeta, featureTitle} from "../src/core/feature-lab
 import {dmLayerName} from "../src/core/dm-layer-names.js";
 import {featureCenter, geometryBounds, normalizeHighlightProperties, toGeoJsonFeature} from "../src/core/geometry.js";
 import {getCoords, getInitialCamera, getScale, getScaleByZoom, getZoomByScale} from "../src/core/map-scale.js";
-import {featureLayerParameter, updateFeatureLayerParameter, updateStatus} from "../static/assets/browser/browser-preview-app.js";
+import {
+  canSaveStyle,
+  featureLayerParameter,
+  updateFeatureLayerParameter,
+  updateStatus,
+} from "../static/assets/browser/browser-preview-app.js";
 import {
   addHighlightLayers,
   filterFeatureLayers,
@@ -222,6 +227,13 @@ test("browser preview status reflects the current map zoom without cursor coordi
   updateStatus(status, map);
 
   assert.equal(status.textContent, "z16.79 center 139.751235,35.681235");
+});
+
+test("browser preview allows saving the initial style before an edit", () => {
+  assert.equal(canSaveStyle({writable: true, style: null}, false), true);
+  assert.equal(canSaveStyle({writable: true, style: {}}, false), false);
+  assert.equal(canSaveStyle({writable: true, style: {}}, true), true);
+  assert.equal(canSaveStyle({writable: false, style: null}, false), false);
 });
 
 test("browser preview filters feature layers by kind and partial layer name", () => {
