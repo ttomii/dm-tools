@@ -8,6 +8,7 @@ import {parseGeometry} from "../src/core/gpkg-feature-policy.js";
 import {projectGeometry} from "../src/proj4/gpkg-projection.js";
 import {parseRange, startServer} from "../src/server.js";
 import * as databaseAdapter from "../src/sqlite/sqlite-adapter.js";
+import {createBundledStyle} from "../src/core/style-transform.js";
 
 test("parseRange supports explicit, open, and suffix ranges", () => {
   assert.deepEqual(parseRange("bytes=10-19", 100), {start: 10, end: 19, status: 206});
@@ -220,6 +221,10 @@ test("style editor API reads and writes bundled style assets", async (context) =
   await writeFile(path.join(output, "sprite", "sprite@2x.json"), "{}");
   await writeFile(path.join(output, "sprite", "sprite.png"), "png");
   await writeFile(path.join(output, "sprite", "sprite@2x.png"), "png2x");
+  const manifest = {
+    layerName: "dm-sample",
+    sourceLayers: ["dm_1000_line", "dm_3001_polygon", "dm_2100_point"],
+  };
   const {server, url} = await startServer(output);
   context.after(() => server.close());
   const origin = new URL(url).origin;
@@ -234,7 +239,7 @@ test("style editor API reads and writes bundled style assets", async (context) =
   assert.equal(body.editableLayers[2].colorKind, "icon");
   assert.deepEqual(body.editableLayers[2].colorProperties, ["circle-stroke-color"]);
 
-  const nextStyle = {...style, name: "edited"};
+  const nextStyle = createBundledStyle({...style, name: "edited"}, manifest);
   const save = await fetch(`${origin}/preview/api/style-editor/state`, {
     method: "PUT",
     headers: {"Content-Type": "application/json"},
@@ -247,7 +252,9 @@ test("style editor API reads and writes bundled style assets", async (context) =
     }),
   });
   assert.equal(save.status, 200, await save.text());
-  assert.equal(JSON.parse(await readFile(path.join(output, "style.json"), "utf8")).name, "edited");
+  const savedStyle = JSON.parse(await readFile(path.join(output, "style.json"), "utf8"));
+  assert.equal(savedStyle.name, "edited");
+  assert.equal(savedStyle.layers.at(-1)["source-layer"], "dm_2100_point");
   assert.deepEqual(JSON.parse(await readFile(path.join(output, "sprite", "sprite.json"), "utf8")), {
     "dm-test": {width: 1, height: 1, x: 0, y: 0, pixelRatio: 1},
   });

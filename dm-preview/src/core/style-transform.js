@@ -37,7 +37,9 @@ export const createRuntimeStyle = (baseStyle, manifest, options) => {
 export const createBundledStyle = (style, manifest, options = {}) => {
   const pmtiles = options.pmtiles ?? manifest.pmtiles;
   const bundled = structuredClone(style);
-  bundled.layers = hideHiddenDmFeatures(bundled.layers ?? []);
+  bundled.layers = hideHiddenDmFeatures(
+    expandDefaultStyleLayers(bundled.layers ?? [], manifest.sourceLayers ?? []),
+  );
   bundled.metadata = {
     ...bundled.metadata,
     "dm:bounds": manifest.bounds,

@@ -373,11 +373,36 @@ test("core hides non-rendered features in runtime and bundled DM styles", () => 
   assert.deepEqual(byLayerId(runtime, "default-line-7101").filter, ["!=", ["get", "DMSKIP"], 1]);
 
   const bundled = createBundledStyle(baseStyle, manifest);
+  assert.equal(byLayerId(bundled, "default-line-7101")["source-layer"], "dm_7101_line");
   assert.deepEqual(byLayerId(bundled, "fixed-line").filter, [
     "all",
     ["==", ["get", "LEVEL"], 2500],
     ["!=", ["get", "DMSKIP"], 1],
     ["!=", ["get", "DMFIGTYPE"], 12],
+  ]);
+});
+
+test("core expands default layers in bundled DM styles", () => {
+  const style = {
+    version: 8,
+    sources: {dm: {type: "vector"}},
+    layers: [
+      {id: "default-line", type: "line", source: "dm", "source-layer": "dm_default_line"},
+      {id: "default-polygon", type: "line", source: "dm", "source-layer": "dm_default_polygon"},
+      {id: "default-point", type: "circle", source: "dm", "source-layer": "dm_default_point"},
+    ],
+  };
+  const manifest = {
+    pmtiles: "sample.pmtiles",
+    sourceLayers: ["dm_2111_line", "dm_2211_polygon", "dm_2101_point"],
+  };
+
+  const bundled = createBundledStyle(style, manifest);
+
+  assert.deepEqual(bundled.layers.map((layer) => layer["source-layer"]), [
+    "dm_2111_line",
+    "dm_2211_polygon",
+    "dm_2101_point",
   ]);
 });
 
