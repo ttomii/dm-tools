@@ -1,21 +1,5 @@
 # MapLibre出力とプレビュー
 
-`dm-converter`はMapLibre向けのPMTilesとmanifestを生成します。`dm-preview`は
-その出力を検証し、MapLibre GL JSで表示するためのStyle、sprite、glyph、
-プレビュー画面を配信します。
-
-## 役割分担
-
-| ツール | 役割 |
-| --- | --- |
-| `dm-converter` | DMまたはGeoPackageから`{layer-name}.pmtiles`、`pmtiles-manifest.json`を生成する |
-| `dm-preview` | MapLibre出力ディレクトリをローカルHTTPサーバーで公開し、同梱Styleとアセットを配信する |
-
-DM入力から直接MapLibre出力を生成した場合、`dm-converter`はPMTiles生成に使った
-中間GeoPackageを`{layer-name}.gpkg`として出力ディレクトリへ残します。
-このGeoPackageが存在する場合、`dm-preview`はレイヤ別地物一覧と地物選択用APIに
-使用します。
-
 ## MapLibre出力ディレクトリ
 
 ```text
@@ -27,6 +11,10 @@ pmtiles-manifest.json
 `{layer-name}.gpkg`はDM入力から直接MapLibre出力を生成した場合だけ作成されます。
 固定Style、sprite、glyph、プレビュー画面は`dm-preview`側の資材であり、
 `dm-converter`の出力には含めません。
+
+DM入力から直接MapLibre出力を生成した場合は、PMTiles生成に使った中間GeoPackageが
+`{layer-name}.gpkg`として残ります。このGeoPackageがある場合、`dm-preview`はレイヤ別
+地物一覧と地物選択用APIに使用します。
 
 ## Preview
 
@@ -69,6 +57,27 @@ MapLibreが参照するPMTilesは`preview-data/public`になります。保存�
 同梱の標準Styleを使用し、初回保存時に`preview-data/public/style.json`を作成します。
 `style.json`保存後の配布用ディレクトリにはGeoPackageやプレビュー画面の資材を含めず、
 そのまま静的配布できます。
+
+## 保存後の出力データ
+
+プレビュー画面でスタイルを保存すると、配布用ディレクトリに次のファイルが作成または
+更新されます。このディレクトリをHTTPサーバーで公開すると、MapLibre GL JSから参照できます。
+
+| パス | 内容 | 保存時の扱い |
+| --- | --- | --- |
+| `{layer-name}.pmtiles` | 地物データ | `preview`ではbundle作成時にコピー。`bundle`では入力からコピー |
+| `style.json` | MapLibre Style | 初回保存時に作成し、以後更新 |
+| `sprite/sprite.json`、`sprite/sprite.png` | 標準解像度の記号画像と索引 | アイコン色変更時に更新 |
+| `sprite/sprite@2x.json`、`sprite/sprite@2x.png` | 2倍解像度の記号画像と索引 | アイコン色変更時に更新 |
+| `glyphs/` | 注記表示用の文字glyph | 標準資材または保存済み資材を使用 |
+
+DM入力から生成したプレビュー用データでは、元の`OUTPUT`にGeoPackageとmanifestを残し、
+スタイル保存先は既定で`OUTPUT/public`です。`--distribution DIR`を指定した場合は、
+指定した`DIR`が保存先になります。
+
+配布用ディレクトリには、GeoPackage、プレビュー画面の`index.html`、`assets/`、
+`vendor/`は含まれません。スタイル編集後の`style.json`、PMTiles、sprite、glyphsだけを
+静的Web配信に使用します。
 
 別の配布先を使う場合は次のように指定します。
 
@@ -145,14 +154,3 @@ GET /preview/api/features?layer=dm_7100_point&page=1&pageSize=50
 
 `layer`はmanifestの`sourceLayers`に含まれるレイヤ名を指定します。
 レスポンスにはGeoJSONジオメトリ、bbox、中心座標、属性、総件数を含みます。
-
-## 検証観点
-
-`dm-converter`でMapLibre出力を作成したあと、次を確認します。
-
-1. 出力ディレクトリに`{layer-name}.pmtiles`と`pmtiles-manifest.json`がある。
-2. DM入力から直接生成した場合は`{layer-name}.gpkg`もある。
-3. `dm-preview preview OUTPUT --no-open`でURLが出力される。
-4. ブラウザでpreview URLを開き、Style切替、PMTiles Range配信、sprite、
-   注記glyph、地物クリック属性、z24オーバーズームを確認する。
-5. 同じ入力のGeoPackageをQGISで開き、地物数、位置、属性を比較する。

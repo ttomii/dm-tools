@@ -58,11 +58,9 @@ GeoPackageを含むMapLibre出力を指定した場合は、既定で`OUTPUT/pub
 
 ### 詳細資料
 
-- [共通資料](docs/README.md)
 - [MapLibre出力とプレビュー](docs/maplibre-preview.md)
-- [dm-previewファイル構成](dm-preview/docs/structure.md)
-- [変換仕様](dm-converter/docs/conversion-specification.md)
-- [第三者ライセンス](dm-converter/docs/third-party-licenses.md)
+- [dm-converter変換・出力仕様](dm-converter/docs/conversion-specification.md)
+- [開発者向けドキュメント](docs/developer/README.md)
 
 ## ライセンス
 
@@ -70,5 +68,7 @@ dm-toolsはApache License, Version 2.0でライセンスされています。詳
 [LICENSE](LICENSE)を参照してください。
 
 第三者ソフトウェアおよび同梱アセットには、それぞれのライセンスが適用されます。
-[第三者ライセンス](dm-converter/docs/third-party-licenses.md)と
-[dm-preview第三者ライセンス](dm-preview/THIRD_PARTY_LICENSES)を参照してください。
+詳細は次を参照してください。
+
+- [第三者ライセンス](dm-converter/docs/third-party-licenses.md)
+- [dm-preview第三者ライセンス](dm-preview/THIRD_PARTY_LICENSES)

@@ -3,8 +3,6 @@
 `dm-converter`が生成したMapLibre出力をプレビューするNode.js CLIです。
 MapLibre出力ディレクトリ、preview、bundle、スタイル編集の共通説明は
 [MapLibre出力とプレビュー](../docs/maplibre-preview.md)を参照してください。
-ファイル構成は[dm-previewファイル構成](docs/structure.md)を
-参照してください。
 
 ## Requirements
 
