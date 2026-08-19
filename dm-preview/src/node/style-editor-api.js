@@ -103,20 +103,29 @@ const saveStyleEditorState = async (request, response, root, options, body) => {
   sendJson(request, response, 200, {ok: true});
 };
 
-const stageStyleAssets = async (root, staging, maplibreAssets, sprites) => {
-  await copyStyleAssetDirectory(root, staging, maplibreAssets, "sprite", true);
+export const stageStyleAssets = async (root, staging, maplibreAssets, sprites) => {
+  // Keep unchanged served assets in place because Windows may lock open asset files.
+  await copyStyleAssetDirectory(root, staging, maplibreAssets, "sprite", {
+    required: true,
+    replaceExisting: Boolean(sprites),
+  });
   if (sprites) await writeSpriteFiles(staging, sprites);
-  await copyStyleAssetDirectory(root, staging, maplibreAssets, "glyphs", false);
+  await copyStyleAssetDirectory(root, staging, maplibreAssets, "glyphs", {
+    required: false,
+    replaceExisting: false,
+  });
 };
 
-const copyStyleAssetDirectory = async (root, staging, maplibreAssets, name, required) => {
+const copyStyleAssetDirectory = async (root, staging, maplibreAssets, name, {required, replaceExisting}) => {
   const existing = path.join(root, name);
-  const source = await exists(existing) ? existing : path.join(maplibreAssets ?? "", name);
+  const hasExisting = await exists(existing);
+  const source = hasExisting ? existing : path.join(maplibreAssets ?? "", name);
   const sourceReal = await realpath(source).catch(() => undefined);
   if (!sourceReal || !(await isDirectory(sourceReal))) {
     if (required) throw new Error(`${name} assets are not available`);
     return;
   }
+  if (hasExisting && !replaceExisting) return;
   await cp(sourceReal, path.join(staging, name), {recursive: true});
 };
 

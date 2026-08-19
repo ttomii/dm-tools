@@ -9,6 +9,7 @@ import {projectGeometry} from "../src/proj4/gpkg-projection.js";
 import {parseRange, startServer} from "../src/server.js";
 import * as databaseAdapter from "../src/sqlite/sqlite-adapter.js";
 import {createBundledStyle} from "../src/core/style-transform.js";
+import {stageStyleAssets} from "../src/node/style-editor-api.js";
 
 test("parseRange supports explicit, open, and suffix ranges", () => {
   assert.deepEqual(parseRange("bytes=10-19", 100), {start: 10, end: 19, status: 206});
@@ -289,6 +290,24 @@ test("style editor API creates bundled style assets on first save", async (conte
   assert.equal(JSON.parse(await readFile(path.join(output, "style.json"), "utf8")).version, 8);
   assert.equal(await readFile(path.join(output, "sprite", "sprite.png"), "utf8"), "png");
   assert.equal(await readFile(path.join(output, "glyphs", "Test Font", "0-255.pbf"), "utf8"), "pbf");
+});
+
+test("style editor reuses existing glyph assets while staging a style save", async (context) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "dm-preview-"));
+  context.after(() => rm(root, {recursive: true, force: true}));
+  const staging = path.join(root, "staging");
+  const maplibre = path.join(root, "maplibre");
+  await mkdir(path.join(root, "sprite"), {recursive: true});
+  await mkdir(path.join(root, "glyphs", "Test Font"), {recursive: true});
+  await mkdir(path.join(maplibre, "glyphs", "Fallback Font"), {recursive: true});
+  await writeFile(path.join(root, "sprite", "sprite.json"), "{}");
+  await writeFile(path.join(root, "glyphs", "Test Font", "0-255.pbf"), "existing");
+  await writeFile(path.join(maplibre, "glyphs", "Fallback Font", "0-255.pbf"), "fallback");
+
+  await stageStyleAssets(root, staging, maplibre);
+
+  await assert.rejects(stat(path.join(staging, "glyphs")), /ENOENT/);
+  assert.equal(await readFile(path.join(root, "glyphs", "Test Font", "0-255.pbf"), "utf8"), "existing");
 });
 
 test("style editor logs save errors with details", async (context) => {
