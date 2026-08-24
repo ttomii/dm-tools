@@ -447,6 +447,28 @@ test("feature API reads text source layers stored as point geometries", async (c
   assert.equal(body.features[0].properties.TEXT, "大阪市");
 });
 
+test("feature API groups text tables under the common annotation source-layer", async (context) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "dm-preview-"));
+  context.after(() => rm(root, {recursive: true, force: true}));
+  const output = path.join(root, "output");
+  await mkdir(output);
+  await writeFeatureGpkg(path.join(output, "dm-sample.gpkg"));
+  const {server, url} = await startServer(output, {
+    databaseAdapter,
+    manifest: {layerName: "dm-sample", sourceLayers: ["dm_annotation"]},
+    projectGeometry,
+  });
+  context.after(() => server.close());
+  const origin = new URL(url).origin;
+
+  const response = await fetch(`${origin}/preview/api/features?layer=dm_annotation`);
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.total, 1);
+  assert.equal(body.features[0].sourceLayer, "dm_annotation");
+  assert.equal(body.features[0].properties.TEXT, "大阪市");
+});
+
 test("feature API rejects invalid query values", async (context) => {
   const root = await mkdtemp(path.join(os.tmpdir(), "dm-preview-"));
   context.after(() => rm(root, {recursive: true, force: true}));

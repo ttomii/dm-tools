@@ -1,3 +1,5 @@
+import {ANNOTATION_SOURCE_LAYER} from "./dm-source-layers.js";
+
 export const MANIFEST_FILENAME = "pmtiles-manifest.json";
 
 export class InputError extends Error {
@@ -80,7 +82,10 @@ const parseSourceLayers = (value) => {
   if (!Array.isArray(value)) {
     throw new InputError("manifest sourceLayers must be an array");
   }
-  if (!value.every((layer) => typeof layer === "string" && /^dm_[0-9]+_(point|line|polygon|text)(?:_deco_(?:point|line|polygon))?$/.test(layer))) {
+  if (!value.every((layer) => typeof layer === "string" && (
+    layer === ANNOTATION_SOURCE_LAYER ||
+    /^dm_[0-9]+_(point|line|polygon|text)(?:_deco_(?:point|line|polygon))?$/.test(layer)
+  ))) {
     throw new InputError("manifest sourceLayers contains an invalid source-layer name");
   }
   return [...value];

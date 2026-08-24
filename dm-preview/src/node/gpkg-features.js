@@ -7,6 +7,7 @@ import {
   parseGpkgTable,
   toFeature,
 } from "../core/gpkg-feature-policy.js";
+import {ANNOTATION_SOURCE_LAYER} from "../core/dm-source-layers.js";
 
 export {ApiInputError};
 
@@ -78,6 +79,7 @@ const gpkgPath = (root, layerName) => {
 
 const readLayers = (database, sourceLayers, databaseAdapter) => {
   const allowed = sourceLayers.length ? new Set(sourceLayers) : undefined;
+  const useCommonAnnotationSourceLayer = allowed?.has(ANNOTATION_SOURCE_LAYER) ?? false;
   const layers = new Map();
   for (const row of databaseAdapter.queryRows(database, `
     SELECT c.table_name, g.geometry_type_name, g.srs_id
@@ -86,7 +88,10 @@ const readLayers = (database, sourceLayers, databaseAdapter) => {
     WHERE c.data_type = 'features'
     ORDER BY c.table_name
   `)) {
-    const table = parseGpkgTable(row.table_name, row.geometry_type_name, row.srs_id);
+    const parsedTable = parseGpkgTable(row.table_name, row.geometry_type_name, row.srs_id);
+    const table = useCommonAnnotationSourceLayer && parsedTable?.sourceLayer.endsWith("_text")
+      ? {...parsedTable, sourceLayer: ANNOTATION_SOURCE_LAYER}
+      : parsedTable;
     if (!table || (allowed && !allowed.has(table.sourceLayer))) continue;
     const tables = layers.get(table.sourceLayer) ?? [];
     tables.push(table);

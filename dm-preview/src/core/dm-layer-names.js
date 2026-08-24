@@ -499,7 +499,7 @@ const TEXT_LAYER_NAMES = Object.freeze({
 export const dmLayerName = (dmcode, sourceLayer = "") => {
   const code = normalizeDmCode(dmcode);
   if (!code) return "";
-  if (sourceLayer.split("_").includes("text") && TEXT_LAYER_NAMES[code]) {
+  if ((sourceLayer === "dm_annotation" || sourceLayer.split("_").includes("text")) && TEXT_LAYER_NAMES[code]) {
     return TEXT_LAYER_NAMES[code];
   }
   return DM_LAYER_NAMES[code] ?? "";

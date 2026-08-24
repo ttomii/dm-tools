@@ -1,3 +1,5 @@
+import {ANNOTATION_SOURCE_LAYER} from "./dm-source-layers.js";
+
 const PAGE_SIZE_DEFAULT = 50;
 const PAGE_SIZE_MAX = 100;
 const WKB_OFFSET = 40;
@@ -61,7 +63,7 @@ export const toFeature = ({table, row, geometry}) => {
 };
 
 const parseLayer = (value) => {
-  if (!value || !/^dm_[0-9]+_(point|line|polygon|text)(?:_deco_(?:point|line|polygon))?$/.test(value)) {
+  if (!value || !(value === ANNOTATION_SOURCE_LAYER || /^dm_[0-9]+_(point|line|polygon|text)(?:_deco_(?:point|line|polygon))?$/.test(value))) {
     throw new ApiInputError("layer is required");
   }
   return value;

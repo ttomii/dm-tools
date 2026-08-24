@@ -4,6 +4,8 @@ const DEFAULT_SOURCE_LAYERS = {
   dm_default_polygon: "polygon",
 };
 
+export const ANNOTATION_SOURCE_LAYER = "dm_annotation";
+
 export const expandDefaultStyleLayers = (layers, sourceLayers) => {
   if (sourceLayers.length === 0) return layers;
   const sourceLayersByKind = groupDefaultSourceLayers(sourceLayers);
@@ -27,9 +29,14 @@ export const getDmSourceLayers = (style) => [...new Set((style.layers ?? [])
   .sort(compareLayerName);
 
 export const getSourceLayerKind = (sourceLayer) => {
+  if (sourceLayer === ANNOTATION_SOURCE_LAYER) return "text";
   const match = /^dm_(?:default|\d+)_(point|line|polygon|text)(?:_deco_(point|line|polygon))?$/.exec(sourceLayer ?? "");
   return match?.[2] ?? match?.[1];
 };
+
+export const isAnnotationSourceLayer = (sourceLayer) => (
+  sourceLayer === ANNOTATION_SOURCE_LAYER || /^dm_\d+_text$/.test(sourceLayer ?? "")
+);
 
 export const getDmCode = (sourceLayer) => {
   const match = /^dm_(\d+)_/.exec(sourceLayer);

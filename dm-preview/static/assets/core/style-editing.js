@@ -1,4 +1,4 @@
-import {getSourceLayerKind} from "./dm-source-layers.js";
+import {getSourceLayerKind, isAnnotationSourceLayer} from "./dm-source-layers.js";
 
 export const editableKinds = (style) => [...new Set(editableLayers(style)
   .flatMap((layer) => layer.colorKind ? [layer.colorKind] : []))];
@@ -60,7 +60,7 @@ export const isVerticalAnnotationLayer = (layer) => (
   layer.source === "dm" &&
   layer.type === "symbol" &&
   typeof layer["source-layer"] === "string" &&
-  layer["source-layer"].endsWith("_text") &&
+  isAnnotationSourceLayer(layer["source-layer"]) &&
   Array.isArray(layer.layout?.["text-writing-mode"]) &&
   layer.layout["text-writing-mode"].includes("vertical")
 );

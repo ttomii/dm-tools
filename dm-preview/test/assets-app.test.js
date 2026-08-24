@@ -25,7 +25,13 @@ import {
   verticalLongSoundAnnotationStyleEnabled,
   verticalLongSoundAnnotationTextField,
 } from "../src/core/style-editing.js";
-import {createBundledStyle, createRuntimeStyle, styleLabel} from "../src/core/style-transform.js";
+import {
+  createBundledStyle,
+  createRuntimeStyle,
+  mergeAnnotationStyleLayers,
+  splitAnnotationStyleLayers,
+  styleLabel,
+} from "../src/core/style-transform.js";
 
 const plain = (value) => JSON.parse(JSON.stringify(value));
 
@@ -89,6 +95,7 @@ test("core derives sorted DM source layers and feature labels", () => {
   assert.deepEqual(plain(getDmSourceLayers(style)), ["dm_2_line", "dm_10_line"]);
   assert.equal(getSourceLayerKind("dm_1234_text_deco_line"), "line");
   assert.equal(getSourceLayerKind("dm_1234_text"), "text");
+  assert.equal(getSourceLayerKind("dm_annotation"), "text");
   assert.equal(compareLayerName("dm_2_line", "dm_10_line"), -1);
 
   const feature = {
@@ -115,6 +122,7 @@ test("core derives sorted DM source layers and feature labels", () => {
   });
   assert.equal(dmLayerName(2511, "dm_2511_point"), "多角点（記号）");
   assert.equal(dmLayerName("2511", "dm_2511_text"), "多角点名称");
+  assert.equal(dmLayerName(7101, "dm_annotation"), "等高線（計曲線）");
   assert.equal(dmLayerName(9998, "dm_9998_line"), "");
 
   const originalDocument = globalThis.document;
@@ -141,6 +149,139 @@ test("core derives sorted DM source layers and feature labels", () => {
     ["DMCODE", "2101"],
     ["DMFILE", "sample.dm"],
   ]);
+});
+
+test("core merges annotation layers by rendering style and preserves direction", () => {
+  const style = {
+    version: 8,
+    sources: {dm: {type: "vector"}},
+    layers: [
+      {id: "background", type: "background"},
+      {
+        id: "text-7101",
+        type: "symbol",
+        source: "dm",
+        "source-layer": "dm_7101_text",
+        filter: ["all", ["==", ["get", "LEVEL"], 2500], ["!=", ["get", "VERTICAL"], 1]],
+        layout: {"text-field": ["get", "TEXT"]},
+        paint: {"text-color": "#000000"},
+      },
+      {
+        id: "text-7101-vertical",
+        type: "symbol",
+        source: "dm",
+        "source-layer": "dm_7101_text",
+        filter: ["all", ["==", ["get", "LEVEL"], 2500], ["==", ["get", "VERTICAL"], 1]],
+        layout: {"text-field": ["get", "TEXT_VERTICAL"], "text-writing-mode": ["vertical"]},
+        paint: {"text-color": "#000000"},
+      },
+      {
+        id: "text-7102",
+        type: "symbol",
+        source: "dm",
+        "source-layer": "dm_7102_text",
+        filter: ["all", ["==", ["get", "LEVEL"], 2500], ["!=", ["get", "VERTICAL"], 1]],
+        layout: {"text-field": ["get", "TEXT"]},
+        paint: {"text-color": "#000000"},
+      },
+      {
+        id: "text-7102-vertical",
+        type: "symbol",
+        source: "dm",
+        "source-layer": "dm_7102_text",
+        filter: ["all", ["==", ["get", "LEVEL"], 2500], ["==", ["get", "VERTICAL"], 1]],
+        layout: {"text-field": ["get", "TEXT_VERTICAL"], "text-writing-mode": ["vertical"]},
+        paint: {"text-color": "#000000"},
+      },
+    ],
+  };
+
+  const merged = mergeAnnotationStyleLayers(style);
+
+  assert.equal(style.layers.length, 5);
+  assert.deepEqual(merged.layers.map((layer) => layer.id), ["background", "text-7101", "text-7101-vertical"]);
+  assert.deepEqual(merged.layers.slice(1).map((layer) => layer["source-layer"]), ["dm_annotation", "dm_annotation"]);
+  assert.deepEqual(merged.layers[1].filter, [
+    "all",
+    ["==", ["get", "LEVEL"], 2500],
+    ["!=", ["get", "VERTICAL"], 1],
+    ["in", ["get", "DMCODE"], ["literal", [7101, 7102]]],
+  ]);
+  assert.deepEqual(merged.layers[2].filter, [
+    "all",
+    ["==", ["get", "LEVEL"], 2500],
+    ["==", ["get", "VERTICAL"], 1],
+    ["in", ["get", "DMCODE"], ["literal", [7101, 7102]]],
+  ]);
+});
+
+test("core splits annotations for editing and merges unchanged styles again", () => {
+  const style = {
+    version: 8,
+    sources: {dm: {type: "vector"}},
+    layers: [
+      {id: "background", type: "background"},
+      {
+        id: "text-label",
+        type: "symbol",
+        source: "dm",
+        "source-layer": "dm_annotation",
+        filter: [
+          "all",
+          ["==", ["get", "LEVEL"], 2500],
+          ["in", ["get", "DMCODE"], ["literal", [7101, 7102]]],
+        ],
+        layout: {"text-field": ["get", "TEXT"]},
+        paint: {"text-color": "#000000"},
+      },
+    ],
+  };
+
+  const split = splitAnnotationStyleLayers(style);
+
+  assert.deepEqual(split.layers.map((layer) => layer.id), [
+    "background",
+    "text-label",
+    "text-label-7102",
+  ]);
+  assert.deepEqual(split.layers.slice(1).map((layer) => layer["source-layer"]), [
+    "dm_annotation",
+    "dm_annotation",
+  ]);
+  assert.deepEqual(split.layers[1].filter, [
+    "all",
+    ["==", ["get", "LEVEL"], 2500],
+    ["in", ["get", "DMCODE"], ["literal", [7101]]],
+  ]);
+
+  split.layers[1].paint["text-color"] = "#ff0000";
+  const merged = mergeAnnotationStyleLayers(split);
+
+  assert.equal(merged.layers.length, 3);
+  assert.deepEqual(merged.layers.slice(1).map((layer) => layer.filter), [
+    [
+      "all",
+      ["==", ["get", "LEVEL"], 2500],
+      ["in", ["get", "DMCODE"], ["literal", [7101]]],
+    ],
+    [
+      "all",
+      ["==", ["get", "LEVEL"], 2500],
+      ["in", ["get", "DMCODE"], ["literal", [7102]]],
+    ],
+  ]);
+
+  const runtime = createRuntimeStyle(split, {
+    pmtiles: "sample.pmtiles",
+    sourceLayers: ["dm_annotation"],
+    styles: ["style.json"],
+  }, {
+    basemapVisible: true,
+    dmVisible: true,
+    mergeAnnotationLayers: false,
+    resourceUrl: (value) => value,
+  });
+  assert.equal(runtime.layers.filter((layer) => layer["source-layer"] === "dm_annotation").length, 2);
 });
 
 test("core calculates geometry bounds, centers, and highlight properties", () => {

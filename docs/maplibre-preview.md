@@ -107,6 +107,10 @@ dm-preview bundle PMTILES OUTPUT
 `dm_{DMCODE}_{GEOM}` source-layerへ展開します。PMTiles内には共通フォールバック用の
 `dm_default_*` source-layerを生成しません。
 
+注記はPMTiles内の`dm_annotation` source-layerへ統合されます。固定Styleでは横書き・
+縦書きを分け、描画設定が同一のDMCodeをまとめたうえで、`DMCODE`属性を使って表示対象を
+絞り込みます。Style編集の保存時もこの構成を維持します。
+
 固定Styleでは個別スタイルが存在するDMCodeを除外し、未定義DMCodeだけを
 既定スタイルで描画します。既定スタイルは点が0.5mm直径の黒い塗りつぶし丸、
 線が0.15mmの実線、面が0.15mmの実線アウトラインかつ塗りつぶしなしです。

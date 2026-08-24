@@ -329,6 +329,14 @@ z19からz24はクライアント側でz18をオーバーズームします。�
 dm_{DMCODE}_{GEOM}
 ```
 
+注記（`GEOM`が`text`）は、DMCodeごとのsource-layerを作らず、次の共通source-layerへ
+格納します。各注記の`DMCODE`、`LEVEL`、`TEXT`、`TEXT_VERTICAL`、`VERTICAL`、
+`ROTATION`、`DMSKIP`などの属性は保持します。
+
+```text
+dm_annotation
+```
+
 補助図形のsource-layer名:
 
 ```text
@@ -341,6 +349,7 @@ Style側のsource-layer展開は[MapLibre出力とプレビュー](../../docs/ma
 
 GeoPackageでは別レイヤーとなる`ZONE`と`LEVEL`の組み合わせを、MapLibreでは
 同じsource-layerへ統合します。各地物の`ZONE`と`LEVEL`属性で区別します。
+注記も同じ共通source-layer内で`DMCODE`と`LEVEL`属性によって区別します。
 
 ### MVT属性
 

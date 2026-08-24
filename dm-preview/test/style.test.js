@@ -38,6 +38,33 @@ const byId = (style, id) => {
   return layer;
 };
 
+const annotationLayer = (style, dmcode, vertical = false) => {
+  const layer = style.layers.find((candidate) => (
+    candidate["source-layer"] === "dm_annotation" &&
+    annotationDmCodes(candidate).includes(dmcode) &&
+    (candidate.layout?.["text-writing-mode"]?.includes("vertical") ?? false) === vertical
+  ));
+  assert.ok(layer, `missing ${vertical ? "vertical" : "horizontal"} annotation layer for ${dmcode}`);
+  return layer;
+};
+
+const annotationDmCodes = (layer) => {
+  const find = (value) => {
+    if (!Array.isArray(value)) return undefined;
+    if (
+      value[0] === "in" &&
+      JSON.stringify(value[1]) === JSON.stringify(["get", "DMCODE"]) &&
+      value[2]?.[0] === "literal"
+    ) return value[2][1];
+    for (const item of value) {
+      const found = find(item);
+      if (found) return found;
+    }
+    return undefined;
+  };
+  return find(layer.filter) ?? [];
+};
+
 const assertApprox = (actual, expected, id) => {
   assert.ok(Math.abs(actual - expected) < 1e-9, `${id}: ${actual} != ${expected}`);
 };
@@ -54,11 +81,23 @@ test("fixed styles include text labels", () => {
   for (const [style] of STYLES) {
     const labels = style.layers.filter(
       (layer) =>
-        typeof layer["source-layer"] === "string" &&
-        layer["source-layer"].endsWith("_text") &&
+        layer["source-layer"] === "dm_annotation" &&
         layer.layout?.["text-field"] != null,
     ).length;
-    assert.equal(labels, 70);
+    assert.equal(labels, 16);
+  }
+});
+
+test("fixed styles merge annotations into eight groups per direction", () => {
+  const expectedCodes = new Set(ANNOTATION_SIZES.map(([dmcode]) => dmcode));
+  for (const [style] of ALL_STYLES) {
+    const labels = style.layers.filter((layer) => layer["source-layer"] === "dm_annotation");
+    const horizontal = labels.filter((layer) => !layer.layout?.["text-writing-mode"]?.includes("vertical"));
+    const vertical = labels.filter((layer) => layer.layout?.["text-writing-mode"]?.includes("vertical"));
+    assert.equal(horizontal.length, 8);
+    assert.equal(vertical.length, 8);
+    assert.deepEqual(new Set(horizontal.flatMap(annotationDmCodes)), expectedCodes);
+    assert.deepEqual(new Set(vertical.flatMap(annotationDmCodes)), expectedCodes);
   }
 });
 
@@ -552,27 +591,30 @@ test("code 2428 renders line and polygon outlines as zero point two millimeter d
 test("fixed styles split horizontal and vertical annotations", () => {
   for (const [style, level] of STYLES) {
     for (const [dmcode] of ANNOTATION_SIZES) {
-      const horizontalId = `dm-${dmcode}-text-${level}-label`;
-      const horizontal = byId(style, horizontalId);
-      const vertical = byId(style, `${horizontalId}-vertical`);
-      assert.deepEqual(horizontal.filter, [
+      const horizontal = annotationLayer(style, dmcode);
+      const vertical = annotationLayer(style, dmcode, true);
+      assert.equal(horizontal["source-layer"], "dm_annotation");
+      assert.equal(vertical["source-layer"], "dm_annotation");
+      assert.deepEqual(horizontal.filter.slice(0, 3), [
         "all",
         ["==", ["get", "LEVEL"], level],
         ["!=", ["coalesce", ["get", "VERTICAL"], 0], 1],
-      ]);
-      assert.deepEqual(vertical.filter, [
+      ], horizontal.id);
+      assert.deepEqual(vertical.filter.slice(0, 3), [
         "all",
         ["==", ["get", "LEVEL"], level],
         ["==", ["get", "VERTICAL"], 1],
-      ]);
+      ], vertical.id);
+      assert.ok(annotationDmCodes(horizontal).includes(dmcode), horizontal.id);
+      assert.ok(annotationDmCodes(vertical).includes(dmcode), vertical.id);
       assert.deepEqual(vertical.layout["text-writing-mode"], ["vertical"]);
       assert.deepEqual(vertical.layout["text-rotate"], [
         "-",
         ["coalesce", ["get", "ROTATION"], 90],
         90,
       ]);
-      assert.deepEqual(horizontal.layout["text-field"], annotationTextField(), horizontalId);
-      assert.deepEqual(vertical.layout["text-field"], verticalLongSoundAnnotationTextField(), `${horizontalId}-vertical`);
+      assert.deepEqual(horizontal.layout["text-field"], annotationTextField(), horizontal.id);
+      assert.deepEqual(vertical.layout["text-field"], verticalLongSoundAnnotationTextField(), vertical.id);
     }
   }
 });
@@ -580,9 +622,10 @@ test("fixed styles split horizontal and vertical annotations", () => {
 test("fixed styles anchor annotations at their specified origins", () => {
   for (const [style, level] of ALL_STYLES) {
     for (const [dmcode] of ANNOTATION_SIZES) {
-      const horizontalId = `dm-${dmcode}-text-${level}-label`;
-      assert.equal(byId(style, horizontalId).layout["text-anchor"], "bottom-left", horizontalId);
-      assert.equal(byId(style, `${horizontalId}-vertical`).layout["text-anchor"], "bottom-left", `${horizontalId}-vertical`);
+      const horizontal = annotationLayer(style, dmcode);
+      const vertical = annotationLayer(style, dmcode, true);
+      assert.equal(horizontal.layout["text-anchor"], "bottom-left", horizontal.id);
+      assert.equal(vertical.layout["text-anchor"], "bottom-left", vertical.id);
     }
   }
 });
@@ -590,9 +633,10 @@ test("fixed styles anchor annotations at their specified origins", () => {
 test("fixed styles always show annotations regardless of overlap", () => {
   for (const [style, level] of STYLES) {
     for (const [dmcode] of ANNOTATION_SIZES) {
-      const horizontalId = `dm-${dmcode}-text-${level}-label`;
-      assert.equal(byId(style, horizontalId).layout["text-allow-overlap"], true, horizontalId);
-      assert.equal(byId(style, `${horizontalId}-vertical`).layout["text-allow-overlap"], true, `${horizontalId}-vertical`);
+      const horizontal = annotationLayer(style, dmcode);
+      const vertical = annotationLayer(style, dmcode, true);
+      assert.equal(horizontal.layout["text-allow-overlap"], true, horizontal.id);
+      assert.equal(vertical.layout["text-allow-overlap"], true, vertical.id);
     }
   }
 });
@@ -600,15 +644,16 @@ test("fixed styles always show annotations regardless of overlap", () => {
 test("fixed styles scale annotation outlines with the text strokes", () => {
   for (const [style, level] of ALL_STYLES) {
     for (const [dmcode] of ANNOTATION_SIZES) {
-      const id = `dm-${dmcode}-text-${level}-label`;
-      const textSize = byId(style, id).layout["text-size"];
+      const horizontal = annotationLayer(style, dmcode);
+      const vertical = annotationLayer(style, dmcode, true);
+      const textSize = horizontal.layout["text-size"];
       const expected = [
         "interpolate", textSize[1], textSize[2],
         textSize[3], textSize[4] * 0.1,
         textSize[5], textSize[6] * 0.1,
       ];
-      assert.deepEqual(byId(style, id).paint["text-halo-width"], expected, id);
-      assert.deepEqual(byId(style, `${id}-vertical`).paint["text-halo-width"], expected, `${id}-vertical`);
+      assert.deepEqual(horizontal.paint["text-halo-width"], expected, horizontal.id);
+      assert.deepEqual(vertical.paint["text-halo-width"], expected, vertical.id);
     }
   }
 });
@@ -617,15 +662,15 @@ test("fixed styles use annotation sizes in millimeters", () => {
   for (const [style, level] of STYLES) {
     const scale = level / 2500;
     for (const [dmcode, sizeMm] of ANNOTATION_SIZES) {
-      const id = `dm-${dmcode}-text-${level}-label`;
-      const textSize = byId(style, id).layout["text-size"];
-      assert.equal(textSize[0], "interpolate", id);
+      const layer = annotationLayer(style, dmcode);
+      const textSize = layer.layout["text-size"];
+      assert.equal(textSize[0], "interpolate", layer.id);
       assert.deepEqual(textSize[1], ["exponential", 2]);
       assert.deepEqual(textSize[2], ["zoom"]);
-      assert.equal(textSize[3], 15, id);
-      assertApprox(textSize[4], sizeMm * 1.2936746667 * scale, id);
-      assert.equal(textSize[5], 24, id);
-      assertApprox(textSize[6], sizeMm * 662.3614293504 * scale, id);
+      assert.equal(textSize[3], 15, layer.id);
+      assertApprox(textSize[4], sizeMm * 1.2936746667 * scale, layer.id);
+      assert.equal(textSize[5], 24, layer.id);
+      assertApprox(textSize[6], sizeMm * 662.3614293504 * scale, layer.id);
     }
   }
 });
@@ -633,14 +678,15 @@ test("fixed styles use annotation sizes in millimeters", () => {
 test("fixed styles use annotation character spacing in tenths of millimeters", () => {
   for (const [style, level] of STYLES) {
     for (const [dmcode, sizeMm] of ANNOTATION_SIZES) {
-      const id = `dm-${dmcode}-text-${level}-label`;
+      const horizontal = annotationLayer(style, dmcode);
+      const vertical = annotationLayer(style, dmcode, true);
       const expected = [
         "*",
         ["coalesce", ["get", "CHARSPACING"], 0],
         0.1 / sizeMm,
       ];
-      assert.deepEqual(byId(style, id).layout["text-letter-spacing"], expected, id);
-      assert.deepEqual(byId(style, `${id}-vertical`).layout["text-letter-spacing"], expected, `${id}-vertical`);
+      assert.deepEqual(horizontal.layout["text-letter-spacing"], expected, horizontal.id);
+      assert.deepEqual(vertical.layout["text-letter-spacing"], expected, vertical.id);
     }
   }
 });
@@ -648,9 +694,10 @@ test("fixed styles use annotation character spacing in tenths of millimeters", (
 test("fixed styles keep long annotations on one line", () => {
   for (const [style, level] of STYLES) {
     for (const [dmcode] of ANNOTATION_SIZES) {
-      const id = `dm-${dmcode}-text-${level}-label`;
-      assert.equal(byId(style, id).layout["text-max-width"], 100, id);
-      assert.equal(byId(style, `${id}-vertical`).layout["text-max-width"], 100, `${id}-vertical`);
+      const horizontal = annotationLayer(style, dmcode);
+      const vertical = annotationLayer(style, dmcode, true);
+      assert.equal(horizontal.layout["text-max-width"], 100, horizontal.id);
+      assert.equal(vertical.layout["text-max-width"], 100, vertical.id);
     }
   }
 });

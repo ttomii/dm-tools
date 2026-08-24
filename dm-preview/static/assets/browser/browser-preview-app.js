@@ -11,7 +11,7 @@ import {
   toHexColor,
   verticalLongSoundAnnotationStyleEnabled,
 } from "../core/style-editing.js";
-import {createBundledStyle, createRuntimeStyle, styleLabel} from "../core/style-transform.js";
+import {createBundledStyle, createRuntimeStyle, splitAnnotationStyleLayers, styleLabel} from "../core/style-transform.js";
 import {getInitialCamera, getScaleByZoom} from "../core/map-scale.js";
 import {toGeoJsonFeature} from "../core/geometry.js";
 import {createApiClient} from "./api-client.js";
@@ -163,17 +163,18 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
     markStyleDirty();
   };
 
-  const loadStyleEditorState = async () => {
-    state.styleEditorState = await api.styleEditorState();
-    if (state.styleEditorState.style) {
-      state.currentBaseStyle = state.styleEditorState.style;
-    } else {
-      state.styleEditorState = {
-        ...state.styleEditorState,
-        editableKinds: editableKinds(state.currentBaseStyle),
-        editableLayers: editableLayers(state.currentBaseStyle),
-      };
-    }
+  const loadStyleEditorState = async (manifest) => {
+    const editorState = await api.styleEditorState();
+    const style = editorState.style ?? state.currentBaseStyle;
+    state.currentBaseStyle = usesCommonAnnotationSourceLayer(manifest)
+      ? splitAnnotationStyleLayers(style)
+      : style;
+    state.styleEditorState = {
+      ...editorState,
+      style: editorState.style ? state.currentBaseStyle : editorState.style,
+      editableKinds: editableKinds(state.currentBaseStyle),
+      editableLayers: editableLayers(state.currentBaseStyle),
+    };
     state.styleDirty = false;
     renderStyleEditor();
   };
@@ -184,8 +185,15 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
     const style = createBundledStyle(state.currentBaseStyle, manifest);
     const sprites = state.spriteState?.dirty ? await spritePayload(state.spriteState) : undefined;
     await api.saveStyleEditorState({style, sprites});
-    state.currentBaseStyle = style;
-    state.styleEditorState.style = style;
+    state.currentBaseStyle = usesCommonAnnotationSourceLayer(manifest)
+      ? splitAnnotationStyleLayers(style)
+      : style;
+    state.styleEditorState = {
+      ...state.styleEditorState,
+      style: state.currentBaseStyle,
+      editableKinds: editableKinds(state.currentBaseStyle),
+      editableLayers: editableLayers(state.currentBaseStyle),
+    };
     state.styleDirty = false;
     if (state.spriteState) state.spriteState.dirty = false;
     renderStyleEditor();
@@ -223,9 +231,17 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
       ? {center: state.map.getCenter().toArray(), zoom: state.map.getZoom()}
       : getInitialCamera(new URL(location.href), manifest.center);
     state.currentBaseStyle = await api.style(elements.select.value);
+    await loadStyleEditorState(manifest).catch((error) => {
+      elements.styleEditorStatus.textContent = String(error);
+      elements.styleSave.disabled = true;
+      state.currentBaseStyle = usesCommonAnnotationSourceLayer(manifest)
+        ? splitAnnotationStyleLayers(state.currentBaseStyle)
+        : state.currentBaseStyle;
+    });
     const runtimeStyle = createRuntimeStyle(state.currentBaseStyle, manifest, {
       basemapVisible: elements.basemap.checked,
       dmVisible: elements.dmToggle.checked,
+      mergeAnnotationLayers: false,
       resourceUrl: api.resourceUrl,
       styleUrl: elements.select.value,
     });
@@ -243,10 +259,6 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
       selectedLayer: featureLayerParameter(location),
     });
     updateFeatureLayerParameter(location, history, elements.featureLayerSelect.value);
-    await loadStyleEditorState().catch((error) => {
-      elements.styleEditorStatus.textContent = String(error);
-      elements.styleSave.disabled = true;
-    });
     state.map.addControl(new maplibregl.NavigationControl());
     state.map.on("load", () => addHighlightLayers(state.map));
     updateStatus(elements.status, state.map);
@@ -371,6 +383,8 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
 
   return {start};
 };
+
+const usesCommonAnnotationSourceLayer = (manifest) => manifest.sourceLayers?.includes("dm_annotation") ?? false;
 
 export const updateStatus = (status, map) => {
   const center = map.getCenter();

@@ -21,6 +21,7 @@ const EXTENT: u32 = 4096;
 const BUFFER: i32 = 64;
 const SIMPLIFY_TOLERANCE: f64 = 4.0;
 const WEB_MERCATOR_HALF: f64 = 20_037_508.342_789_244;
+const ANNOTATION_SOURCE_LAYER: &str = "dm_annotation";
 #[derive(Debug, Error)]
 pub enum MapLibreError {
     #[error("I/O error: {0}")]
@@ -300,6 +301,9 @@ fn read_layers(connection: &Connection) -> Result<Vec<GpkgLayer>, MapLibreError>
 }
 
 fn source_layer_from_table(layer: &GpkgLayer) -> String {
+    if !layer.decoration && layer.kind == GeometryKind::Text {
+        return ANNOTATION_SOURCE_LAYER.to_string();
+    }
     let parts = layer.table_name.split('_').collect::<Vec<_>>();
     if layer.decoration {
         format!(
@@ -1483,6 +1487,29 @@ mod tests {
         assert_eq!(zone_origin(19).unwrap(), (26.0, 154.0));
         assert!(zone_origin(0).is_err());
         assert!(zone_origin(20).is_err());
+    }
+
+    #[test]
+    fn annotation_tables_use_the_common_source_layer() {
+        let text = GpkgLayer {
+            table_name: "dm_8110_text_none_2500".to_string(),
+            kind: GeometryKind::Text,
+            zone: 9,
+            level: 2500,
+            decoration: false,
+            bounds: [0.0, 0.0, 1.0, 1.0],
+        };
+        let line = GpkgLayer {
+            table_name: "dm_2101_line_none_2500".to_string(),
+            kind: GeometryKind::Line,
+            zone: 9,
+            level: 2500,
+            decoration: false,
+            bounds: [0.0, 0.0, 1.0, 1.0],
+        };
+
+        assert_eq!(source_layer_from_table(&text), "dm_annotation");
+        assert_eq!(source_layer_from_table(&line), "dm_2101_line");
     }
 
     #[test]

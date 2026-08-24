@@ -23,6 +23,10 @@ test("parseManifest accepts version one contract", () => {
   });
 });
 
+test("parseManifest accepts the common annotation source-layer", () => {
+  assert.deepEqual(parseManifest({...validManifest, sourceLayers: ["dm_annotation"]}).sourceLayers, ["dm_annotation"]);
+});
+
 test("parseManifest rejects invalid coordinates, levels, and paths", () => {
   assert.throws(() => parseManifest({...validManifest, pmtiles: "../sample.pmtiles"}));
   assert.throws(() => parseManifest({...validManifest, bounds: [140, 30, 130, 40]}));
