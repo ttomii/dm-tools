@@ -28,6 +28,14 @@ GeoPackageを作る場合は`.gpkg`ファイルを、PMTilesを作る場合は
 Windows向けリリースビルドの手順は
 [dm-converter README](dm-converter/README.md)を参照してください。
 
+`--build-dir`でBunの一時ファイルを置くビルド作業ディレクトリを指定できます。
+
+```bash
+bash build-windows.sh --build-dir /tmp/dm-tools-build
+```
+
+配布物は従来どおり`dist/dm-tools-windows-x64.zip`に生成されます。
+
 ## 利用方法
 
 ### DM変換

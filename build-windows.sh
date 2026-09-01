@@ -13,6 +13,54 @@ readonly ARCHIVE_PATH="${DIST_DIR}/${PACKAGE_NAME}.zip"
 readonly TEMP_ARCHIVE_PATH="${DIST_DIR}/.${PACKAGE_NAME}.zip.tmp"
 readonly CONVERTER_DIR="${SCRIPT_DIR}/dm-converter"
 readonly PREVIEW_DIR="${SCRIPT_DIR}/dm-preview"
+BUILD_DIR="${PREVIEW_DIR}"
+
+print_usage() {
+  cat <<EOF
+Usage: $(basename "${BASH_SOURCE[0]}") [OPTIONS]
+
+Build a Windows x64 distribution from WSL/Linux.
+
+Options:
+  --build-dir DIR  Use DIR for Bun's temporary build files.
+                   The distribution is still written to ${DIST_DIR}.
+  -h, --help       Show this help.
+EOF
+}
+
+parse_args() {
+  while (($# > 0)); do
+    case "$1" in
+      --build-dir)
+        if (($# < 2)) || [[ -z "$2" ]]; then
+          echo "Missing argument for --build-dir" >&2
+          print_usage >&2
+          exit 2
+        fi
+        BUILD_DIR="$2"
+        shift 2
+        ;;
+      --build-dir=*)
+        BUILD_DIR="${1#*=}"
+        if [[ -z "${BUILD_DIR}" ]]; then
+          echo "Missing argument for --build-dir" >&2
+          print_usage >&2
+          exit 2
+        fi
+        shift
+        ;;
+      -h|--help)
+        print_usage
+        exit 0
+        ;;
+      *)
+        echo "Unknown option: $1" >&2
+        print_usage >&2
+        exit 2
+        ;;
+    esac
+  done
+}
 
 add_bun_to_path() {
   local bun_install_dir="${BUN_INSTALL:-${HOME}/.bun}"
@@ -66,9 +114,37 @@ build_converter() {
 build_preview() {
   echo "Building dm-preview for Windows x64..."
   npm ci --prefix "${PREVIEW_DIR}" --no-audit --no-fund
+
+  mkdir -p -- "${BUILD_DIR}"
+  if [[ ! -d "${BUILD_DIR}" || ! -w "${BUILD_DIR}" || ! -x "${BUILD_DIR}" ]]; then
+    echo "Build directory is not accessible: ${BUILD_DIR}" >&2
+    exit 1
+  fi
+
+  local bun_work_dir
+  local bun_build_status=0
+  local build_dir_without_trailing_slash="${BUILD_DIR%/}"
+  if [[ -z "${build_dir_without_trailing_slash}" ]]; then
+    build_dir_without_trailing_slash="/"
+  fi
+  bun_work_dir="$(mktemp -d -- "${build_dir_without_trailing_slash}/.dm-preview-build.XXXXXX")"
+
+  (
+    cd "${bun_work_dir}"
+    bun build \
+      --compile \
+      --target="${BUN_TARGET}" \
+      "${PREVIEW_DIR}/bin/dm-preview.js" \
+      --outfile "${PREVIEW_DIR}/dist/dm-preview.exe"
+  ) || bun_build_status=$?
+  rm -rf -- "${bun_work_dir}"
+
+  if ((bun_build_status != 0)); then
+    return "${bun_build_status}"
+  fi
+
   (
     cd "${PREVIEW_DIR}"
-    bun build --compile --target="${BUN_TARGET}" bin/dm-preview.js --outfile dist/dm-preview.exe
     node scripts/build.mjs
   )
 }
@@ -101,6 +177,7 @@ create_archive() {
 }
 
 main() {
+  parse_args "$@"
   add_bun_to_path
   require_prerequisites
   clean_build_outputs
