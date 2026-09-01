@@ -114,6 +114,11 @@ build_converter() {
 build_preview() {
   echo "Building dm-preview for Windows x64..."
   npm ci --prefix "${PREVIEW_DIR}" --no-audit --no-fund
+  echo "Running dm-preview tests..."
+  (
+    cd "${PREVIEW_DIR}"
+    npm test
+  )
 
   mkdir -p -- "${BUILD_DIR}"
   if [[ ! -d "${BUILD_DIR}" || ! -w "${BUILD_DIR}" || ! -x "${BUILD_DIR}" ]]; then

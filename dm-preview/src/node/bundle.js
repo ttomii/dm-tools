@@ -2,7 +2,7 @@ import {cp, mkdir, readFile, readdir, realpath, stat, writeFile} from "node:fs/p
 import path from "node:path";
 import {InputError, MANIFEST_FILENAME, parseManifest} from "../core/manifest-policy.js";
 import {createBundledStyle} from "../core/style-transform.js";
-import {packagePath} from "./asset-roots.js";
+import {createDefaultAssetRoots} from "./asset-roots.js";
 import {resolveOutputPath} from "./manifest.js";
 
 export const createBundle = async (pmtiles, output, options = {}) => {
@@ -50,18 +50,18 @@ const createStyle = async (source, pmtilesName, options) => {
   const savedStyle = await readSavedStyle(source.root);
   if (savedStyle) return createBundledStyle(savedStyle, manifest, {pmtiles: pmtilesName});
   if (options.includeDefaultStyle === false) return undefined;
-  const style = await readJson(packagePath("static", "maplibre", `style-${manifest.levels[0]}.json`));
+  const style = await readJson(defaultMaplibrePath(`style-${manifest.levels[0]}.json`));
   return createBundledStyle(style, manifest, {pmtiles: pmtilesName});
 };
 
 const copyStyleAssets = async (source, destination) => {
   await Promise.all([
     copySpriteFiles(
-      await assetDirectory(source, "sprite", packagePath("static", "maplibre", "sprite")),
+      await assetDirectory(source, "sprite", defaultMaplibrePath("sprite")),
       destination,
     ),
     copyGlyphFiles(
-      await assetDirectory(source, "glyphs", packagePath("static", "maplibre", "glyphs")),
+      await assetDirectory(source, "glyphs", defaultMaplibrePath("glyphs")),
       path.join(destination, "glyphs"),
     ),
   ]);
@@ -73,6 +73,8 @@ const copySpriteFiles = async (source, destination) => {
   await Promise.all(["sprite.json", "sprite.png", "sprite@2x.json", "sprite@2x.png"]
     .map((file) => cp(path.join(source, file), path.join(spriteRoot, file))));
 };
+
+const defaultMaplibrePath = (...parts) => path.join(createDefaultAssetRoots().maplibreAssets, ...parts);
 
 const readSavedStyle = async (root) => {
   const file = path.join(root, "style.json");
