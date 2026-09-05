@@ -64,6 +64,24 @@ GeoPackageを含むMapLibre出力を指定した場合は、既定で`OUTPUT/pub
 `bundle`はPMTiles、`style.json`、sprite、glyphを配布用フォルダにまとめます。詳細は
 [dm-preview README](dm-preview/README.md)を参照してください。
 
+## テストとカバレッジ
+
+各アプリのテストとカバレッジは、アプリのディレクトリから実行します。
+
+```bash
+cd dm-converter
+cargo test --workspace
+cargo llvm-cov --workspace --all-features --html
+
+cd ../dm-preview
+npm install
+npm test
+npm run coverage
+```
+
+`dm-preview`のHTMLレポートは`dm-preview/coverage/index.html`に生成されます。
+カバレッジの導入手順と出力形式の詳細は、各アプリのREADMEを参照してください。
+
 ### 詳細資料
 
 - [MapLibre出力とプレビュー](docs/maplibre-preview.md)

@@ -60,7 +60,11 @@ cd dm-preview
 npm install
 npm run check
 npm test
+npm run coverage
 ```
+
+`npm run coverage`は`c8`を使い、`src/`と`static/assets/`の行・分岐・関数カバレッジを
+標準出力へ表示します。HTMLレポートは`coverage/index.html`に生成されます。
 
 MapLibre spriteを再生成する場合はImageMagickが必要です。
 

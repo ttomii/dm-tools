@@ -2,6 +2,35 @@
 
 DMファイルをGeoPackageまたはMapLibre向けPMTilesへ変換するRust CLIです。
 
+## テストとカバレッジ
+
+通常のテストは`dm-converter`ディレクトリで実行します。
+
+```bash
+cargo test --workspace
+```
+
+HTMLカバレッジを生成するには、初回のみ`cargo-llvm-cov`とRustのLLVMツールを
+インストールします。
+
+```bash
+rustup component add llvm-tools-preview
+cargo install cargo-llvm-cov --locked
+```
+
+その後、次のコマンドでワークスペース全体のカバレッジを計測できます。
+
+```bash
+cargo llvm-cov --workspace --all-features --html
+```
+
+HTMLレポートは`target/llvm-cov/html/index.html`に生成されます。CIなどでLCOV形式が
+必要な場合は、次のコマンドを使います。
+
+```bash
+cargo llvm-cov --workspace --all-features --lcov --output-path target/llvm-cov/lcov.info
+```
+
 ## Windows向けリリースビルドの参考手順
 
 以下はLinux/WSL上でWindows GNUターゲット向けにクロスビルドする場合の一例です。

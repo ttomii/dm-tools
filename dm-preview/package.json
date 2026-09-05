@@ -16,6 +16,7 @@
   "scripts": {
     "check": "find bin src static scripts -name '*.js' -o -name '*.mjs' | xargs -n1 node --check",
     "test": "node --test",
+    "coverage": "c8 --all --include=\"src/**/*.js\" --include=\"static/assets/**/*.js\" --exclude=\"test/**/*.js\" --reporter=text --reporter=html node --test",
     "generate:maplibre-assets": "node scripts/generate-maplibre-assets.mjs",
     "build": "bun build --compile bin/dm-preview.js --outfile dist/dm-preview && node scripts/build.mjs"
   },
@@ -27,5 +28,8 @@
     "maplibre-gl": "^6.0.0",
     "pmtiles": "^4.4.1",
     "proj4": "^2.20.9"
+  },
+  "devDependencies": {
+    "c8": "^12.0.0"
   }
 }
