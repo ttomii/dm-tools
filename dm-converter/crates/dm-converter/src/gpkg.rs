@@ -1154,4 +1154,383 @@ mod tests {
         drop(writer);
         fs::remove_file(path).unwrap();
     }
+
+    #[test]
+    fn writes_base_and_decoration_features_for_all_writer_geometry_paths() {
+        let temp = tempfile::tempdir().unwrap();
+        let path = temp.path().join("all-geometries.gpkg");
+        let line_key = LayerKey {
+            dmcode: 2100,
+            kind: GeometryKind::Line,
+            plane_rectangular_zone: Some(8),
+            map_level: Some(2500),
+        };
+        let point_key = LayerKey {
+            dmcode: 3000,
+            kind: GeometryKind::Point,
+            plane_rectangular_zone: Some(8),
+            map_level: Some(2500),
+        };
+        let text_key = LayerKey {
+            dmcode: 8100,
+            kind: GeometryKind::Text,
+            plane_rectangular_zone: Some(8),
+            map_level: Some(2500),
+        };
+        let decoration_line_key = DecorationLayerKey {
+            source: line_key.clone(),
+            kind: GeometryKind::Line,
+        };
+        let decoration_point_key = DecorationLayerKey {
+            source: point_key.clone(),
+            kind: GeometryKind::Point,
+        };
+        let mut writer = GeoPackageWriter::create(
+            &path,
+            &BTreeSet::from([line_key.clone(), point_key.clone(), text_key.clone()]),
+            &BTreeSet::from([decoration_line_key.clone(), decoration_point_key.clone()]),
+            10,
+            false,
+        )
+        .unwrap();
+
+        let line = |start: f64| Feature {
+            source_file: "sample.dm".to_string(),
+            source_line: 1,
+            plane_rectangular_zone: Some(8),
+            map_level: Some(2500),
+            dmcode: 2100,
+            geometry_kind: GeometryKind::Line,
+            geometry: Geometry::LineString(vec![
+                Coordinate {
+                    x: start,
+                    y: 100_000.0,
+                    z: None,
+                },
+                Coordinate {
+                    x: start + 10.0,
+                    y: 100_010.0,
+                    z: None,
+                },
+            ]),
+            attributes: Attributes::default(),
+            warnings: Vec::new(),
+        };
+        writer.write(line(200_000.0), 1).unwrap();
+        writer.write(line(200_020.0), 2).unwrap();
+        writer
+            .write(
+                Feature {
+                    source_file: "sample.dm".to_string(),
+                    source_line: 2,
+                    plane_rectangular_zone: Some(8),
+                    map_level: Some(2500),
+                    dmcode: 3000,
+                    geometry_kind: GeometryKind::Point,
+                    geometry: Geometry::Point(Coordinate {
+                        x: 200_000.0,
+                        y: 100_000.0,
+                        z: None,
+                    }),
+                    attributes: Attributes {
+                        angle: Some(45.0),
+                        ..Attributes::default()
+                    },
+                    warnings: Vec::new(),
+                },
+                3,
+            )
+            .unwrap();
+        writer
+            .write(
+                Feature {
+                    source_file: "sample.dm".to_string(),
+                    source_line: 3,
+                    plane_rectangular_zone: Some(8),
+                    map_level: Some(2500),
+                    dmcode: 8100,
+                    geometry_kind: GeometryKind::Text,
+                    geometry: Geometry::TextPoint(Coordinate {
+                        x: 200_005.0,
+                        y: 100_005.0,
+                        z: None,
+                    }),
+                    attributes: Attributes {
+                        angle: Some(30.0),
+                        size: Some(12.0),
+                        char_spacing: Some(2.0),
+                        line_no: Some(1),
+                        vertical: Some(1),
+                        text: Some("文字".to_string()),
+                        ..Attributes::default()
+                    },
+                    warnings: Vec::new(),
+                },
+                4,
+            )
+            .unwrap();
+        writer
+            .write_decoration(
+                DecorationFeature {
+                    key: decoration_line_key.clone(),
+                    geometry: Geometry::LineString(vec![
+                        Coordinate {
+                            x: 200_000.0,
+                            y: 100_000.0,
+                            z: None,
+                        },
+                        Coordinate {
+                            x: 200_001.0,
+                            y: 100_001.0,
+                            z: None,
+                        },
+                    ]),
+                    src_layer: "dm_2100_line".to_string(),
+                    src_user_id: 1,
+                    src_dmfile: "sample.dm".to_string(),
+                    src_dmcode: 2100,
+                    decoration: "test_line".to_string(),
+                    deco_index: 1,
+                    angle: None,
+                },
+                5,
+            )
+            .unwrap();
+        writer
+            .write_decoration(
+                DecorationFeature {
+                    key: decoration_point_key.clone(),
+                    geometry: Geometry::Point(Coordinate {
+                        x: 200_002.0,
+                        y: 100_002.0,
+                        z: None,
+                    }),
+                    src_layer: "dm_3000_point".to_string(),
+                    src_user_id: 3,
+                    src_dmfile: "sample.dm".to_string(),
+                    src_dmcode: 3000,
+                    decoration: "test_point".to_string(),
+                    deco_index: 1,
+                    angle: Some(90.0),
+                },
+                6,
+            )
+            .unwrap();
+
+        let counts = writer.finish().unwrap();
+        assert_eq!(counts.get(&layer_name(&line_key)), Some(&2));
+        assert_eq!(counts.get(&layer_name(&point_key)), Some(&1));
+        assert_eq!(counts.get(&layer_name(&text_key)), Some(&1));
+        assert_eq!(
+            counts.get(&decoration_layer_name(&decoration_line_key)),
+            Some(&1)
+        );
+        assert_eq!(
+            counts.get(&decoration_layer_name(&decoration_point_key)),
+            Some(&1)
+        );
+        assert!(writer.layers[&line_key].bounds.unwrap().max_x > 200_020.0);
+    }
+
+    #[test]
+    fn rejects_empty_base_and_decoration_geometries() {
+        let temp = tempfile::tempdir().unwrap();
+        let base_key = LayerKey {
+            dmcode: 2100,
+            kind: GeometryKind::Line,
+            plane_rectangular_zone: Some(8),
+            map_level: Some(2500),
+        };
+        let decoration_key = DecorationLayerKey {
+            source: base_key.clone(),
+            kind: GeometryKind::Line,
+        };
+
+        let base_path = temp.path().join("empty-base.gpkg");
+        let mut base_writer = GeoPackageWriter::create(
+            &base_path,
+            &BTreeSet::from([base_key.clone()]),
+            &BTreeSet::new(),
+            1,
+            false,
+        )
+        .unwrap();
+        let error = base_writer
+            .write(
+                Feature {
+                    source_file: "sample.dm".to_string(),
+                    source_line: 1,
+                    plane_rectangular_zone: Some(8),
+                    map_level: Some(2500),
+                    dmcode: 2100,
+                    geometry_kind: GeometryKind::Line,
+                    geometry: Geometry::LineString(Vec::new()),
+                    attributes: Attributes::default(),
+                    warnings: Vec::new(),
+                },
+                1,
+            )
+            .unwrap_err();
+        assert_eq!(error.to_string(), "invalid geometry: empty geometry");
+
+        let decoration_path = temp.path().join("empty-decoration.gpkg");
+        let mut decoration_writer = GeoPackageWriter::create(
+            &decoration_path,
+            &BTreeSet::from([base_key]),
+            &BTreeSet::from([decoration_key.clone()]),
+            1,
+            false,
+        )
+        .unwrap();
+        let error = decoration_writer
+            .write_decoration(
+                DecorationFeature {
+                    key: decoration_key,
+                    geometry: Geometry::LineString(Vec::new()),
+                    src_layer: "dm_2100_line".to_string(),
+                    src_user_id: 1,
+                    src_dmfile: "sample.dm".to_string(),
+                    src_dmcode: 2100,
+                    decoration: "empty".to_string(),
+                    deco_index: 1,
+                    angle: None,
+                },
+                1,
+            )
+            .unwrap_err();
+        assert_eq!(error.to_string(), "invalid geometry: empty geometry");
+    }
+
+    #[test]
+    fn reports_pending_features_for_layers_not_found_during_flush() {
+        let temp = tempfile::tempdir().unwrap();
+        let known = LayerKey {
+            dmcode: 2100,
+            kind: GeometryKind::Line,
+            plane_rectangular_zone: Some(8),
+            map_level: Some(2500),
+        };
+        let unknown = LayerKey {
+            dmcode: 2101,
+            ..known.clone()
+        };
+        let path = temp.path().join("unknown-base.gpkg");
+        let mut writer = GeoPackageWriter::create(
+            &path,
+            &BTreeSet::from([known.clone()]),
+            &BTreeSet::new(),
+            10,
+            false,
+        )
+        .unwrap();
+        writer
+            .pending
+            .push(PendingWrite::Feature(Box::new(PendingFeature {
+                key: unknown,
+                feature: Feature {
+                    source_file: "sample.dm".to_string(),
+                    source_line: 1,
+                    plane_rectangular_zone: Some(8),
+                    map_level: Some(2500),
+                    dmcode: 2101,
+                    geometry_kind: GeometryKind::Line,
+                    geometry: Geometry::LineString(vec![
+                        Coordinate {
+                            x: 0.0,
+                            y: 0.0,
+                            z: None,
+                        },
+                        Coordinate {
+                            x: 1.0,
+                            y: 1.0,
+                            z: None,
+                        },
+                    ]),
+                    attributes: Attributes::default(),
+                    warnings: Vec::new(),
+                },
+                user_id: 1,
+            })));
+        let error = writer.flush().unwrap_err();
+        assert!(error.to_string().contains("undiscovered layer"));
+
+        let decoration_key = DecorationLayerKey {
+            source: known.clone(),
+            kind: GeometryKind::Line,
+        };
+        let unknown_decoration_key = DecorationLayerKey {
+            source: LayerKey {
+                dmcode: 2102,
+                ..known.clone()
+            },
+            kind: GeometryKind::Line,
+        };
+        let decoration_path = temp.path().join("unknown-decoration.gpkg");
+        let mut decoration_writer = GeoPackageWriter::create(
+            &decoration_path,
+            &BTreeSet::from([known]),
+            &BTreeSet::from([decoration_key]),
+            10,
+            false,
+        )
+        .unwrap();
+        decoration_writer
+            .pending
+            .push(PendingWrite::Decoration(Box::new(PendingDecoration {
+                key: unknown_decoration_key,
+                feature: DecorationFeature {
+                    key: DecorationLayerKey {
+                        source: LayerKey {
+                            dmcode: 2102,
+                            kind: GeometryKind::Line,
+                            plane_rectangular_zone: Some(8),
+                            map_level: Some(2500),
+                        },
+                        kind: GeometryKind::Line,
+                    },
+                    geometry: Geometry::LineString(vec![
+                        Coordinate {
+                            x: 0.0,
+                            y: 0.0,
+                            z: None,
+                        },
+                        Coordinate {
+                            x: 1.0,
+                            y: 1.0,
+                            z: None,
+                        },
+                    ]),
+                    src_layer: "dm_2102_line".to_string(),
+                    src_user_id: 1,
+                    src_dmfile: "sample.dm".to_string(),
+                    src_dmcode: 2102,
+                    decoration: "unknown".to_string(),
+                    deco_index: 1,
+                    angle: None,
+                },
+                user_id: 1,
+            })));
+        let error = decoration_writer.flush().unwrap_err();
+        assert!(error.to_string().contains("undiscovered decoration layer"));
+    }
+
+    #[test]
+    fn layer_names_describe_missing_zone_and_level() {
+        let source = LayerKey {
+            dmcode: 2100,
+            kind: GeometryKind::Line,
+            plane_rectangular_zone: None,
+            map_level: None,
+        };
+        let decoration = DecorationLayerKey {
+            source: source.clone(),
+            kind: GeometryKind::Point,
+        };
+
+        assert_eq!(layer_name(&source), "dm_2100_line_unknown_unknown");
+        assert_eq!(
+            decoration_layer_name(&decoration),
+            "dm_2100_line_unknown_unknown_deco_point"
+        );
+    }
 }

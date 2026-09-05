@@ -603,6 +603,80 @@ fn print_summary(summary: &RunSummary) {
 mod tests {
     use super::*;
 
+    fn fixed_line(fields: &[(usize, &str)]) -> Vec<u8> {
+        let mut line = vec![b' '; 84];
+        for (start, value) in fields {
+            line[*start..*start + value.len()].copy_from_slice(value.as_bytes());
+        }
+        line.push(b'\n');
+        line
+    }
+
+    fn sample_line_dm(dmcode: i64, warning: bool) -> Vec<u8> {
+        let mut input = Vec::new();
+        input.extend(fixed_line(&[
+            (0, "M "),
+            (2, "08DF244"),
+            (30, " 2500"),
+            (65, " 0"),
+        ]));
+        input.extend(fixed_line(&[(0, " 100000"), (7, " 200000"), (44, "999")]));
+        input.extend(fixed_line(&[]));
+        input.extend(fixed_line(&[(9, "0")]));
+        input.extend(fixed_line(&[(40, "0000"), (44, "0000")]));
+        if warning {
+            input.extend(fixed_line(&[(0, "G "), (26, "0000")]));
+        }
+        let dmcode = format!("{dmcode:04}");
+        input.extend(fixed_line(&[
+            (0, "E2"),
+            (2, dmcode.as_str()),
+            (20, "2"),
+            (27, "0002"),
+            (31, "0001"),
+        ]));
+        input.extend(fixed_line(&[
+            (0, "0000010"),
+            (7, "0000020"),
+            (14, "0000030"),
+            (21, "0000040"),
+        ]));
+        input
+    }
+
+    fn args_for(input: &Path, output: &Path, format: OutputFormat) -> ConvertArgs {
+        ConvertArgs {
+            input: input.to_path_buf(),
+            output: output.to_path_buf(),
+            format,
+            layer_name: (format == OutputFormat::Pmtiles).then(|| "sample".to_string()),
+            encoding: encoding_rs::SHIFT_JIS,
+            include_codes: Vec::new(),
+            include_types: Vec::new(),
+            overwrite: false,
+            batch_size: 1,
+            decorations: true,
+            progress: false,
+        }
+    }
+
+    fn test_feature(
+        geometry_kind: dm_parser::GeometryKind,
+        geometry: dm_parser::Geometry,
+    ) -> dm_parser::Feature {
+        dm_parser::Feature {
+            source_file: "sample.dm".to_string(),
+            source_line: 1,
+            plane_rectangular_zone: Some(8),
+            map_level: Some(2500),
+            dmcode: 2100,
+            geometry_kind,
+            geometry,
+            attributes: dm_parser::Attributes::default(),
+            warnings: Vec::new(),
+        }
+    }
+
     #[test]
     fn parses_convert_subcommand_with_gpkg_defaults() {
         let cli =
@@ -663,6 +737,276 @@ mod tests {
         assert_eq!(
             fs::read(temp.path().join("dm-sample.gpkg")).unwrap(),
             b"gpkg"
+        );
+    }
+
+    #[test]
+    fn parses_encoding_and_batch_size_values() {
+        assert_eq!(parse_encoding("utf-8").unwrap(), encoding_rs::UTF_8);
+        assert!(parse_encoding("unknown-encoding").is_err());
+        assert_eq!(parse_batch_size("12").unwrap(), 12);
+        assert!(parse_batch_size("0").is_err());
+        assert!(parse_batch_size("not-a-number").is_err());
+    }
+
+    #[test]
+    fn filters_features_by_code_and_geometry_type() {
+        let coordinates = vec![
+            dm_parser::Coordinate {
+                x: 0.0,
+                y: 0.0,
+                z: None,
+            },
+            dm_parser::Coordinate {
+                x: 1.0,
+                y: 1.0,
+                z: None,
+            },
+        ];
+        let cases = [
+            (
+                GeometryType::Polygon,
+                test_feature(
+                    dm_parser::GeometryKind::Polygon,
+                    dm_parser::Geometry::Polygon(vec![
+                        coordinates[0],
+                        coordinates[1],
+                        coordinates[0],
+                    ]),
+                ),
+            ),
+            (
+                GeometryType::Line,
+                test_feature(
+                    dm_parser::GeometryKind::Line,
+                    dm_parser::Geometry::LineString(coordinates.clone()),
+                ),
+            ),
+            (
+                GeometryType::Circle,
+                test_feature(
+                    dm_parser::GeometryKind::Line,
+                    dm_parser::Geometry::Circle {
+                        center: coordinates[0],
+                        radius: 1.0,
+                        source: [coordinates[0]; 3],
+                    },
+                ),
+            ),
+            (
+                GeometryType::Arc,
+                test_feature(
+                    dm_parser::GeometryKind::Line,
+                    dm_parser::Geometry::Arc {
+                        center: coordinates[0],
+                        radius: 1.0,
+                        start_angle: 0.0,
+                        end_angle: 90.0,
+                        clockwise: false,
+                        source: [coordinates[0]; 3],
+                    },
+                ),
+            ),
+            (
+                GeometryType::Point,
+                test_feature(
+                    dm_parser::GeometryKind::Point,
+                    dm_parser::Geometry::Point(coordinates[0]),
+                ),
+            ),
+            (GeometryType::Direction, {
+                let mut feature = test_feature(
+                    dm_parser::GeometryKind::Point,
+                    dm_parser::Geometry::Point(coordinates[0]),
+                );
+                feature.attributes.angle = Some(90.0);
+                feature
+            }),
+            (
+                GeometryType::Text,
+                test_feature(
+                    dm_parser::GeometryKind::Text,
+                    dm_parser::Geometry::TextPoint(coordinates[0]),
+                ),
+            ),
+        ];
+        for (filter, feature) in cases {
+            assert!(type_matches(filter, &feature));
+        }
+
+        let mut args = args_for(
+            Path::new("input.dm"),
+            Path::new("output.gpkg"),
+            OutputFormat::Gpkg,
+        );
+        args.include_codes = vec![2100];
+        args.include_types = vec![GeometryType::Line];
+        let line = test_feature(
+            dm_parser::GeometryKind::Line,
+            dm_parser::Geometry::LineString(coordinates),
+        );
+        assert!(included(&args, &line));
+        args.include_codes = vec![9999];
+        assert!(!included(&args, &line));
+    }
+
+    #[test]
+    fn discovers_dm_files_recursively_and_handles_extensions() {
+        let temp = tempfile::tempdir().unwrap();
+        let nested = temp.path().join("nested");
+        fs::create_dir(&nested).unwrap();
+        let first = temp.path().join("b.DM");
+        let second = nested.join("a.dm");
+        fs::write(&first, b"").unwrap();
+        fs::write(&second, b"").unwrap();
+        fs::write(temp.path().join("ignored.txt"), b"").unwrap();
+
+        assert_eq!(
+            discover_dm_files(temp.path()).unwrap(),
+            vec![first.clone(), second.clone()]
+        );
+        assert_eq!(discover_dm_files(&first).unwrap(), vec![first.clone()]);
+        assert!(discover_dm_files(&temp.path().join("ignored.txt")).is_err());
+        assert!(is_dm(&first));
+        assert!(!is_dm(&temp.path().join("without-extension")));
+        let gpkg = temp.path().join("sample.GPKG");
+        fs::write(&gpkg, b"").unwrap();
+        assert!(is_gpkg(&gpkg));
+        assert!(!is_gpkg(&first));
+    }
+
+    #[test]
+    fn validates_existing_outputs_and_parent_directories() {
+        let temp = tempfile::tempdir().unwrap();
+        let input = temp.path().join("input.dm");
+        fs::write(&input, b"").unwrap();
+
+        let mut args = args_for(&input, &temp.path().join("output.gpkg"), OutputFormat::Gpkg);
+        assert!(validate(&args, &args.input, &args.output).is_ok());
+
+        let output_directory = temp.path().join("output-directory.gpkg");
+        fs::create_dir(&output_directory).unwrap();
+        args.output = output_directory;
+        args.overwrite = true;
+        assert!(validate(&args, &args.input, &args.output).is_err());
+
+        let existing_file = temp.path().join("existing.gpkg");
+        fs::write(&existing_file, b"").unwrap();
+        args.output = existing_file;
+        args.overwrite = false;
+        assert!(validate(&args, &args.input, &args.output).is_err());
+
+        args.output = temp.path().join("missing-parent").join("output.gpkg");
+        args.overwrite = true;
+        assert!(validate(&args, &args.input, &args.output).is_err());
+
+        args.format = OutputFormat::Pmtiles;
+        args.layer_name = None;
+        assert!(validate(&args, &args.input, &args.output).is_err());
+    }
+
+    #[test]
+    fn converts_dm_to_gpkg_and_pmtiles_and_reads_gpkg_input() {
+        let temp = tempfile::tempdir().unwrap();
+        let input = temp.path().join("08sample.dm");
+        fs::write(&input, sample_line_dm(2204, false)).unwrap();
+
+        let gpkg = temp.path().join("sample.gpkg");
+        let args = args_for(&input, &gpkg, OutputFormat::Gpkg);
+        assert_eq!(run_conversion(args), ExitCode::SUCCESS);
+        assert!(gpkg.exists());
+
+        let from_dm = temp.path().join("from-dm");
+        let args = args_for(&input, &from_dm, OutputFormat::Pmtiles);
+        assert_eq!(run_conversion(args), ExitCode::SUCCESS);
+        assert!(from_dm.join("sample.pmtiles").exists());
+        assert!(from_dm.join("sample.gpkg").exists());
+
+        let from_gpkg = temp.path().join("from-gpkg");
+        let args = args_for(&gpkg, &from_gpkg, OutputFormat::Pmtiles);
+        assert_eq!(run_conversion(args), ExitCode::SUCCESS);
+        assert!(from_gpkg.join("sample.pmtiles").exists());
+    }
+
+    #[test]
+    fn reports_warnings_and_maplibre_empty_inputs() {
+        let temp = tempfile::tempdir().unwrap();
+        let input = temp.path().join("08warning.dm");
+        fs::write(&input, sample_line_dm(2204, true)).unwrap();
+        let output = temp.path().join("warning.gpkg");
+        let args = args_for(&input, &output, OutputFormat::Gpkg);
+        assert_eq!(run_conversion(args), ExitCode::from(3));
+        assert!(output.exists());
+
+        let empty_gpkg = temp.path().join("empty.gpkg");
+        let mut writer =
+            GeoPackageWriter::create(&empty_gpkg, &BTreeSet::new(), &BTreeSet::new(), 1, false)
+                .unwrap();
+        writer.finish().unwrap();
+        let output = temp.path().join("empty-output");
+        let args = args_for(&empty_gpkg, &output, OutputFormat::Pmtiles);
+        assert_eq!(run_conversion(args), ExitCode::from(2));
+    }
+
+    #[test]
+    fn handles_directory_replacement_and_cleanup_helpers() {
+        let temp = tempfile::tempdir().unwrap();
+        let output = temp.path().join("output");
+        fs::create_dir(&output).unwrap();
+        fs::write(output.join("old.txt"), b"old").unwrap();
+
+        let staged = tempfile::tempdir_in(temp.path()).unwrap();
+        let staged_path = staged.path().to_path_buf();
+        fs::write(staged.path().join("new.txt"), b"new").unwrap();
+        assert!(replace_directory(staged, &output, false).is_err());
+        fs::remove_dir_all(staged_path).unwrap();
+
+        let staged = tempfile::tempdir_in(temp.path()).unwrap();
+        fs::write(staged.path().join("new.txt"), b"new").unwrap();
+        replace_directory(staged, &output, true).unwrap();
+        assert_eq!(fs::read(output.join("new.txt")).unwrap(), b"new");
+
+        let same = temp.path().join("same.gpkg");
+        fs::write(&same, b"same").unwrap();
+        preserve_gpkg(&same, temp.path(), "same").unwrap();
+        assert_eq!(fs::read(&same).unwrap(), b"same");
+
+        let cleanup = temp.path().join("cleanup.gpkg");
+        fs::write(&cleanup, b"").unwrap();
+        fs::write(format!("{}-wal", cleanup.display()), b"").unwrap();
+        fs::write(format!("{}-shm", cleanup.display()), b"").unwrap();
+        cleanup_gpkg(&cleanup);
+        assert!(!cleanup.exists());
+
+        let mut ids = BTreeMap::new();
+        assert_eq!(next_id(&mut ids, "layer"), 1);
+        assert_eq!(next_id(&mut ids, "layer"), 2);
+    }
+
+    #[test]
+    fn reports_missing_input_from_conversion_entrypoint() {
+        let temp = tempfile::tempdir().unwrap();
+        let args = args_for(
+            &temp.path().join("missing.dm"),
+            &temp.path().join("output.gpkg"),
+            OutputFormat::Gpkg,
+        );
+        assert_eq!(run_conversion(args), ExitCode::from(2));
+    }
+
+    #[test]
+    fn handles_missing_output_parents_before_writing_output() {
+        let temp = tempfile::tempdir().unwrap();
+        let mut args = args_for(
+            &temp.path().join("input.dm"),
+            Path::new(""),
+            OutputFormat::Pmtiles,
+        );
+        args.input = temp.path().join("input.dm");
+        assert!(run_maplibre(&args, Path::new(""), &[]).is_err());
+        assert!(
+            run_maplibre_from_gpkg(&args, Path::new(""), &temp.path().join("missing.gpkg"))
+                .is_err()
         );
     }
 }

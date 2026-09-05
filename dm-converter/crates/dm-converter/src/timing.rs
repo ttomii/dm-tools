@@ -235,4 +235,15 @@ mod tests {
             .expect("valid local time");
         assert_eq!(completion_clock(now, Duration::from_secs(125)), "14:32:05");
     }
+
+    #[test]
+    fn records_run_start_and_handles_progress_display_messages() {
+        mark_run_start();
+        assert!(total_elapsed() < Duration::from_secs(1));
+
+        let mut display = ProgressDisplay::new(true);
+        display.message("coverage test");
+        display.draw();
+        display.clear();
+    }
 }

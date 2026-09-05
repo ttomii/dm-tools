@@ -97,7 +97,7 @@ struct Projector {
 impl Projector {
     fn new(layers: &[GpkgLayer]) -> Result<Self, MapLibreError> {
         let web_mercator = Proj::from_proj_string("+proj=webmerc +datum=WGS84 +units=m")
-            .map_err(|error| MapLibreError::Projection(error.to_string()))?;
+            .map_err(projection_error)?;
         let local = layers
             .iter()
             .map(|layer| layer.zone)
@@ -108,7 +108,7 @@ impl Projector {
                 let projection = Proj::from_proj_string(&format!(
                     "+proj=tmerc +lat_0={lat_0} +lon_0={lon_0} +k=0.9999 +x_0=0 +y_0=0 +ellps=GRS80 +units=m"
                 ))
-                .map_err(|error| MapLibreError::Projection(error.to_string()))?;
+                .map_err(projection_error)?;
                 Ok((zone, projection))
             })
             .collect::<Result<_, MapLibreError>>()?;
@@ -191,7 +191,10 @@ fn summarize_gpkg(
             [],
             |row| {
                 let count = row.get::<_, i64>(0)?;
-                u64::try_from(count).map_err(|_| rusqlite::Error::IntegralValueOutOfRange(0, count))
+                match u64::try_from(count) {
+                    Ok(count) => Ok(count),
+                    Err(_) => Err(rusqlite::Error::IntegralValueOutOfRange(0, count)),
+                }
             },
         )?;
         summary.features += count;
@@ -334,12 +337,15 @@ fn transform_points(
         .iter()
         .map(|point| (point.x, point.y, point.z.unwrap_or(0.0)))
         .collect::<Vec<_>>();
-    transform::transform(source, destination, tuples.as_mut_slice())
-        .map_err(|error| MapLibreError::Projection(error.to_string()))?;
+    transform::transform(source, destination, tuples.as_mut_slice()).map_err(projection_error)?;
     Ok(tuples
         .into_iter()
         .map(|(x, y, z)| Coordinate { x, y, z: Some(z) })
         .collect())
+}
+
+fn projection_error(error: proj4rs::errors::Error) -> MapLibreError {
+    MapLibreError::Projection(error.to_string())
 }
 
 fn zone_from_srs_id(srs_id: i64) -> Option<u8> {
@@ -1733,6 +1739,441 @@ mod tests {
             ),
             5.0
         );
+    }
+
+    #[test]
+    fn converts_a_geopackage_with_all_geometry_and_decoration_layers() {
+        use crate::gpkg::{DecorationFeature, DecorationLayerKey, GeoPackageWriter, LayerKey};
+
+        let temp = tempfile::tempdir().unwrap();
+        let gpkg = temp.path().join("all-layers.gpkg");
+        let line_key = LayerKey {
+            dmcode: 2100,
+            kind: GeometryKind::Line,
+            plane_rectangular_zone: Some(8),
+            map_level: Some(2500),
+        };
+        let polygon_key = LayerKey {
+            dmcode: 3000,
+            kind: GeometryKind::Polygon,
+            plane_rectangular_zone: Some(8),
+            map_level: Some(2500),
+        };
+        let point_key = LayerKey {
+            dmcode: 4000,
+            kind: GeometryKind::Point,
+            plane_rectangular_zone: Some(8),
+            map_level: Some(2500),
+        };
+        let text_key = LayerKey {
+            dmcode: 8100,
+            kind: GeometryKind::Text,
+            plane_rectangular_zone: Some(8),
+            map_level: Some(2500),
+        };
+        let decoration_line_key = DecorationLayerKey {
+            source: line_key.clone(),
+            kind: GeometryKind::Line,
+        };
+        let decoration_point_key = DecorationLayerKey {
+            source: point_key.clone(),
+            kind: GeometryKind::Point,
+        };
+        let mut writer = GeoPackageWriter::create(
+            &gpkg,
+            &BTreeSet::from([
+                line_key.clone(),
+                polygon_key.clone(),
+                point_key.clone(),
+                text_key.clone(),
+            ]),
+            &BTreeSet::from([decoration_line_key.clone(), decoration_point_key.clone()]),
+            20,
+            false,
+        )
+        .unwrap();
+
+        let coordinate = |x: f64, y: f64| Coordinate { x, y, z: None };
+        let feature =
+            |key: &LayerKey, geometry: Geometry, attributes: dm_parser::Attributes| Feature {
+                source_file: "sample.dm".to_string(),
+                source_line: 1,
+                plane_rectangular_zone: key.plane_rectangular_zone,
+                map_level: key.map_level,
+                dmcode: key.dmcode,
+                geometry_kind: key.kind,
+                geometry,
+                attributes,
+                warnings: Vec::new(),
+            };
+
+        writer
+            .write(
+                feature(
+                    &line_key,
+                    Geometry::LineString(vec![
+                        coordinate(200_000.0, 100_000.0),
+                        coordinate(200_020.0, 100_020.0),
+                    ]),
+                    dm_parser::Attributes::default(),
+                ),
+                1,
+            )
+            .unwrap();
+        writer
+            .write(
+                feature(
+                    &polygon_key,
+                    Geometry::Polygon(vec![
+                        coordinate(200_000.0, 100_000.0),
+                        coordinate(200_020.0, 100_000.0),
+                        coordinate(200_020.0, 100_020.0),
+                        coordinate(200_000.0, 100_020.0),
+                        coordinate(200_000.0, 100_000.0),
+                    ]),
+                    dm_parser::Attributes::default(),
+                ),
+                2,
+            )
+            .unwrap();
+        writer
+            .write(
+                feature(
+                    &point_key,
+                    Geometry::Point(coordinate(200_010.0, 100_010.0)),
+                    dm_parser::Attributes {
+                        angle: Some(45.0),
+                        ..dm_parser::Attributes::default()
+                    },
+                ),
+                3,
+            )
+            .unwrap();
+        writer
+            .write(
+                feature(
+                    &text_key,
+                    Geometry::TextPoint(coordinate(200_015.0, 100_015.0)),
+                    dm_parser::Attributes {
+                        angle: Some(30.0),
+                        size: Some(12.0),
+                        char_spacing: Some(2.0),
+                        line_no: Some(1),
+                        vertical: Some(1),
+                        text: Some("スーパーー".to_string()),
+                        ..dm_parser::Attributes::default()
+                    },
+                ),
+                4,
+            )
+            .unwrap();
+        writer
+            .write_decoration(
+                DecorationFeature {
+                    key: decoration_line_key,
+                    geometry: Geometry::LineString(vec![
+                        coordinate(200_001.0, 100_001.0),
+                        coordinate(200_002.0, 100_002.0),
+                    ]),
+                    src_layer: "dm_2100_line".to_string(),
+                    src_user_id: 1,
+                    src_dmfile: "sample.dm".to_string(),
+                    src_dmcode: 2100,
+                    decoration: "test_line".to_string(),
+                    deco_index: 1,
+                    angle: None,
+                },
+                5,
+            )
+            .unwrap();
+        writer
+            .write_decoration(
+                DecorationFeature {
+                    key: decoration_point_key,
+                    geometry: Geometry::Point(coordinate(200_003.0, 100_003.0)),
+                    src_layer: "dm_4000_point".to_string(),
+                    src_user_id: 3,
+                    src_dmfile: "sample.dm".to_string(),
+                    src_dmcode: 4000,
+                    decoration: "test_point".to_string(),
+                    deco_index: 1,
+                    angle: Some(90.0),
+                },
+                6,
+            )
+            .unwrap();
+        writer.finish().unwrap();
+
+        let output = temp.path().join("maplibre");
+        let summary = write_from_gpkg(&output, "all-layers", &gpkg, false).unwrap();
+        assert_eq!(summary.features, 6);
+        assert_eq!(summary.layers, 6);
+        assert_eq!(summary.levels, BTreeSet::from([2500]));
+        assert!(summary.tiles > 0);
+        assert!(output.join("all-layers.pmtiles").exists());
+        assert!(output.join("pmtiles-manifest.json").exists());
+        assert!(summary.source_layers.contains("dm_annotation"));
+        assert!(summary.source_layers.contains("dm_2100_line_deco_line"));
+        assert!(summary.source_layers.contains("dm_4000_point_deco_point"));
+    }
+
+    #[test]
+    fn exercises_projection_geometry_and_vector_tile_helpers() {
+        let layer = GpkgLayer {
+            table_name: "dm_2100_line_08_2500".to_string(),
+            kind: GeometryKind::Line,
+            zone: 8,
+            level: 2500,
+            decoration: false,
+            bounds: [200_000.0, 100_000.0, 200_020.0, 100_020.0],
+        };
+        let projector = Projector::new(&[layer]).unwrap();
+        let local = projector.local(8).unwrap();
+        assert!(projector.local(7).is_err());
+        let projected = transform_points(
+            local,
+            &projector.web_mercator,
+            &[Coordinate {
+                x: 200_000.0,
+                y: 100_000.0,
+                z: Some(3.0),
+            }],
+        )
+        .unwrap();
+        assert_eq!(projected.len(), 1);
+        let _ = mercator_to_lon_lat(projected[0]);
+        assert!(
+            transform_points(
+                local,
+                &projector.web_mercator,
+                &[Coordinate {
+                    x: f64::NAN,
+                    y: 100_000.0,
+                    z: None,
+                }],
+            )
+            .is_err()
+        );
+        assert_eq!(zone_from_srs_id(6676), Some(8));
+        assert_eq!(zone_from_srs_id(-1), None);
+        assert_eq!(
+            projection_error(proj4rs::errors::Error::NanCoordinateValue).to_string(),
+            "coordinate transform failed: Nan value for coordinate"
+        );
+        assert_eq!(quote_identifier("a\"b"), "\"a\"\"b\"");
+
+        let tile = TileKey {
+            z: MIN_ZOOM,
+            x: 1 << (MIN_ZOOM - 1),
+            y: 1 << (MIN_ZOOM - 1),
+        };
+        let _ = tile_range(&projected, MIN_ZOOM);
+        assert_eq!(mercator_tile(-1.0e20, 1.0e20, MIN_ZOOM), (0, 0));
+        assert_eq!(
+            tile_point(projected[0], tile),
+            tile_point(projected[0], tile)
+        );
+        assert_eq!(round_away(1.5), 2);
+        assert_eq!(round_away(-1.5), -2);
+
+        assert!(inside((0, 0)));
+        assert!(!inside((-BUFFER - 1, 0)));
+        assert!(clip_segment((-100, 0), (100, 0)).is_some());
+        assert!(clip_segment((-100, 0), (-90, 0)).is_none());
+        assert!(clip_line(&[(-100, 0), (-90, 0)]).is_empty());
+        assert_eq!(simplify(&[(0, 0), (1, 1)], 1.0), vec![(0, 0), (1, 1)]);
+        assert_eq!(
+            simplify(&[(0, 0), (1, 0), (2, 0)], 1.0),
+            vec![(0, 0), (2, 0)]
+        );
+        assert!(simplify(&[(0, 0), (10, 10), (20, 1), (30, 0)], 1.0).len() > 2);
+        assert_eq!(perpendicular_distance((3, 4), (0, 0), (0, 0)), 5.0);
+        assert!(perpendicular_distance((1, 1), (0, 0), (2, 0)) > 0.0);
+
+        let polygon = vec![
+            (-100, -100),
+            (EXTENT as i32 + 100, -100),
+            (EXTENT as i32 + 100, EXTENT as i32 + 100),
+            (-100, EXTENT as i32 + 100),
+            (-100, -100),
+        ];
+        let clipped = clip_polygon(&polygon);
+        assert!(!clipped.is_empty());
+        for edge in 0..4 {
+            let _ = polygon_inside((0, 0), edge);
+        }
+        assert_eq!(polygon_intersection((-100, 0), (100, 0), 0).0, -BUFFER);
+        assert_eq!(polygon_intersection((0, -100), (0, 100), 2).1, -BUFFER);
+        let area = signed_area(&[(0, 0), (1, 0), (1, 1)]);
+        assert!(area > 0.0);
+        assert_eq!(
+            clockwise(vec![(0, 0), (1, 1), (1, 0)]),
+            vec![(1, 0), (1, 1), (0, 0)]
+        );
+        assert_eq!(command(2, 3), 26);
+        let mut encoded = Vec::new();
+        let mut cursor = (0, 0);
+        delta(&mut encoded, &mut cursor, (2, -3));
+        assert_eq!(encoded, vec![4, 5]);
+        assert_eq!(zigzag(-2), 3);
+
+        assert!(clipped_geometry(GeometryKind::Point, &[(0, 0)]).is_some());
+        assert!(clipped_geometry(GeometryKind::Text, &[(0, 0)]).is_some());
+        assert!(
+            clipped_geometry(GeometryKind::Point, &[(EXTENT as i32 + BUFFER + 1, 0)]).is_none()
+        );
+        assert!(clipped_geometry(GeometryKind::Line, &[(-100, 0), (100, 0)]).is_some());
+        assert!(clipped_geometry(GeometryKind::Polygon, &polygon).is_some());
+        assert!(clipped_geometry(GeometryKind::Polygon, &[(0, 0), (1, 1), (2, 2)]).is_none());
+        assert!(encode_geometry(GeometryKind::Point, &[vec![(1, 1)]]).is_some());
+        assert!(encode_geometry(GeometryKind::Line, &[vec![(1, 1)]]).is_some());
+        assert!(encode_geometry(GeometryKind::Polygon, &[]).is_none());
+
+        let mut encoder = LayerEncoder::default();
+        let mut tags = Vec::new();
+        push_int(&mut tags, &mut encoder, "INT", 1);
+        push_double(&mut tags, &mut encoder, "DOUBLE", 1.5);
+        push_string(&mut tags, &mut encoder, "STRING", "value");
+        push_string(&mut tags, &mut encoder, "STRING", "value");
+        push_int_opt(&mut tags, &mut encoder, "NONE", None);
+        assert_eq!(
+            value_key(&vector_tile::Value {
+                int_value: Some(1),
+                ..Default::default()
+            }),
+            ValueKey::Int(1)
+        );
+        assert!(matches!(
+            value_key(&vector_tile::Value {
+                double_value: Some(1.0),
+                ..Default::default()
+            }),
+            ValueKey::Double(_)
+        ));
+        assert_eq!(
+            value_key(&vector_tile::Value {
+                string_value: Some("value".to_string()),
+                ..Default::default()
+            }),
+            ValueKey::String("value".to_string())
+        );
+        assert_eq!(
+            value_key(&vector_tile::Value::default()),
+            ValueKey::String(String::new())
+        );
+        assert!(encode_tile(tile, BTreeMap::new()).unwrap().is_empty());
+
+        let mut text = sample_feature();
+        text.geometry_kind = GeometryKind::Text;
+        text.geometry = Geometry::TextPoint(Coordinate {
+            x: 0.0,
+            y: 0.0,
+            z: None,
+        });
+        text.attributes.angle = Some(10.0);
+        let projected_text = ProjectedFeature {
+            feature: text,
+            user_id: 1,
+            points: vec![],
+            decoration: None,
+        };
+        assert_eq!(rotation(&projected_text), Some(350.0));
+        assert_eq!(
+            geometry_from_points(
+                GeometryKind::Point,
+                vec![Coordinate {
+                    x: 0.0,
+                    y: 0.0,
+                    z: None
+                }]
+            ),
+            Geometry::Point(Coordinate {
+                x: 0.0,
+                y: 0.0,
+                z: None
+            })
+        );
+        assert!(matches!(
+            geometry_from_points(
+                GeometryKind::Text,
+                vec![Coordinate {
+                    x: 0.0,
+                    y: 0.0,
+                    z: None
+                }]
+            ),
+            Geometry::TextPoint(_)
+        ));
+        assert!(matches!(
+            geometry_from_points(GeometryKind::Line, vec![]),
+            Geometry::LineString(_)
+        ));
+        assert!(matches!(
+            geometry_from_points(GeometryKind::Polygon, vec![]),
+            Geometry::Polygon(_)
+        ));
+    }
+
+    #[test]
+    fn reports_malformed_geometry_and_layer_names() {
+        let mut offset = 0;
+        assert!(read_u32(&[], &mut offset).is_err());
+        assert!(read_f64(&[], &mut offset).is_err());
+        assert!(read_coordinate(&[], &mut offset).is_err());
+
+        let connection = Connection::open_in_memory().unwrap();
+        connection
+            .execute_batch(
+                "CREATE TABLE gpkg_contents (
+                   table_name TEXT PRIMARY KEY,
+                   data_type TEXT NOT NULL,
+                   min_x REAL,
+                   min_y REAL,
+                   max_x REAL,
+                   max_y REAL
+                 );
+                 CREATE TABLE gpkg_geometry_columns (
+                   table_name TEXT PRIMARY KEY,
+                   geometry_type_name TEXT NOT NULL,
+                   srs_id INTEGER NOT NULL
+                 );
+                 INSERT INTO gpkg_contents
+                   (table_name, data_type, min_x, min_y, max_x, max_y)
+                 VALUES ('dm_2100_unknown_08_2500', 'features', 0, 0, 1, 1);
+                 INSERT INTO gpkg_geometry_columns
+                   (table_name, geometry_type_name, srs_id)
+                 VALUES ('dm_2100_unknown_08_2500', 'UNKNOWN', 6676);",
+            )
+            .unwrap();
+        assert!(matches!(
+            read_layers(&connection),
+            Err(MapLibreError::UnsupportedLayer { .. })
+        ));
+
+        connection.execute("DELETE FROM gpkg_contents", []).unwrap();
+        connection
+            .execute("DELETE FROM gpkg_geometry_columns", [])
+            .unwrap();
+        connection
+            .execute(
+                "INSERT INTO gpkg_contents
+                   (table_name, data_type, min_x, min_y, max_x, max_y)
+                 VALUES ('dm_2100_line_08_invalid', 'features', 0, 0, 1, 1)",
+                [],
+            )
+            .unwrap();
+        connection
+            .execute(
+                "INSERT INTO gpkg_geometry_columns
+                   (table_name, geometry_type_name, srs_id)
+                 VALUES ('dm_2100_line_08_invalid', 'LINESTRING', 6676)",
+                [],
+            )
+            .unwrap();
+        assert!(matches!(
+            read_layers(&connection),
+            Err(MapLibreError::UnsupportedLayer { .. })
+        ));
     }
 
     fn sample_feature() -> Feature {

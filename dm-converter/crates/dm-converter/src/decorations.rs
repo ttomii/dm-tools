@@ -1673,6 +1673,30 @@ mod tests {
     }
 
     #[test]
+    fn generates_bridge_openings() {
+        let feature = line_feature(2204);
+        let key = LayerKey::from_feature(&feature);
+        let rows = generate(&feature, &key, "dm_2204_line_08_2500", 1);
+
+        assert_eq!(rows.len(), 2);
+        assert!(rows.iter().all(|row| row.decoration == "bridge_opening"));
+    }
+
+    #[test]
+    fn generates_bridge_piers_on_the_right_side() {
+        let feature = line_feature(2206);
+        let key = LayerKey::from_feature(&feature);
+        let rows = generate(&feature, &key, "dm_2206_line_08_2500", 1);
+
+        assert!(!rows.is_empty());
+        assert!(rows.iter().all(|row| row.decoration == "bridge_pier"));
+        assert!(
+            rows.iter()
+                .all(|row| matches!(row.geometry, Geometry::LineString(_)))
+        );
+    }
+
+    #[test]
     fn generates_footbridge_openings_without_line_symbols() {
         let feature = line_feature(2205);
         let key = LayerKey::from_feature(&feature);

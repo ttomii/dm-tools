@@ -1186,4 +1186,146 @@ mod tests {
             .unwrap();
         assert_eq!(feature.attributes.text.as_deref(), Some("新潟市"));
     }
+
+    #[test]
+    fn covers_public_summaries_and_edge_helpers() {
+        assert_eq!(GeometryKind::Polygon.as_str(), "polygon");
+        assert_eq!(GeometryKind::Line.as_str(), "line");
+        assert_eq!(GeometryKind::Point.as_str(), "point");
+        assert_eq!(GeometryKind::Text.as_str(), "text");
+
+        let feature = Feature {
+            source_file: "test.dm".to_string(),
+            source_line: 1,
+            plane_rectangular_zone: Some(8),
+            map_level: Some(2500),
+            dmcode: 2100,
+            geometry_kind: GeometryKind::Point,
+            geometry: Geometry::Point(Coordinate {
+                x: 0.0,
+                y: 0.0,
+                z: None,
+            }),
+            attributes: Attributes::default(),
+            warnings: Vec::new(),
+        };
+        let summary = summarize(vec![
+            Ok(ParseEvent::Metadata(DmMetadata {
+                plane_rectangular_zone: Some(8),
+            })),
+            Ok(ParseEvent::Feature(Box::new(feature))),
+            Ok(ParseEvent::Warning(ParseWarning {
+                source_file: "test.dm".to_string(),
+                source_line: 2,
+                message: "warning".to_string(),
+                skipped: true,
+            })),
+        ])
+        .unwrap();
+        assert_eq!(summary.features, 1);
+        assert_eq!(summary.warnings, 1);
+        assert_eq!(summary.skipped, 1);
+        assert!(
+            summarize(vec![Err(ParseError::Io {
+                source_file: "test.dm".to_string(),
+                line: 1,
+                source: std::io::Error::other("test"),
+            })])
+            .is_err()
+        );
+
+        assert_eq!(field(b"123", 0, 2), Some(&b"12"[..]));
+        assert_eq!(number_i64(b" 12 ", 0, 4), Some(12));
+        assert_eq!(number_f64(b" 1.5", 0, 4), Some(1.5));
+        assert!(required_i64(b"bad", 0, 3, "value").is_err());
+        assert!(required_f64(b"bad", 0, 3, "value").is_err());
+
+        let mesh = Mesh {
+            origin_x: 10.0,
+            origin_y: 20.0,
+            unit: 1.0,
+        };
+        assert!(coordinates(&[], 2, 1, mesh).is_err());
+        let mut open_ring = vec![
+            Coordinate {
+                x: 1.0,
+                y: 2.0,
+                z: None,
+            },
+            Coordinate {
+                x: 3.0,
+                y: 4.0,
+                z: None,
+            },
+        ];
+        close_ring(&mut open_ring);
+        assert_eq!(open_ring.len(), 3);
+        let first = open_ring[0];
+        close_ring(&mut open_ring);
+        assert_eq!(open_ring[0], first);
+        close_ring(&mut Vec::new());
+
+        assert!(
+            circle_from_three([
+                Coordinate {
+                    x: 0.0,
+                    y: 0.0,
+                    z: None,
+                },
+                Coordinate {
+                    x: 1.0,
+                    y: 1.0,
+                    z: None,
+                },
+                Coordinate {
+                    x: 2.0,
+                    y: 2.0,
+                    z: None,
+                },
+            ])
+            .is_err()
+        );
+        let center = Coordinate {
+            x: 0.0,
+            y: 0.0,
+            z: None,
+        };
+        assert_eq!(
+            angle(
+                center,
+                Coordinate {
+                    x: 0.0,
+                    y: 1.0,
+                    z: None
+                }
+            ),
+            90.0
+        );
+        assert_eq!(normalize_angle(-90.0), 270.0);
+        assert_eq!(normalize_angle(720.0), 0.0);
+        assert_eq!(plane_rectangular_zone_from_record(b"I 08"), Some(8));
+        assert_eq!(plane_rectangular_zone_from_record(b"I 20"), None);
+        assert_eq!(display_source(Path::new("test.dm")), "test.dm");
+        assert_eq!(display_source(Path::new("")), "");
+
+        let parser = DmParser::new(
+            Cursor::new(Vec::<u8>::new()),
+            "test.dm",
+            ParserConfig::default(),
+        );
+        let annotation_header = fixed_line(&[
+            (0, "E7"),
+            (2, "8100"),
+            (20, "2"),
+            (23, "2"),
+            (27, "0000"),
+            (35, "0000010"),
+            (42, "0000020"),
+        ]);
+        assert!(
+            parser
+                .build_feature(b'7', &annotation_header, &[], mesh, 1,)
+                .is_err()
+        );
+    }
 }
