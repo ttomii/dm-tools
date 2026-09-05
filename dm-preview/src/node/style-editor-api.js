@@ -90,7 +90,8 @@ const saveStyleEditorState = async (request, response, root, options, body) => {
     staging = await mkdtemp(path.join(root, ".dm-preview-style-"));
     await stageStyleAssets(root, staging, options.maplibreAssets, body.sprites);
     await writeFile(path.join(staging, "style.json"), `${JSON.stringify(body.style, undefined, 2)}\n`);
-    await publishStyleBundle(root, staging, {
+    const publish = options.publishStyleBundle ?? publishStyleBundle;
+    await publish(root, staging, {
       reportCleanupError: (error) => options.diagnosticLog?.({event: "style-backup-cleanup-failed", error: error.message}),
     });
   } catch (error) {
