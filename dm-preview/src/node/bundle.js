@@ -44,12 +44,12 @@ const prepareOutput = async (output) => {
 
 const createStyle = async (source, pmtilesName, options) => {
   const {manifest} = source;
-  if (manifest.levels.length !== 1) {
-    throw new InputError("bundle requires a manifest with exactly one level");
-  }
   const savedStyle = await readSavedStyle(source.root);
   if (savedStyle) return createBundledStyle(savedStyle, manifest, {pmtiles: pmtilesName});
   if (options.includeDefaultStyle === false) return undefined;
+  if (manifest.levels.length !== 1) {
+    throw new InputError("bundle requires a manifest with exactly one level");
+  }
   const style = await readJson(defaultMaplibrePath(`style-${manifest.levels[0]}.json`));
   return createBundledStyle(style, manifest, {pmtiles: pmtilesName});
 };

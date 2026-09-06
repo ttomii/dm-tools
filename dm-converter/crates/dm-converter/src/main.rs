@@ -134,7 +134,6 @@ fn main() -> ExitCode {
 }
 
 fn run_conversion(args: ConvertArgs) -> ExitCode {
-    let output = args.output.clone();
     match run(&args) {
         Ok(summary) => {
             print_summary(&summary);
@@ -154,9 +153,6 @@ fn run_conversion(args: ConvertArgs) -> ExitCode {
         }
         Err(error) => {
             eprintln!("conversion error: {error}");
-            if args.format == OutputFormat::Gpkg && !is_gpkg(&args.input) {
-                cleanup_gpkg(&output);
-            }
             ExitCode::from(1)
         }
     }
@@ -193,11 +189,17 @@ fn run_gpkg(args: &ConvertArgs, output: &Path, files: &[PathBuf]) -> Result<RunS
             "no supported features matched the selected filters".to_string(),
         ));
     }
-    if output.exists() {
-        fs::remove_file(output)?;
-    }
+    let parent = output_parent(output);
+    let file_name = output.file_name().ok_or_else(|| {
+        AppError::Input(format!(
+            "output path has no file name: {}",
+            output.display()
+        ))
+    })?;
+    let temp = Builder::new().prefix(".dm-converter-").tempdir_in(parent)?;
+    let staged = temp.path().join(file_name);
     let mut writer = GeoPackageWriter::create(
-        output,
+        &staged,
         &keys,
         &decoration_keys,
         args.batch_size,
@@ -241,12 +243,14 @@ fn run_gpkg(args: &ConvertArgs, output: &Path, files: &[PathBuf]) -> Result<RunS
         Ok::<(), AppError>(())
     })?;
     let counts = writer.finish()?;
+    drop(writer);
     summary.layers = counts.len() as u64;
     if summary.warnings != discovery_warnings {
         return Err(AppError::Conversion(
             "input changed while conversion was running".to_string(),
         ));
     }
+    replace_file(&staged, output, args.overwrite)?;
     Ok(summary)
 }
 
@@ -259,7 +263,7 @@ fn run_maplibre(
         .layer_name
         .as_deref()
         .expect("validated MapLibre layer name");
-    let parent = output.parent().unwrap_or_else(|| Path::new("."));
+    let parent = output_parent(output);
     let temp = Builder::new().prefix(".dm-converter-").tempdir_in(parent)?;
     let intermediate = temp.path().join("intermediate.gpkg");
     let parser_summary = run_gpkg(args, &intermediate, files)?;
@@ -284,7 +288,7 @@ fn run_maplibre_from_gpkg(
         .layer_name
         .as_deref()
         .expect("validated MapLibre layer name");
-    let parent = output.parent().unwrap_or_else(|| Path::new("."));
+    let parent = output_parent(output);
     let temp = Builder::new().prefix(".dm-converter-").tempdir_in(parent)?;
     finish_maplibre(
         args,
@@ -364,6 +368,82 @@ fn replace_directory(
     }
     fs::remove_dir_all(backup)?;
     Ok(())
+}
+
+fn replace_file(staged: &Path, output: &Path, overwrite: bool) -> Result<(), AppError> {
+    if !output.exists() {
+        fs::rename(staged, output)?;
+        return Ok(());
+    }
+    if !overwrite {
+        return Err(AppError::Input(format!(
+            "output already exists (use --overwrite): {}",
+            output.display()
+        )));
+    }
+    let parent = output_parent(output);
+    let file_name = output.file_name().ok_or_else(|| {
+        AppError::Input(format!(
+            "output path has no file name: {}",
+            output.display()
+        ))
+    })?;
+    let backup = Builder::new()
+        .prefix(".dm-converter-backup-")
+        .tempdir_in(parent)?;
+    let mut moved = Vec::new();
+    let old_paths = [
+        output.to_path_buf(),
+        sqlite_sidecar(output, "-wal"),
+        sqlite_sidecar(output, "-shm"),
+    ];
+    for (index, old_path) in old_paths.into_iter().enumerate() {
+        let backup_path = backup.path().join(if index == 0 {
+            file_name.to_os_string()
+        } else {
+            old_path
+                .file_name()
+                .expect("SQLite sidecar path has a file name")
+                .to_os_string()
+        });
+        match fs::rename(&old_path, &backup_path) {
+            Ok(()) => moved.push((old_path, backup_path)),
+            Err(error) if index > 0 && error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => {
+                restore_files(&moved)?;
+                return Err(error.into());
+            }
+        }
+    }
+    if let Err(error) = fs::rename(staged, output) {
+        if let Err(restore_error) = restore_files(&moved) {
+            return Err(AppError::Conversion(format!(
+                "failed to publish GeoPackage: {error}; failed to restore previous output: {restore_error}"
+            )));
+        }
+        return Err(error.into());
+    }
+    backup.close()?;
+    Ok(())
+}
+
+fn restore_files(moved: &[(PathBuf, PathBuf)]) -> Result<(), std::io::Error> {
+    for (original, backup) in moved.iter().rev() {
+        fs::rename(backup, original)?;
+    }
+    Ok(())
+}
+
+fn sqlite_sidecar(path: &Path, suffix: &str) -> PathBuf {
+    let mut value = path.as_os_str().to_os_string();
+    value.push(suffix);
+    value.into()
+}
+
+fn output_parent(path: &Path) -> &Path {
+    path.parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."))
 }
 
 fn discover_layers(
@@ -584,12 +664,6 @@ fn record_warning(
         "warning: line {}: {}",
         warning.source_line, warning.message
     ));
-}
-
-fn cleanup_gpkg(output: &Path) {
-    let _ = fs::remove_file(output);
-    let _ = fs::remove_file(format!("{}-wal", output.display()));
-    let _ = fs::remove_file(format!("{}-shm", output.display()));
 }
 
 fn print_summary(summary: &RunSummary) {
@@ -929,6 +1003,19 @@ mod tests {
     }
 
     #[test]
+    fn preserves_existing_gpkg_when_input_discovery_fails() {
+        let temp = tempfile::tempdir().unwrap();
+        let output = temp.path().join("existing.gpkg");
+        fs::write(&output, b"previous output").unwrap();
+        let missing = temp.path().join("missing.dm");
+        let mut args = args_for(&missing, &output, OutputFormat::Gpkg);
+        args.overwrite = true;
+
+        assert!(run_gpkg(&args, &output, &[missing]).is_err());
+        assert_eq!(fs::read(&output).unwrap(), b"previous output");
+    }
+
+    #[test]
     fn reports_warnings_and_maplibre_empty_inputs() {
         let temp = tempfile::tempdir().unwrap();
         let input = temp.path().join("08warning.dm");
@@ -949,7 +1036,7 @@ mod tests {
     }
 
     #[test]
-    fn handles_directory_replacement_and_cleanup_helpers() {
+    fn handles_directory_and_file_replacement_helpers() {
         let temp = tempfile::tempdir().unwrap();
         let output = temp.path().join("output");
         fs::create_dir(&output).unwrap();
@@ -971,12 +1058,21 @@ mod tests {
         preserve_gpkg(&same, temp.path(), "same").unwrap();
         assert_eq!(fs::read(&same).unwrap(), b"same");
 
-        let cleanup = temp.path().join("cleanup.gpkg");
-        fs::write(&cleanup, b"").unwrap();
-        fs::write(format!("{}-wal", cleanup.display()), b"").unwrap();
-        fs::write(format!("{}-shm", cleanup.display()), b"").unwrap();
-        cleanup_gpkg(&cleanup);
-        assert!(!cleanup.exists());
+        let file_output = temp.path().join("output.gpkg");
+        fs::write(&file_output, b"old").unwrap();
+        fs::write(sqlite_sidecar(&file_output, "-wal"), b"old-wal").unwrap();
+        fs::write(sqlite_sidecar(&file_output, "-shm"), b"old-shm").unwrap();
+        let staged_file = temp.path().join("staged.gpkg");
+        fs::write(&staged_file, b"new").unwrap();
+        replace_file(&staged_file, &file_output, true).unwrap();
+        assert_eq!(fs::read(&file_output).unwrap(), b"new");
+        assert!(!sqlite_sidecar(&file_output, "-wal").exists());
+        assert!(!sqlite_sidecar(&file_output, "-shm").exists());
+
+        let failed_stage = temp.path().join("missing-staged.gpkg");
+        fs::write(&file_output, b"current").unwrap();
+        assert!(replace_file(&failed_stage, &file_output, true).is_err());
+        assert_eq!(fs::read(&file_output).unwrap(), b"current");
 
         let mut ids = BTreeMap::new();
         assert_eq!(next_id(&mut ids, "layer"), 1);
@@ -1008,5 +1104,14 @@ mod tests {
             run_maplibre_from_gpkg(&args, Path::new(""), &temp.path().join("missing.gpkg"))
                 .is_err()
         );
+
+        let input = temp.path().join("08input.dm");
+        fs::write(&input, sample_line_dm(2204, false)).unwrap();
+        let args = args_for(&input, Path::new(""), OutputFormat::Gpkg);
+        assert!(run_gpkg(&args, Path::new(""), &[input]).is_err());
+
+        let staged = temp.path().join("staged.gpkg");
+        fs::write(&staged, b"staged").unwrap();
+        assert!(replace_file(&staged, Path::new("."), true).is_err());
     }
 }

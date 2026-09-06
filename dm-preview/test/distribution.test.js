@@ -75,6 +75,24 @@ test("prepareDistribution carries a saved style into a clean distribution", asyn
   assert.equal(JSON.parse(await readFile(path.join(distribution, "style.json"), "utf8")).name, "saved-style");
 });
 
+test("prepareDistribution creates a clean multi-level bundle without a default style", async (context) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "dm-preview-"));
+  context.after(() => rm(root, {recursive: true, force: true}));
+  const preview = path.join(root, "preview-data");
+  const distribution = path.join(root, "public");
+  const multiLevelManifest = {...manifest, levels: [2500, 5000]};
+  await mkdir(preview);
+  await writeFile(path.join(preview, "pmtiles-manifest.json"), JSON.stringify(multiLevelManifest));
+  await writeFile(path.join(preview, "dm-sample.pmtiles"), "pmtiles");
+
+  const result = await prepareDistribution(preview, multiLevelManifest, distribution);
+
+  assert.equal(result.root, distribution);
+  assert.deepEqual(result.manifest, multiLevelManifest);
+  assert.equal(await readFile(path.join(distribution, "dm-sample.pmtiles"), "utf8"), "pmtiles");
+  await assert.rejects(stat(path.join(distribution, "style.json")), /ENOENT/);
+});
+
 test("prepareDistribution reuses an existing distribution bundle", async (context) => {
   const root = await mkdtemp(path.join(os.tmpdir(), "dm-preview-"));
   context.after(() => rm(root, {recursive: true, force: true}));

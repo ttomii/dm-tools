@@ -31,10 +31,13 @@ export const resolveFile = async (pathname, root, options) => {
       ?? secureFile(defaults.maplibreAssets, relativePath);
   }
   if (ROOT_SPRITE_FILES.has(normalized)) {
-    return secureFile(path.join(maplibreAssets, "sprite"), normalized);
+    return await secureFile(path.join(root, "sprite"), normalized)
+      ?? secureFile(path.join(maplibreAssets, "sprite"), normalized);
   }
   if (normalized.startsWith("/glyphs/")) {
-    return secureFile(path.join(maplibreAssets, "glyphs"), normalized.slice("/glyphs".length));
+    const relativePath = normalized.slice("/glyphs".length);
+    return await secureFile(path.join(root, "glyphs"), relativePath)
+      ?? secureFile(path.join(maplibreAssets, "glyphs"), relativePath);
   }
   return secureFile(root, normalized);
 };

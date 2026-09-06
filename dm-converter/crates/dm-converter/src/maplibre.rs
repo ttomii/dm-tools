@@ -249,58 +249,76 @@ fn read_layers(connection: &Connection) -> Result<Vec<GpkgLayer>, MapLibreError>
             row.get::<_, String>(1)?,
             row.get::<_, i64>(2)?,
             [
-                row.get::<_, f64>(3)?,
-                row.get::<_, f64>(4)?,
-                row.get::<_, f64>(5)?,
-                row.get::<_, f64>(6)?,
+                row.get::<_, Option<f64>>(3)?,
+                row.get::<_, Option<f64>>(4)?,
+                row.get::<_, Option<f64>>(5)?,
+                row.get::<_, Option<f64>>(6)?,
             ],
         ))
     })?;
     let rows = rows.collect::<Result<Vec<_>, _>>()?;
-    rows.into_iter()
-        .map(|(table_name, geometry_type, srs_id, bounds)| {
-            let parts = table_name.split('_').collect::<Vec<_>>();
-            let decoration = table_name.contains("_deco_");
-            let kind_name = if decoration {
-                parts.last().copied().unwrap_or_default()
-            } else {
-                parts.get(2).copied().unwrap_or_default()
-            };
-            let kind = match kind_name {
-                "polygon" => GeometryKind::Polygon,
-                "line" => GeometryKind::Line,
-                "point" => GeometryKind::Point,
-                "text" => GeometryKind::Text,
-                _ => {
-                    return Err(MapLibreError::UnsupportedLayer {
-                        layer: table_name,
-                        reason: format!("unsupported geometry type {geometry_type}"),
-                    });
-                }
-            };
-            let zone = zone_from_srs_id(srs_id).ok_or_else(|| MapLibreError::UnsupportedLayer {
+    let mut layers = Vec::with_capacity(rows.len());
+    for (table_name, geometry_type, srs_id, bounds) in rows {
+        let has_features: bool = connection.query_row(
+            &format!(
+                "SELECT EXISTS(SELECT 1 FROM {})",
+                quote_identifier(&table_name)
+            ),
+            [],
+            |row| row.get(0),
+        )?;
+        if !has_features {
+            continue;
+        }
+        let bounds = match bounds {
+            [Some(min_x), Some(min_y), Some(max_x), Some(max_y)] => [min_x, min_y, max_x, max_y],
+            _ => {
+                return Err(MapLibreError::UnsupportedLayer {
+                    layer: table_name,
+                    reason: "feature bounds are incomplete".to_string(),
+                });
+            }
+        };
+        let parts = table_name.split('_').collect::<Vec<_>>();
+        let decoration = table_name.contains("_deco_");
+        let kind_name = if decoration {
+            parts.last().copied().unwrap_or_default()
+        } else {
+            parts.get(2).copied().unwrap_or_default()
+        };
+        let kind = match kind_name {
+            "polygon" => GeometryKind::Polygon,
+            "line" => GeometryKind::Line,
+            "point" => GeometryKind::Point,
+            "text" => GeometryKind::Text,
+            _ => {
+                return Err(MapLibreError::UnsupportedLayer {
+                    layer: table_name,
+                    reason: format!("unsupported geometry type {geometry_type}"),
+                });
+            }
+        };
+        let zone = zone_from_srs_id(srs_id).ok_or_else(|| MapLibreError::UnsupportedLayer {
+            layer: table_name.clone(),
+            reason: format!("SRS ID {srs_id} is not a JGD2011 plane rectangular coordinate system"),
+        })?;
+        let level = parts
+            .get(4)
+            .and_then(|value| value.parse().ok())
+            .ok_or_else(|| MapLibreError::UnsupportedLayer {
                 layer: table_name.clone(),
-                reason: format!(
-                    "SRS ID {srs_id} is not a JGD2011 plane rectangular coordinate system"
-                ),
+                reason: "map level is missing from the layer name".to_string(),
             })?;
-            let level = parts
-                .get(4)
-                .and_then(|value| value.parse().ok())
-                .ok_or_else(|| MapLibreError::UnsupportedLayer {
-                    layer: table_name.clone(),
-                    reason: "map level is missing from the layer name".to_string(),
-                })?;
-            Ok(GpkgLayer {
-                table_name,
-                kind,
-                zone,
-                level,
-                decoration,
-                bounds,
-            })
-        })
-        .collect()
+        layers.push(GpkgLayer {
+            table_name,
+            kind,
+            zone,
+            level,
+            decoration,
+            bounds,
+        });
+    }
+    Ok(layers)
 }
 
 fn source_layer_from_table(layer: &GpkgLayer) -> String {
@@ -1000,11 +1018,15 @@ fn read_layer_features(
 ) -> Result<Vec<ProjectedFeature>, MapLibreError> {
     let table = quote_identifier(&layer.table_name);
     let sql = if layer.decoration {
+        let source_table = quote_identifier(&source_table_name(layer)?);
         format!(
             "SELECT f.geom, f.USER_ID, f.SRC_LAYER, f.SRC_USER_ID, f.SRC_DMFILE,
                     f.SRC_DMCODE, f.DECORATION, f.DECO_INDEX,
-                    {} AS ANGLE
+                    {} AS ANGLE,
+                    CASE WHEN s.USER_ID IS NULL THEN 0 ELSE 1 END AS SOURCE_EXISTS,
+                    s.DMSKIP AS DMSKIP
              FROM {table} f
+             LEFT JOIN {source_table} s ON s.USER_ID = f.SRC_USER_ID
              ORDER BY f.fid",
             if layer.kind == GeometryKind::Point {
                 "f.ANGLE"
@@ -1110,6 +1132,19 @@ fn read_decoration_row(
     let points = read_geometry(&blob, layer.kind)?;
     let projected = projector.project(layer.zone, &points)?;
     let src_layer: String = row.get(2)?;
+    let src_user_id: i64 = row.get(3)?;
+    let source_table = source_table_name(layer)?;
+    if src_layer != source_table {
+        return Err(MapLibreError::Asset(format!(
+            "decoration source layer mismatch: expected {source_table}, got {src_layer}"
+        )));
+    }
+    let source_exists: i64 = row.get(9)?;
+    if source_exists == 0 {
+        return Err(MapLibreError::Asset(format!(
+            "decoration source feature not found: {src_layer} USER_ID {src_user_id}"
+        )));
+    }
     let src_dmcode = row.get(5)?;
     let feature = Feature {
         source_file: row.get(4)?,
@@ -1120,6 +1155,7 @@ fn read_decoration_row(
         geometry_kind: layer.kind,
         geometry: geometry_from_points(layer.kind, points),
         attributes: dm_parser::Attributes {
+            dmskip: row.get(10)?,
             angle: row.get(8)?,
             ..dm_parser::Attributes::default()
         },
@@ -1131,13 +1167,24 @@ fn read_decoration_row(
         points: projected,
         decoration: Some(MapDecoration {
             src_layer,
-            src_user_id: row.get(3)?,
+            src_user_id,
             src_dmfile: row.get(4)?,
             src_dmcode,
             decoration: row.get(6)?,
             deco_index: row.get(7)?,
         }),
     })
+}
+
+fn source_table_name(layer: &GpkgLayer) -> Result<String, MapLibreError> {
+    layer
+        .table_name
+        .split_once("_deco_")
+        .map(|(source, _)| source.to_string())
+        .ok_or_else(|| MapLibreError::UnsupportedLayer {
+            layer: layer.table_name.clone(),
+            reason: "decoration layer does not identify its source table".to_string(),
+        })
 }
 
 fn read_geometry(blob: &[u8], kind: GeometryKind) -> Result<Vec<Coordinate>, MapLibreError> {
@@ -1536,6 +1583,8 @@ mod tests {
                    geometry_type_name TEXT NOT NULL,
                    srs_id INTEGER NOT NULL
                  );
+                 CREATE TABLE dm_2100_line_none_2500 (fid INTEGER PRIMARY KEY);
+                 INSERT INTO dm_2100_line_none_2500 VALUES (1);
                  INSERT INTO gpkg_contents
                    (table_name, data_type, min_x, min_y, max_x, max_y)
                  VALUES ('dm_2100_line_none_2500', 'features', 0, 0, 1, 1);
@@ -1815,7 +1864,10 @@ mod tests {
                         coordinate(200_000.0, 100_000.0),
                         coordinate(200_020.0, 100_020.0),
                     ]),
-                    dm_parser::Attributes::default(),
+                    dm_parser::Attributes {
+                        dmskip: Some(1),
+                        ..dm_parser::Attributes::default()
+                    },
                 ),
                 1,
             )
@@ -1875,7 +1927,7 @@ mod tests {
                         coordinate(200_001.0, 100_001.0),
                         coordinate(200_002.0, 100_002.0),
                     ]),
-                    src_layer: "dm_2100_line".to_string(),
+                    src_layer: "dm_2100_line_08_2500".to_string(),
                     src_user_id: 1,
                     src_dmfile: "sample.dm".to_string(),
                     src_dmcode: 2100,
@@ -1891,7 +1943,7 @@ mod tests {
                 DecorationFeature {
                     key: decoration_point_key,
                     geometry: Geometry::Point(coordinate(200_003.0, 100_003.0)),
-                    src_layer: "dm_4000_point".to_string(),
+                    src_layer: "dm_4000_point_08_2500".to_string(),
                     src_user_id: 3,
                     src_dmfile: "sample.dm".to_string(),
                     src_dmcode: 4000,
@@ -1915,6 +1967,95 @@ mod tests {
         assert!(summary.source_layers.contains("dm_annotation"));
         assert!(summary.source_layers.contains("dm_2100_line_deco_line"));
         assert!(summary.source_layers.contains("dm_4000_point_deco_point"));
+
+        let connection = Connection::open(&gpkg).unwrap();
+        let layers = read_layers(&connection).unwrap();
+        let projector = Projector::new(&layers).unwrap();
+        for (table_name, source_user_id, expected_dmskip) in [
+            ("dm_2100_line_08_2500_deco_line", 1, Some(1)),
+            ("dm_4000_point_08_2500_deco_point", 3, None),
+        ] {
+            let layer = layers
+                .iter()
+                .find(|layer| layer.table_name == table_name)
+                .unwrap();
+            let feature = read_layer_features(&connection, layer, &projector)
+                .unwrap()
+                .into_iter()
+                .find(|feature| {
+                    feature
+                        .decoration
+                        .as_ref()
+                        .is_some_and(|decoration| decoration.src_user_id == source_user_id)
+                })
+                .unwrap();
+            assert_eq!(feature.feature.attributes.dmskip, expected_dmskip);
+        }
+    }
+
+    #[test]
+    fn skips_empty_layers_with_null_bounds() {
+        use crate::gpkg::{DecorationLayerKey, GeoPackageWriter, LayerKey};
+
+        let temp = tempfile::tempdir().unwrap();
+        let gpkg = temp.path().join("empty-decoration.gpkg");
+        let source_key = LayerKey {
+            dmcode: 6110,
+            kind: GeometryKind::Line,
+            plane_rectangular_zone: Some(8),
+            map_level: Some(2500),
+        };
+        let decoration_key = DecorationLayerKey {
+            source: source_key.clone(),
+            kind: GeometryKind::Polygon,
+        };
+        let mut writer = GeoPackageWriter::create(
+            &gpkg,
+            &BTreeSet::from([source_key.clone()]),
+            &BTreeSet::from([decoration_key]),
+            1,
+            false,
+        )
+        .unwrap();
+        writer
+            .write(
+                Feature {
+                    source_file: "sample.dm".to_string(),
+                    source_line: 1,
+                    plane_rectangular_zone: Some(8),
+                    map_level: Some(2500),
+                    dmcode: 6110,
+                    geometry_kind: GeometryKind::Line,
+                    geometry: Geometry::LineString(vec![
+                        Coordinate {
+                            x: 200_000.0,
+                            y: 100_000.0,
+                            z: None,
+                        },
+                        Coordinate {
+                            x: 200_020.0,
+                            y: 100_020.0,
+                            z: None,
+                        },
+                    ]),
+                    attributes: dm_parser::Attributes {
+                        dmfigtype: Some(12),
+                        ..dm_parser::Attributes::default()
+                    },
+                    warnings: Vec::new(),
+                },
+                1,
+            )
+            .unwrap();
+        writer.finish().unwrap();
+        drop(writer);
+
+        let output = temp.path().join("maplibre");
+        let summary = write_from_gpkg(&output, "empty-decoration", &gpkg, false).unwrap();
+
+        assert_eq!(summary.features, 1);
+        assert_eq!(summary.layers, 1);
+        assert!(summary.tiles > 0);
     }
 
     #[test]
@@ -2121,6 +2262,19 @@ mod tests {
         assert!(read_f64(&[], &mut offset).is_err());
         assert!(read_coordinate(&[], &mut offset).is_err());
 
+        let malformed_decoration = GpkgLayer {
+            table_name: "dm_2100_line_08_2500_invalid".to_string(),
+            kind: GeometryKind::Line,
+            zone: 8,
+            level: 2500,
+            decoration: true,
+            bounds: [0.0, 0.0, 1.0, 1.0],
+        };
+        assert!(matches!(
+            source_table_name(&malformed_decoration),
+            Err(MapLibreError::UnsupportedLayer { .. })
+        ));
+
         let connection = Connection::open_in_memory().unwrap();
         connection
             .execute_batch(
@@ -2137,6 +2291,8 @@ mod tests {
                    geometry_type_name TEXT NOT NULL,
                    srs_id INTEGER NOT NULL
                  );
+                 CREATE TABLE dm_2100_unknown_08_2500 (fid INTEGER PRIMARY KEY);
+                 INSERT INTO dm_2100_unknown_08_2500 VALUES (1);
                  INSERT INTO gpkg_contents
                    (table_name, data_type, min_x, min_y, max_x, max_y)
                  VALUES ('dm_2100_unknown_08_2500', 'features', 0, 0, 1, 1);
@@ -2155,11 +2311,12 @@ mod tests {
             .execute("DELETE FROM gpkg_geometry_columns", [])
             .unwrap();
         connection
-            .execute(
-                "INSERT INTO gpkg_contents
+            .execute_batch(
+                "CREATE TABLE dm_2100_line_08_invalid (fid INTEGER PRIMARY KEY);
+                 INSERT INTO dm_2100_line_08_invalid VALUES (1);
+                 INSERT INTO gpkg_contents
                    (table_name, data_type, min_x, min_y, max_x, max_y)
                  VALUES ('dm_2100_line_08_invalid', 'features', 0, 0, 1, 1)",
-                [],
             )
             .unwrap();
         connection

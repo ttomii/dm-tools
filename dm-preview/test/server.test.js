@@ -290,6 +290,11 @@ test("style editor API creates bundled style assets on first save", async (conte
   assert.equal(JSON.parse(await readFile(path.join(output, "style.json"), "utf8")).version, 8);
   assert.equal(await readFile(path.join(output, "sprite", "sprite.png"), "utf8"), "png");
   assert.equal(await readFile(path.join(output, "glyphs", "Test Font", "0-255.pbf"), "utf8"), "pbf");
+  assert.equal(await (await fetch(`${origin}/sprite.png`)).text(), "png");
+  assert.equal(
+    await (await fetch(`${origin}/glyphs/${encodeURIComponent("Test Font")}/0-255.pbf`)).text(),
+    "pbf",
+  );
 });
 
 test("style editor reuses existing glyph assets while staging a style save", async (context) => {
