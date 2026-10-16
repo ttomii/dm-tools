@@ -123,6 +123,7 @@ const parsePmtilesUrl = (value) => {
 };
 
 const parseStyleLevels = (metadata) => {
+  if (metadata["dm:levels"] !== undefined) return parseLevels(metadata["dm:levels"]);
   if (Number.isInteger(metadata["dm:map-level"])) return [metadata["dm:map-level"]];
   return [2500];
 };

@@ -143,3 +143,20 @@ test("createBundle rejects non-empty output directory", async (context) => {
 
   await assert.rejects(createBundle(path.join(source, "dm-sample.pmtiles"), output), /output directory must be empty/);
 });
+
+test("createBundle includes multiple levels and preserves them when reopened", async (context) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "dm-preview-levels-"));
+  context.after(() => rm(root, {recursive: true, force: true}));
+  const source = path.join(root, "source");
+  const output = path.join(root, "public");
+  await mkdir(source);
+  await writeFile(path.join(source, "pmtiles-manifest.json"), JSON.stringify({...manifest, levels: [2500, 10000]}));
+  await writeFile(path.join(source, manifest.pmtiles), "pmtiles");
+  await createBundle(path.join(source, manifest.pmtiles), output);
+  const {readManifest} = await import("../src/node/manifest.js");
+  const reopened = await readManifest(output);
+  assert.deepEqual(reopened.manifest.levels, [2500, 10000]);
+  const style = JSON.parse(await readFile(path.join(output, "style.json"), "utf8"));
+  assert.ok(style.layers.some((layer) => layer.id.endsWith("-level-10000")));
+  assert.ok(style.layers.some((layer) => layer.id.endsWith("-level-2500")));
+});

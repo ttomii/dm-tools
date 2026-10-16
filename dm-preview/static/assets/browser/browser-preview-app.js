@@ -12,6 +12,7 @@ import {
   verticalLongSoundAnnotationStyleEnabled,
 } from "../core/style-editing.js";
 import {createBundledStyle, createRuntimeStyle, splitAnnotationStyleLayers, styleLabel} from "../core/style-transform.js";
+import {createLevelStyle, presentationLevel} from "../core/level-style.js";
 import {getInitialCamera, getScaleByZoom} from "../core/map-scale.js";
 import {toGeoJsonFeature} from "../core/geometry.js";
 import {createApiClient} from "./api-client.js";
@@ -230,7 +231,13 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
     const camera = state.map
       ? {center: state.map.getCenter().toArray(), zoom: state.map.getZoom()}
       : getInitialCamera(new URL(location.href), manifest.center);
-    state.currentBaseStyle = await api.style(elements.select.value);
+    state.currentBaseStyle = elements.select.value === "automatic"
+      ? createLevelStyle(Object.fromEntries(await Promise.all(
+        [...new Set(manifest.levels.map(presentationLevel))].map(async (level) => [
+          level, await api.style(api.resourceUrl(`maplibre/style-${level}.json`)),
+        ]),
+      )), manifest)
+      : await api.style(elements.select.value);
     await loadStyleEditorState(manifest).catch((error) => {
       elements.styleEditorStatus.textContent = String(error);
       elements.styleSave.disabled = true;
@@ -368,11 +375,11 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
     const protocol = new pmtiles.Protocol();
     maplibregl.addProtocol("pmtiles", protocol.tile);
     const manifest = await api.manifest();
-    const styles = manifest.styles ?? manifest.levels.map((level) => `maplibre/style-${level}.json`);
+    const styles = manifest.styles ?? ["automatic"];
     for (const styleUrl of styles) {
       const option = document.createElement("option");
-      option.value = api.resourceUrl(styleUrl);
-      option.textContent = styleLabel(styleUrl, manifest);
+      option.value = styleUrl === "automatic" ? styleUrl : api.resourceUrl(styleUrl);
+      option.textContent = styleUrl === "automatic" ? "自動（縮尺で切り替え）" : styleLabel(styleUrl, manifest);
       elements.select.append(option);
     }
     elements.select.disabled = styles.length === 1;

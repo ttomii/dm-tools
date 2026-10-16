@@ -1,6 +1,7 @@
 import {cp, mkdir, readFile, readdir, realpath, stat, writeFile} from "node:fs/promises";
 import path from "node:path";
 import {InputError, MANIFEST_FILENAME, parseManifest} from "../core/manifest-policy.js";
+import {createLevelStyle, presentationLevel} from "../core/level-style.js";
 import {createBundledStyle} from "../core/style-transform.js";
 import {createDefaultAssetRoots} from "./asset-roots.js";
 import {resolveOutputPath} from "./manifest.js";
@@ -47,10 +48,11 @@ const createStyle = async (source, pmtilesName, options) => {
   const savedStyle = await readSavedStyle(source.root);
   if (savedStyle) return createBundledStyle(savedStyle, manifest, {pmtiles: pmtilesName});
   if (options.includeDefaultStyle === false) return undefined;
-  if (manifest.levels.length !== 1) {
-    throw new InputError("bundle requires a manifest with exactly one level");
-  }
-  const style = await readJson(defaultMaplibrePath(`style-${manifest.levels[0]}.json`));
+  const levels = [...new Set(manifest.levels.map(presentationLevel))];
+  const templates = Object.fromEntries(await Promise.all(levels.map(async (level) => [
+    level, await readJson(defaultMaplibrePath(`style-${level}.json`)),
+  ])));
+  const style = createLevelStyle(templates, manifest);
   return createBundledStyle(style, manifest, {pmtiles: pmtilesName});
 };
 

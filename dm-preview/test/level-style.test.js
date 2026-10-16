@@ -1,0 +1,41 @@
+import assert from "node:assert/strict";
+import {readFile} from "node:fs/promises";
+import {test} from "node:test";
+import {createLevelStyle} from "../src/core/level-style.js";
+import {getZoomByScale} from "../src/core/map-scale.js";
+
+const templates = Object.fromEntries(await Promise.all([2500, 5000].map(async (level) => [
+  level, JSON.parse(await readFile(new URL(`../static/maplibre/style-${level}.json`, import.meta.url))),
+])));
+
+for (const coarse of [5000, 10000]) {
+  test(`switches 2500 and ${coarse} strictly above the coarser scale`, () => {
+    const style = createLevelStyle(templates, {levels: [coarse, 2500], center: [138, 35, 15]});
+    const fine = style.layers.find((layer) => layer.source === "dm");
+    const large = style.layers.find((layer) => layer.id.endsWith(`-level-${coarse}`));
+    const boundary = getZoomByScale(coarse, 35);
+    assert.ok(fine.minzoom > boundary);
+    assert.ok(large.maxzoom > boundary);
+    assert.equal(fine.minzoom, large.maxzoom);
+    assert.ok(JSON.stringify(large.filter).includes(`["get","LEVEL"],${coarse}`));
+    const original = templates[5000].layers.find((layer) => layer.source === "dm");
+    assert.equal(large.paint["line-width"][4], original.paint["line-width"][4]);
+    assert.equal(large.paint["line-width"][3], original.paint["line-width"][3] - Math.log2(coarse / 5000));
+  });
+}
+
+test("a single 10000 level uses 5000 symbols with doubled text and icon sizes", () => {
+  const style = createLevelStyle(templates, {levels: [10000], center: [138, 35, 15]});
+  for (const property of ["text-size", "icon-size"]) {
+    const original = templates[5000].layers.find((layer) => layer.layout?.[property]);
+    const result = style.layers.find((layer) => layer.id === `${original.id}-level-10000`);
+    if (typeof original.layout[property] === "number") {
+      assert.equal(result.layout[property], original.layout[property] * 2);
+    } else {
+      assert.equal(result.layout[property][4], original.layout[property][4]);
+      assert.equal(result.layout[property][3], original.layout[property][3] - 1);
+    }
+    if (original.minzoom !== undefined) assert.equal(result.minzoom, original.minzoom - 1);
+  }
+  assert.equal(templates[5000].metadata["dm:map-level"], 5000);
+});
