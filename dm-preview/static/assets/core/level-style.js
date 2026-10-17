@@ -34,10 +34,10 @@ export const createLevelStyle = (templates, manifest) => {
         }
       }
       if (levels[index + 1]) {
-        layer.minzoom = Math.max(layer.minzoom ?? 0, after(getZoomByScale(levels[index + 1], manifest.center[1])));
+        layer.minzoom = Math.max(layer.minzoom ?? 0, after(getZoomByScale(presentationLevel(levels[index + 1]), manifest.center[1])));
       }
       if (index > 0) {
-        layer.maxzoom = Math.min(layer.maxzoom ?? 24, after(getZoomByScale(level, manifest.center[1])));
+        layer.maxzoom = Math.min(layer.maxzoom ?? 24, after(getZoomByScale(base, manifest.center[1])));
       }
       style.layers.push(layer);
     }

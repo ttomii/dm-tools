@@ -9,11 +9,11 @@ const templates = Object.fromEntries(await Promise.all([2500, 5000].map(async (l
 ])));
 
 for (const coarse of [5000, 10000]) {
-  test(`switches 2500 and ${coarse} strictly above the coarser scale`, () => {
+  test(`switches 2500 and ${coarse} strictly above the coarser presentation scale`, () => {
     const style = createLevelStyle(templates, {levels: [coarse, 2500], center: [138, 35, 15]});
     const fine = style.layers.find((layer) => layer.source === "dm");
     const large = style.layers.find((layer) => layer.id.endsWith(`-level-${coarse}`));
-    const boundary = getZoomByScale(coarse, 35);
+    const boundary = getZoomByScale(Math.min(coarse, 5000), 35);
     assert.ok(fine.minzoom > boundary);
     assert.ok(large.maxzoom > boundary);
     assert.equal(fine.minzoom, large.maxzoom);
