@@ -2096,7 +2096,7 @@ test("codes 7105, 7106, and 7107 render zero point two millimeter right tick dec
   }
 });
 
-test("codes 7106, 7107, 7199, 7201, 7202, 7211, 7213, and 7214 are zero point one millimeter lines", () => {
+test("codes 7106, 7107, 7199, 7201, 7202, 7211, and 7213 are zero point one millimeter lines", () => {
   const widths = new Map([
     [500, [15, 0.0258737, 13.2473346]],
     [1000, [14, 0.0258737, 26.4946692]],
@@ -2109,7 +2109,7 @@ test("codes 7106, 7107, 7199, 7201, 7202, 7211, 7213, and 7214 are zero point on
   ]);
   for (const [style, level] of ALL_STYLES) {
     const [minzoom, widthAtMinzoom, width24] = widths.get(level);
-    for (const code of [7106, 7107, 7199, 7201, 7202, 7211, 7213, 7214]) {
+    for (const code of [7106, 7107, 7199, 7201, 7202, 7211, 7213]) {
       const id = `dm-${code}-line-${level}-line`;
       const layer = byId(style, id);
       const dashSpec = dashes.get(code);
@@ -2135,38 +2135,49 @@ test("codes 7106, 7107, 7199, 7201, 7202, 7211, 7213, and 7214 are zero point on
   }
 });
 
-test("code 7212 uses right-side arc symbol decorations instead of the base line", () => {
-  const widths = new Map([
-    [500, [15, 0.0258737, 13.2473346]],
-    [1000, [14, 0.0258737, 26.4946692]],
-    [2500, [15, 0.1293685, 66.236673]],
-    [5000, [14, 0.1293685, 132.473346]],
-  ]);
-  for (const [style, level] of ALL_STYLES) {
-    const [minzoom, widthAtMinzoom, width24] = widths.get(level);
-    const base = byId(style, `dm-7212-line-${level}-line`);
-    assert.equal(base.type, "line");
-    assert.equal(base["source-layer"], "dm_7212_line");
-    assert.equal(base.layout.visibility, "none");
-
-    const decoration = byId(style, `dm-7212-line-${level}-arc-symbols`);
-    assert.equal(decoration.type, "line");
-    assert.equal(decoration["source-layer"], "dm_7212_line_deco_line");
-    assert.deepEqual(decoration.filter, ["==", ["get", "LEVEL"], level]);
-    assert.equal(decoration.paint["line-color"], "#000000");
-    assert.equal(decoration.paint["line-dasharray"], undefined);
-    assert.equal(decoration.minzoom, minzoom);
-    assert.deepEqual(decoration.paint["line-width"], [
-      "interpolate",
-      ["exponential", 2],
-      ["zoom"],
-      minzoom,
-      widthAtMinzoom,
-      24,
-      width24,
+for (const code of [7212, 7214]) {
+  test(`code ${code} uses right-side arc symbol decorations instead of the base line`, () => {
+    const widths = new Map([
+      [500, [15, 0.0258737, 13.2473346]],
+      [1000, [14, 0.0258737, 26.4946692]],
+      [2500, [15, 0.1293685, 66.236673]],
+      [5000, [14, 0.1293685, 132.473346]],
     ]);
-  }
-});
+    for (const [style, level] of ALL_STYLES) {
+      if (code === 7214 && ![2500, 5000].includes(level)) {
+        assert.equal(byId(style, `dm-7214-line-${level}-line`).layout?.visibility ?? "visible", "visible");
+        assert.equal(style.layers.some((layer) => layer.id === `dm-7214-line-${level}-arc-symbols`), false);
+        continue;
+      }
+      const [minzoom, widthAtMinzoom, width24] = widths.get(level);
+      const base = byId(style, `dm-${code}-line-${level}-line`);
+      assert.equal(base.type, "line");
+      assert.equal(base["source-layer"], `dm_${code}_line`);
+      if (code === 7212) assert.equal(base.layout.visibility, "none");
+      else {
+        assert.equal(base.layout?.visibility ?? "visible", "visible");
+        assert.deepEqual(base.filter, ["all", ["==", ["get", "LEVEL"], level], ["!", ["in", ["get", "LEVEL"], ["literal", [2500, 5000]]]]]);
+      }
+
+      const decoration = byId(style, `dm-${code}-line-${level}-arc-symbols`);
+      assert.equal(decoration.type, "line");
+      assert.equal(decoration["source-layer"], `dm_${code}_line_deco_line`);
+      assert.deepEqual(decoration.filter, code === 7212 ? ["==", ["get", "LEVEL"], level] : ["all", ["==", ["get", "LEVEL"], level], ["in", ["get", "LEVEL"], ["literal", [2500, 5000]]]]);
+      assert.equal(decoration.paint["line-color"], "#000000");
+      assert.equal(decoration.paint["line-dasharray"], undefined);
+      assert.equal(decoration.minzoom, minzoom);
+      assert.deepEqual(decoration.paint["line-width"], [
+        "interpolate",
+        ["exponential", 2],
+        ["zoom"],
+        minzoom,
+        widthAtMinzoom,
+        24,
+        width24,
+      ]);
+    }
+  });
+}
 
 test("code 7211 renders figtype 12 as one millimeter dashed zero point one millimeter lines", () => {
   const widths = new Map([

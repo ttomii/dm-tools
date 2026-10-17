@@ -23,10 +23,10 @@ const CODE_6130_CYCLE_MM: f64 = 3.5;
 const CODE_6130_CIRCLE_OFFSET_MM: f64 = 2.75;
 const CODE_7105_7107_TICK_INTERVAL_MM: f64 = 3.0;
 const CODE_7105_7107_TICK_LENGTH_MM: f64 = 0.5;
-const CODE_7212_SYMBOL_INTERVAL_MM: f64 = 1.5;
-const CODE_7212_SYMBOL_WIDTH_MM: f64 = 1.5;
-const CODE_7212_SYMBOL_HEIGHT_MM: f64 = 0.75;
-const CODE_7212_CENTER_LINE_LENGTH_MM: f64 = 0.5;
+const ROCK_CORAL_SYMBOL_INTERVAL_MM: f64 = 1.5;
+const ROCK_CORAL_SYMBOL_WIDTH_MM: f64 = 1.5;
+const ROCK_CORAL_SYMBOL_HEIGHT_MM: f64 = 0.75;
+const ROCK_CORAL_CENTER_LINE_LENGTH_MM: f64 = 0.5;
 
 #[derive(Debug, Clone, Copy)]
 struct Vec2 {
@@ -194,7 +194,12 @@ const DECORATION_DEFS: &[DecorationDef] = &[
     DecorationDef {
         dmcode: 7212,
         source_kind: GeometryKind::Line,
-        specs: code_7212_arc_symbol_specs,
+        specs: rock_coral_arc_symbol_specs,
+    },
+    DecorationDef {
+        dmcode: 7214,
+        source_kind: GeometryKind::Line,
+        specs: rock_coral_arc_symbol_specs,
     },
 ];
 
@@ -639,14 +644,14 @@ fn code_7105_7107_right_tick_specs() -> Vec<LineDecorationSpec> {
     }]
 }
 
-fn code_7212_arc_symbol_specs() -> Vec<LineDecorationSpec> {
+fn rock_coral_arc_symbol_specs() -> Vec<LineDecorationSpec> {
     vec![LineDecorationSpec::ArcLineSymbols {
         arc_decoration: "right_arc",
         center_decoration: "center_chord",
-        interval_mm: CODE_7212_SYMBOL_INTERVAL_MM,
-        width_mm: CODE_7212_SYMBOL_WIDTH_MM,
-        height_mm: CODE_7212_SYMBOL_HEIGHT_MM,
-        center_line_length_mm: CODE_7212_CENTER_LINE_LENGTH_MM,
+        interval_mm: ROCK_CORAL_SYMBOL_INTERVAL_MM,
+        width_mm: ROCK_CORAL_SYMBOL_WIDTH_MM,
+        height_mm: ROCK_CORAL_SYMBOL_HEIGHT_MM,
+        center_line_length_mm: ROCK_CORAL_CENTER_LINE_LENGTH_MM,
     }]
 }
 
@@ -1951,6 +1956,39 @@ mod tests {
         assert_coordinate(second_arc[0], 7.5, -1.875);
         assert_coordinate(second_arc[4], 5.625, 0.0);
         assert_coordinate(second_arc[8], 3.75, -1.875);
+    }
+
+    #[test]
+    fn coral_matches_rock_at_2500_and_5000_and_preserves_source() {
+        for level in [2500, 5000] {
+            let mut rock = line_feature(7212);
+            rock.map_level = Some(level);
+            let mut coral = rock.clone();
+            coral.dmcode = 7214;
+            let source = format!("dm_7214_line_08_{level}");
+            let reference = generate(&rock, &LayerKey::from_feature(&rock), "rock", 42);
+            let actual = generate(&coral, &LayerKey::from_feature(&coral), &source, 42);
+            assert!(!actual.is_empty());
+            assert_eq!(actual.len(), reference.len());
+            for (row, expected) in actual.iter().zip(reference.iter()) {
+                assert_eq!(row.geometry, expected.geometry);
+                assert_eq!(row.decoration, expected.decoration);
+                assert_eq!(row.key.source.dmcode, 7214);
+                assert_eq!(row.key.source.map_level, Some(level));
+                assert_eq!(row.src_dmcode, 7214);
+                assert_eq!(row.src_layer, source);
+                assert_eq!(row.src_user_id, 42);
+                assert_eq!(row.src_dmfile, coral.source_file);
+            }
+            coral.attributes.dmfigtype = Some(99);
+            assert!(generate(&coral, &LayerKey::from_feature(&coral), &source, 42).is_empty());
+        }
+        for level in [500, 1000, 10000] {
+            let mut coral = line_feature(7214);
+            coral.map_level = Some(level);
+            assert!(decoration_layer_keys_for(&coral, &LayerKey::from_feature(&coral)).is_empty());
+            assert!(generate(&coral, &LayerKey::from_feature(&coral), "coral", 1).is_empty());
+        }
     }
 
     #[test]

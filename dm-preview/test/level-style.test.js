@@ -61,3 +61,13 @@ test("5000 data keeps a distinct interval between 2500 and 10000", () => {
   assert.ok(middle.maxzoom < getZoomByScale(4999, 35));
   assert.ok(middle.minzoom < middle.maxzoom);
 });
+
+test("level 10000 coral keeps the base line when reusing the 5000 template", () => {
+  const style = createLevelStyle(templates, {levels: [10000], center: [138, 35, 15]});
+  const base = style.layers.find((layer) => layer.id === "dm-7214-line-5000-line-level-10000");
+  const decoration = style.layers.find((layer) => layer.id === "dm-7214-line-5000-arc-symbols-level-10000");
+  const eligible = ["in", ["get", "LEVEL"], ["literal", [2500, 5000]]];
+  assert.equal(base.layout?.visibility ?? "visible", "visible");
+  assert.deepEqual(base.filter, ["all", ["==", ["get", "LEVEL"], 10000], ["!", eligible]]);
+  assert.deepEqual(decoration.filter, ["all", ["==", ["get", "LEVEL"], 10000], eligible]);
+});

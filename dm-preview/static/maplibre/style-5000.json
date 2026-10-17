@@ -12750,16 +12750,85 @@
       }
     },
     {
+      "id": "dm-7214-line-5000-arc-symbols",
+      "source": "dm",
+      "source-layer": "dm_7214_line_deco_line",
+      "filter": [
+        "all",
+        [
+          "==",
+          [
+            "get",
+            "LEVEL"
+          ],
+          5000
+        ],
+        [
+          "in",
+          [
+            "get",
+            "LEVEL"
+          ],
+          [
+            "literal",
+            [
+              2500,
+              5000
+            ]
+          ]
+        ]
+      ],
+      "type": "line",
+      "minzoom": 14,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0.1293685,
+          24,
+          132.473346
+        ]
+      }
+    },
+    {
       "id": "dm-7214-line-5000-line",
       "source": "dm",
       "source-layer": "dm_7214_line",
       "filter": [
-        "==",
+        "all",
         [
-          "get",
-          "LEVEL"
+          "==",
+          [
+            "get",
+            "LEVEL"
+          ],
+          5000
         ],
-        5000
+        [
+          "!",
+          [
+            "in",
+            [
+              "get",
+              "LEVEL"
+            ],
+            [
+              "literal",
+              [
+                2500,
+                5000
+              ]
+            ]
+          ]
+        ]
       ],
       "type": "line",
       "minzoom": 14,
