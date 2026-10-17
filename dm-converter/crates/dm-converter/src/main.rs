@@ -6,12 +6,14 @@ mod maplibre;
 mod timing;
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
-use dm_parser::{DmParser, ParseEvent, ParserConfig, display_source};
+use dm_parser::{
+    DmParser, ParseEvent, ParserConfig, display_source, plane_rectangular_zone_from_record,
+};
 use encoding_rs::Encoding;
 use gpkg::{GeoPackageWriter, LayerKey};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{self, File};
-use std::io::BufReader;
+use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use tempfile::Builder;
@@ -557,17 +559,49 @@ fn parser_for(
         display_source(path),
         ParserConfig {
             encoding,
-            plane_rectangular_zone_override: zone_from_filename(path),
+            plane_rectangular_zone_override: zone_from_index_file(path)?
+                .or_else(|| zone_from_filename(path)),
         },
     ))
 }
 
-/// ファイル名（図郭割り番号を準用）の先頭2桁から平面直角座標系番号を導出する
+/// Standard mesh filenames carry the zone; numeric sequence filenames do not.
 fn zone_from_filename(path: &Path) -> Option<u8> {
     let stem = path.file_stem().and_then(|stem| stem.to_str())?;
-    stem.get(0..2)
-        .and_then(|prefix| prefix.parse::<u8>().ok())
-        .filter(|zone| (1..=19).contains(zone))
+    plane_rectangular_zone_from_record(format!("M {stem}").as_bytes())
+}
+
+fn zone_from_index_file(path: &Path) -> Result<Option<u8>, AppError> {
+    let parent = output_parent(path);
+    let mut zone = None;
+    for entry in fs::read_dir(parent)? {
+        let entry = entry?;
+        let index_path = entry.path();
+        if !entry.file_type()?.is_file()
+            || !index_path
+                .extension()
+                .is_some_and(|ext| ext.eq_ignore_ascii_case("dmi"))
+        {
+            continue;
+        }
+        let mut first = Vec::new();
+        BufReader::new(File::open(&index_path)?).read_until(b'\n', &mut first)?;
+        let Some(index_zone) = first
+            .starts_with(b"I ")
+            .then(|| plane_rectangular_zone_from_record(&first))
+            .flatten()
+        else {
+            continue;
+        };
+        if zone.is_some_and(|previous| previous != index_zone) {
+            return Err(AppError::Input(format!(
+                "conflicting coordinate zones in DMI files under {}",
+                parent.display()
+            )));
+        }
+        zone = Some(index_zone);
+    }
+    Ok(zone)
 }
 
 fn discover_dm_files(input: &Path) -> Result<Vec<PathBuf>, AppError> {
@@ -771,6 +805,75 @@ mod tests {
         assert_eq!(zone_from_filename(Path::new("19AB000.dm")), Some(19));
         assert_eq!(zone_from_filename(Path::new("00AB000.dm")), None);
         assert_eq!(zone_from_filename(Path::new("AB000.dm")), None);
+    }
+
+    #[test]
+    fn numeric_mesh_uses_sibling_index_zone() {
+        let temp = tempfile::tempdir().unwrap();
+        let input = temp.path().join("01.dm");
+        let mut data = sample_line_dm(2204, false);
+        data[2..10].copy_from_slice(b"1       ");
+        data[30..35].copy_from_slice(b"10000");
+        fs::write(&input, &data).unwrap();
+        fs::write(temp.path().join("index10000.DMI"), b"I  8\n").unwrap();
+        assert_eq!(zone_from_filename(&input), None);
+        let feature = parser_for(&input, encoding_rs::SHIFT_JIS)
+            .unwrap()
+            .find_map(|event| match event.unwrap() {
+                ParseEvent::Feature(feature) => Some(feature),
+                _ => None,
+            })
+            .unwrap();
+        assert_eq!(feature.plane_rectangular_zone, Some(8));
+        assert_eq!(feature.map_level, Some(10000));
+        let output = temp.path().join("out.gpkg");
+        run(&args_for(&input, &output, OutputFormat::Gpkg)).unwrap();
+        let connection = rusqlite::Connection::open(output).unwrap();
+        let srs: i64 = connection
+            .query_row(
+                "SELECT srs_id FROM gpkg_contents WHERE data_type = 'features' LIMIT 1",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(srs, 6676);
+    }
+
+    #[test]
+    fn explicit_mesh_zone_precedes_sibling_index() {
+        let temp = tempfile::tempdir().unwrap();
+        let input = temp.path().join("01.dm");
+        fs::write(&input, sample_line_dm(2204, false)).unwrap();
+        fs::write(temp.path().join("index.dmi"), b"I  6\n").unwrap();
+        let feature = parser_for(&input, encoding_rs::SHIFT_JIS)
+            .unwrap()
+            .find_map(|event| match event.unwrap() {
+                ParseEvent::Feature(feature) => Some(feature),
+                _ => None,
+            })
+            .unwrap();
+        assert_eq!(feature.plane_rectangular_zone, Some(8));
+    }
+
+    #[test]
+    fn numeric_mesh_without_index_has_no_zone() {
+        assert_eq!(zone_from_filename(Path::new("01.dm")), None);
+        assert_eq!(zone_from_filename(Path::new("08.dm")), None);
+        assert_eq!(plane_rectangular_zone_from_record(b"M 1       "), None);
+        assert_eq!(plane_rectangular_zone_from_record(b"M 10      "), None);
+        let temp = tempfile::tempdir().unwrap();
+        assert_eq!(
+            zone_from_index_file(&temp.path().join("01.dm")).unwrap(),
+            None
+        );
+        fs::write(temp.path().join("invalid.dmi"), b"I 20\n").unwrap();
+        assert_eq!(
+            zone_from_index_file(&temp.path().join("01.dm")).unwrap(),
+            None
+        );
+        fs::write(temp.path().join("index.dmi"), b"I  8\n").unwrap();
+        fs::write(temp.path().join("other.dmi"), b"I  9\n").unwrap();
+        assert!(zone_from_index_file(&temp.path().join("01.dm")).is_err());
     }
 
     #[test]

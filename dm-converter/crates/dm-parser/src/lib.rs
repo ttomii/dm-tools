@@ -673,7 +673,19 @@ fn normalize_angle(mut angle: f64) -> f64 {
     angle
 }
 
-fn plane_rectangular_zone_from_record(record: &[u8]) -> Option<u8> {
+pub fn plane_rectangular_zone_from_record(record: &[u8]) -> Option<u8> {
+    // Numeric mesh identifiers (for example "1") are not coordinate zones.
+    // Only standard grid codes such as "08ND783" carry a zone prefix.
+    if record.starts_with(b"M ")
+        && !record
+            .get(4..6)
+            .is_some_and(|letters| letters.iter().all(u8::is_ascii_uppercase))
+    {
+        return None;
+    }
+    if !record.starts_with(b"I ") && !record.starts_with(b"M ") {
+        return None;
+    }
     number_i64(record, 2, 2)
         .and_then(|zone| u8::try_from(zone).ok())
         .filter(|zone| (1..=19).contains(zone))
