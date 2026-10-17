@@ -437,7 +437,7 @@ fn tile_zoom_ranges(summary: &MapLibreSummary) -> BTreeMap<i64, RangeInclusive<u
     let boundary = |level: i64| {
         let scale_at_zoom_zero =
             2.0 * WEB_MERCATOR_HALF / 512.0 * 96.0 * 39.37 * latitude.to_radians().cos();
-        (scale_at_zoom_zero / level as f64)
+        (scale_at_zoom_zero / level.min(5000) as f64)
             .log2()
             .floor()
             .clamp(0.0, MAX_ZOOM as f64) as u8
@@ -1602,8 +1602,8 @@ mod tests {
             ..MapLibreSummary::default()
         };
         let ranges = tile_zoom_ranges(&summary);
-        assert_eq!(ranges[&2500], 14..=18);
-        assert_eq!(ranges[&10000], 12..=14);
+        assert_eq!(ranges[&2500], 15..=18);
+        assert_eq!(ranges[&10000], 12..=15);
         let candidates = (12..=18)
             .map(|z| TileKey {
                 z,
@@ -1639,8 +1639,8 @@ mod tests {
                 .map(|f| f.feature.map_level.unwrap())
                 .collect::<BTreeSet<_>>();
             let expected = match key.z {
-                12 | 13 => BTreeSet::from([10000]),
-                14 => BTreeSet::from([2500, 10000]),
+                12..=14 => BTreeSet::from([10000]),
+                15 => BTreeSet::from([2500, 10000]),
                 _ => BTreeSet::from([2500]),
             };
             assert_eq!(levels, expected);
@@ -1648,8 +1648,8 @@ mod tests {
         summary.levels = BTreeSet::from([2500, 5000, 10000]);
         let ranges = tile_zoom_ranges(&summary);
         assert_eq!(ranges[&2500], 15..=18);
-        assert_eq!(ranges[&5000], 14..=15);
-        assert_eq!(ranges[&10000], 12..=14);
+        assert_eq!(ranges[&5000], 15..=15);
+        assert_eq!(ranges[&10000], 12..=15);
     }
 
     #[test]
