@@ -16,7 +16,14 @@ header { grid-column: 1 / 3; }
   background: #f5f5f5;
   border-bottom: 1px solid #ddd;
 }
-#feature-list-panel { min-height: 0; overflow: hidden; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; }
+#feature-list-panel { min-height: 0; overflow: hidden; display: grid; grid-template-rows: auto minmax(0, 1fr); }
+#feature-list-content { min-height: 0; overflow: hidden; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; }
+#list-tabs { display: flex; align-items: stretch; gap: 0; border-bottom: 1px solid #ddd; background: #f5f5f5; }
+#list-tabs button { flex: 1 1 0; border: 0; border-right: 1px solid #ddd; padding: .65rem .75rem; background: #f5f5f5; cursor: pointer; font: inherit; }
+#list-tabs button:last-child { border-right: 0; }
+#list-tabs button[aria-selected="true"] { background: #fff; font-weight: 600; }
+#feature-list-content[hidden], #dmi-info[hidden] { display: none !important; }
+#dmi-info { min-height: 0; overflow: auto; padding: .75rem; background: #fff; }
 #detail-panel { min-height: 0; overflow: hidden; display: grid; grid-template-rows: auto minmax(0, 1fr); border-top: 1px solid #ccc; background: #fff; }
 #detail-tabs { display: flex; align-items: stretch; gap: 0; border-bottom: 1px solid #ddd; background: #f5f5f5; }
 #detail-tabs button { flex: 1 1 0; border: 0; border-right: 1px solid #ddd; padding: .65rem .75rem; background: #f5f5f5; cursor: pointer; font: inherit; }
@@ -54,10 +61,9 @@ header { grid-column: 1 / 3; }
 .feature-properties-table tbody th { width: 38%; background: #fafafa; font-weight: 600; }
 #style-editor[hidden], #feature-details[hidden] { display: none !important; }
 
-#dmi-info { min-height: 0; overflow: auto; padding: .75rem; }
-#dmi-info[hidden] { display: none !important; }
 #dmi-info h3, #dmi-info p { overflow-wrap: anywhere; }
 #dmi-info details { margin-top: .75rem; overflow-x: auto; }
 .dmi-table { border-collapse: collapse; font-size: 12px; width: 100%; }
 .dmi-table th, .dmi-table td { border: 1px solid #ddd; padding: .35rem; text-align: left; overflow-wrap: anywhere; }
 .dmi-table th { background: #f5f5f5; }
+#dmi-index-select { box-sizing: border-box; width: 100%; margin-bottom: .75rem; }

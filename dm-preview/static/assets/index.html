@@ -19,34 +19,39 @@
   <main id="map"></main>
   <aside id="sidebar">
     <section id="feature-list-panel">
-      <div class="panel-heading">
-        <div class="feature-list-controls">
-          <input id="feature-layer-filter" type="search" aria-label="レイヤを検索" placeholder="レイヤを検索">
-          <select id="feature-kind" aria-label="図形種別">
-            <option value="">すべて</option>
-            <option value="point">点</option>
-            <option value="line">線</option>
-            <option value="polygon">面</option>
-            <option value="text">注記</option>
-          </select>
-          <select id="feature-layer" aria-label="レイヤ"></select>
+      <div id="list-tabs" role="tablist" aria-label="一覧切り替え">
+        <button id="tab-feature-list" type="button" role="tab" aria-selected="true">地物一覧</button>
+        <button id="tab-dmi-info" type="button" role="tab" aria-selected="false">DMI情報</button>
+      </div>
+      <section id="feature-list-content" class="list-tab-panel">
+        <div class="panel-heading">
+          <div class="feature-list-controls">
+            <input id="feature-layer-filter" type="search" aria-label="レイヤを検索" placeholder="レイヤを検索">
+            <select id="feature-kind" aria-label="図形種別">
+              <option value="">すべて</option>
+              <option value="point">点</option>
+              <option value="line">線</option>
+              <option value="polygon">面</option>
+              <option value="text">注記</option>
+            </select>
+            <select id="feature-layer" aria-label="レイヤ"></select>
+          </div>
         </div>
-      </div>
-      <div id="feature-list-status"></div>
-      <ol id="feature-list"></ol>
-      <div id="feature-list-pager">
-        <button id="feature-prev" type="button">前へ</button>
-        <span id="feature-page"></span>
-        <button id="feature-next" type="button">次へ</button>
-      </div>
+        <div id="feature-list-status"></div>
+        <ol id="feature-list"></ol>
+        <div id="feature-list-pager">
+          <button id="feature-prev" type="button">前へ</button>
+          <span id="feature-page"></span>
+          <button id="feature-next" type="button">次へ</button>
+        </div>
+      </section>
+      <section id="dmi-info" class="list-tab-panel" hidden><div id="dmi-content">DMI情報はありません。</div></section>
     </section>
     <section id="detail-panel">
       <div id="detail-tabs" role="tablist" aria-label="表示切り替え">
         <button id="tab-style-editor" type="button" role="tab" aria-selected="true">スタイル編集</button>
         <button id="tab-feature-details" type="button" role="tab" aria-selected="false">地物プロパティ</button>
-        <button id="tab-dmi-info" type="button" role="tab" aria-selected="false">DMI情報</button>
       </div>
-      <section id="dmi-info" class="detail-tab-panel" hidden><div id="dmi-content">DMI情報はありません。</div></section>
       <section id="style-editor" class="detail-tab-panel">
         <div class="panel-heading">
           <strong>スタイル編集</strong>

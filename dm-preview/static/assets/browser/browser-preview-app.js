@@ -55,12 +55,18 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
     state.activeDetailTab = tab;
     const isStyleEditor = tab === "style-editor";
     const isFeatureDetails = tab === "feature-details";
-    elements.dmiInfoPanel.hidden = tab !== "dmi-info";
-    elements.tabDmiInfo.setAttribute("aria-selected", String(tab === "dmi-info"));
     elements.styleEditorPanel.hidden = !isStyleEditor;
     elements.featureDetailsPanel.hidden = !isFeatureDetails;
     elements.tabStyleEditor.setAttribute("aria-selected", String(isStyleEditor));
     elements.tabFeatureDetails.setAttribute("aria-selected", String(isFeatureDetails));
+  };
+
+  const setListTab = (tab) => {
+    const isDmiInfo = tab === "dmi-info";
+    elements.featureListPanel.hidden = isDmiInfo;
+    elements.dmiInfoPanel.hidden = !isDmiInfo;
+    elements.tabFeatureList.setAttribute("aria-selected", String(!isDmiInfo));
+    elements.tabDmiInfo.setAttribute("aria-selected", String(isDmiInfo));
   };
 
   const getRuntimeLayerIds = (id) => runtimeLayerIds(state.map.getStyle(), id);
@@ -320,7 +326,8 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
           elements.styleEditorStatus.textContent = String(error);
         });
     });
-    elements.tabDmiInfo.addEventListener("click", () => setDetailTab("dmi-info"));
+    elements.tabFeatureList.addEventListener("click", () => setListTab("feature-list"));
+    elements.tabDmiInfo.addEventListener("click", () => setListTab("dmi-info"));
     elements.tabStyleEditor.addEventListener("click", () => setDetailTab("style-editor"));
     elements.tabFeatureDetails.addEventListener("click", () => setDetailTab("feature-details"));
     elements.featureKindSelect.addEventListener("change", () => {

@@ -19,8 +19,9 @@ DM入力から直接MapLibre出力を生成した場合は、PMTiles生成に使
 
 ## DMI情報
 
-DMI情報を含む変換結果では「DMI情報」タブに、DMIごとの地図情報レベル、
-対応DM、座標系、計画機関、作業規程、図郭一覧、分類コード対応などを表示します。
+DMI情報を含む変換結果では地物一覧と同じ上部パネルの「DMI情報」タブに、DMIごとの地図情報レベル、
+座標系、計画機関、作業規程、分類コード対応などを表示します。
+複数のDMIがある場合は、ドロップダウンで切り替えられます。
 manifestの `dmiInfo` を参照するため、元のDM/DMIは不要です。
 DMI情報がない旧データも表示できます。bundleへもJSONとmanifestを引き継ぎます。
 保存形式は[manifest・DMI情報JSON仕様](pmtiles-manifest-specification.md)を参照してください。
