@@ -443,7 +443,12 @@ fn tile_zoom_ranges(summary: &MapLibreSummary) -> BTreeMap<i64, RangeInclusive<u
     let boundary = |level: i64| {
         let scale_at_zoom_zero =
             2.0 * WEB_MERCATOR_HALF / 512.0 * 96.0 * 39.37 * latitude.to_radians().cos();
-        (scale_at_zoom_zero / level.min(5000) as f64)
+        let scale = if level == 10000 && !summary.levels.contains(&5000) {
+            5000
+        } else {
+            level
+        };
+        (scale_at_zoom_zero / scale as f64)
             .log2()
             .floor()
             .clamp(0.0, MAX_ZOOM as f64) as u8
@@ -1654,8 +1659,8 @@ mod tests {
         summary.levels = BTreeSet::from([2500, 5000, 10000]);
         let ranges = tile_zoom_ranges(&summary);
         assert_eq!(ranges[&2500], 15..=18);
-        assert_eq!(ranges[&5000], 15..=15);
-        assert_eq!(ranges[&10000], 12..=15);
+        assert_eq!(ranges[&5000], 14..=15);
+        assert_eq!(ranges[&10000], 12..=14);
     }
 
     #[test]

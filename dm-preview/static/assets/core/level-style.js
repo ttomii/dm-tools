@@ -5,6 +5,7 @@ export const presentationLevel = (level) => Math.min(level, 5000);
 // The denominator at the boundary belongs to the coarser dataset. MapLibre's
 // minzoom is inclusive, so move the boundary one floating-point step upward.
 const after = (value) => value + Number.EPSILON * Math.max(1, Math.abs(value));
+const switchScale = (level, levels) => level === 10000 && !levels.includes(5000) ? 5000 : level;
 const SIZE_PROPERTIES = new Set([
   "line-width", "line-gap-width", "line-offset", "line-blur",
   "circle-radius", "circle-stroke-width", "text-size", "text-halo-width",
@@ -34,10 +35,10 @@ export const createLevelStyle = (templates, manifest) => {
         }
       }
       if (levels[index + 1]) {
-        layer.minzoom = Math.max(layer.minzoom ?? 0, after(getZoomByScale(presentationLevel(levels[index + 1]), manifest.center[1])));
+        layer.minzoom = Math.max(layer.minzoom ?? 0, after(getZoomByScale(switchScale(levels[index + 1], levels), manifest.center[1])));
       }
       if (index > 0) {
-        layer.maxzoom = Math.min(layer.maxzoom ?? 24, after(getZoomByScale(base, manifest.center[1])));
+        layer.maxzoom = Math.min(layer.maxzoom ?? 24, after(getZoomByScale(switchScale(level, levels), manifest.center[1])));
       }
       style.layers.push(layer);
     }

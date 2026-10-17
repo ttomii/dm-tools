@@ -48,3 +48,16 @@ test("coarse lines remain visible at z12 and halve their width from z13", () => 
   assert.equal(line.paint["line-width"][5], 13);
   assert.equal(line.paint["line-width"][4], line.paint["line-width"][6] / 2);
 });
+
+test("5000 data keeps a distinct interval between 2500 and 10000", () => {
+  const style = createLevelStyle(templates, {levels: [2500, 5000, 10000], center: [138, 35, 15]});
+  const line = (level) => style.layers.find((layer) => layer.id.endsWith(`-line-level-${level}`));
+  const fine = line(2500), middle = line(5000), coarse = line(10000);
+  assert.equal(fine.minzoom, middle.maxzoom);
+  assert.equal(middle.minzoom, coarse.maxzoom);
+  assert.ok(middle.minzoom > getZoomByScale(10000, 35));
+  assert.ok(middle.minzoom < getZoomByScale(9999, 35));
+  assert.ok(middle.maxzoom > getZoomByScale(5000, 35));
+  assert.ok(middle.maxzoom < getZoomByScale(4999, 35));
+  assert.ok(middle.minzoom < middle.maxzoom);
+});
