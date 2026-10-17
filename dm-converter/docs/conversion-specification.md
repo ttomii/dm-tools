@@ -252,6 +252,38 @@ dm_{DMCODE}_{GEOM}_{ZONE}_{LEVEL}_deco_{DECO_GEOM}
 
 - `dm_2205_line_08_2500_deco_line`
 
+### DMI情報
+
+入力DMと同じフォルダの `.dmi` ファイルを大文字・小文字を区別せず探索し、
+DMIごとに独自の非空間テーブル `dm_dmi_metadata` へ1行保存します。
+DMIがない場合はこのテーブルを作成しません。地物レイヤーや
+GeoPackage標準メタデータ拡張としての登録は行いません。
+
+| 列 | SQLite型 | 制約・内容 |
+| --- | --- | --- |
+| `source_path` | TEXT | PRIMARY KEY、NOT NULL。入力DMの共通親ディレクトリからのDMI相対パス |
+| `map_levels` | TEXT | NOT NULL。地図情報レベルのJSON整数配列。昇順、重複なし |
+| `dm_files` | TEXT | NOT NULL。対応する入力DM相対パスのJSON文字列配列。昇順、重複なし |
+| `json` | TEXT | NOT NULL。DMI情報のJSONオブジェクト |
+
+パスの区切りは `/` です。元データの絶対パスは保存しません。
+単一のDM入力ではその親ディレクトリが相対パスの基準になります。
+
+DMIの図郭一覧と、入力DM本体のMレコードの図郭識別番号を照合します。
+同じフォルダにあるDMを優先し、その図郭がない場合は入力全体から対応DMを
+一意に特定できた場合だけ関連付けます。数字だけの番号は先頭ゼロを除いて比較し、それ以外は文字列として
+比較します。レベルは一致したMレコードの地図情報レベル欄から取得し、
+フォルダ名・DMI名・DM名から推測しません。取得できる正の整数がなければ
+`map_levels` は空配列です。対象DMが見つからないDMIも、空の対応配列で保存します。
+コード・図形フィルターによる地物の採否とは独立して、入力DMとの対応を記録します。
+
+各レコードの84バイト固定長、レコード数、図郭数、数値欄、文字の復号を検証します。
+不正なDMIがあれば変換エラーとし、既存の出力は置き換えません。
+文字コードはDMと同じ `--encoding` の指定に従います。
+
+JSONの各項目は[manifest・DMI情報JSON仕様](../../docs/pmtiles-manifest-specification.md)を参照してください。
+分類コード対応・独自方向定義を保存しますが、それによる地物の分類や描画の変更は行いません。
+
 ### 属性列
 
 ベース地物レイヤーには、共通データ仕様のベース地物属性を列として格納します。
@@ -304,6 +336,7 @@ PMTiles v3とmanifestを1ディレクトリへ出力します。DM入力から�
 {layer-name}.pmtiles
 {layer-name}.gpkg
 pmtiles-manifest.json
+dmi-info.json (DMI情報がある場合)
 ```
 
 manifestの`levels`には、入力に地物が存在する地図情報レベルを記録します。
@@ -397,6 +430,13 @@ Style・sprite・glyph・MapLibre GL JSはPreviewパッケージが配信し、�
 同梱しません。
 
 ### MapLibre manifest
+
+詳細は[manifest仕様](../../docs/pmtiles-manifest-specification.md)を参照してください。
+
+DMI情報を含むGeoPackageから生成した場合は `dmi-info.json` を出力し、
+manifestの任意項目 `dmiInfo` に相対パスを記録します。GeoPackage入力からの
+生成でも情報を引き継ぎ、元のDM/DMIは参照しません。旧GeoPackageやDMI情報の
+ない入力ではJSONと参照を省略します。DMI情報はPMTiles本体には埋め込みません。
 
 `pmtiles-manifest.json`は表示ツール向けの出力契約です。
 

@@ -683,7 +683,11 @@ test("covers browser API, feature panel, sprite editor, and preview app startup"
     elements.background.click();
     elements.basemap.dispatch("change");
     elements.dmToggle.dispatch("change");
+    elements.tabDmiInfo.click();
+    assert.equal(elements.dmiInfoPanel.hidden, false);
+    assert.equal(elements.featureDetailsPanel.hidden, true);
     elements.tabFeatureDetails.click();
+    assert.equal(elements.dmiInfoPanel.hidden, true);
     assert.equal(elements.status.textContent, "z15.00 center 135.000000,35.000000");
     assert.equal(historyCalls.length, 2);
     assert.equal(elements.styleEditorStatus.textContent, "Error: sprite unavailable");
@@ -767,6 +771,9 @@ const createAppElements = (document) => ({
   hitList: document.createElement("ol"),
   tabStyleEditor: document.createElement("button"),
   tabFeatureDetails: document.createElement("button"),
+  tabDmiInfo: document.createElement("button"),
+  dmiInfoPanel: document.createElement("section"),
+  dmiContent: document.createElement("div"),
   styleEditorPanel: document.createElement("section"),
   featureDetailsPanel: document.createElement("section"),
   styleEditorStatus: document.createElement("p"),

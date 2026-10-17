@@ -4,7 +4,7 @@ import {InputError, MANIFEST_FILENAME, parseManifest} from "../core/manifest-pol
 import {createLevelStyle, presentationLevel} from "../core/level-style.js";
 import {createBundledStyle} from "../core/style-transform.js";
 import {createDefaultAssetRoots} from "./asset-roots.js";
-import {resolveOutputPath} from "./manifest.js";
+import {readManifest, resolveOutputPath} from "./manifest.js";
 
 export const createBundle = async (pmtiles, output, options = {}) => {
   const source = await readSource(pmtiles);
@@ -17,6 +17,13 @@ export const createBundle = async (pmtiles, output, options = {}) => {
   ];
   if (style) files.push(writeFile(path.join(destination, "style.json"), `${JSON.stringify(style, undefined, 2)}\n`));
 
+  if (source.manifest.dmiInfo) {
+    files.push(cp(resolveOutputPath(source.root, source.manifest.dmiInfo), path.join(destination, "dmi-info.json")));
+    files.push(writeFile(path.join(destination, MANIFEST_FILENAME), JSON.stringify({
+      ...source.manifest, pmtiles: pmtilesName, dmiInfo: "dmi-info.json",
+      styles: style ? ["style.json"] : undefined,
+    }, undefined, 2)));
+  }
   await Promise.all(files);
   return destination;
 };
@@ -24,13 +31,13 @@ export const createBundle = async (pmtiles, output, options = {}) => {
 const readSource = async (pmtiles) => {
   const pmtilesFile = await requireFile(pmtiles, "pmtiles");
   const root = path.dirname(pmtilesFile);
-  const manifestPath = path.join(root, MANIFEST_FILENAME);
-  const manifest = parseManifest(await readJson(manifestPath));
+  const manifest = parseManifest(await readJson(path.join(root, MANIFEST_FILENAME)));
   const manifestPmtiles = await realpath(resolveOutputPath(root, manifest.pmtiles)).catch(() => "");
   if (manifestPmtiles !== pmtilesFile) {
     throw new InputError(`manifest pmtiles does not match input: ${manifest.pmtiles}`);
   }
-  return {manifest, pmtiles: pmtilesFile, root};
+  const validated = await readManifest(root);
+  return {manifest: validated.manifest, pmtiles: pmtilesFile, root};
 };
 
 const prepareOutput = async (output) => {

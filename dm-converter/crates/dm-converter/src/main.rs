@@ -1,6 +1,7 @@
 // © TOMII, Tatsuru
 
 mod decorations;
+mod dmi;
 mod gpkg;
 mod maplibre;
 mod timing;
@@ -246,6 +247,11 @@ fn run_gpkg(args: &ConvertArgs, output: &Path, files: &[PathBuf]) -> Result<RunS
     })?;
     let counts = writer.finish()?;
     drop(writer);
+    let metadata = dmi::collect(files, args.encoding)?;
+    if !metadata["indexes"].as_array().unwrap().is_empty() {
+        let connection = rusqlite::Connection::open(&staged).map_err(gpkg::WriterError::from)?;
+        dmi::store(&connection, &metadata).map_err(gpkg::WriterError::from)?;
+    }
     summary.layers = counts.len() as u64;
     if summary.warnings != discovery_warnings {
         return Err(AppError::Conversion(
@@ -815,7 +821,16 @@ mod tests {
         data[2..10].copy_from_slice(b"1       ");
         data[30..35].copy_from_slice(b"10000");
         fs::write(&input, &data).unwrap();
-        fs::write(temp.path().join("index10000.DMI"), b"I  8\n").unwrap();
+        let mut index = [b' '; 84];
+        index[..4].copy_from_slice(b"I  8");
+        index[34..39].copy_from_slice(b"  1 1");
+        let mut mesh = [b' '; 84];
+        mesh[0] = b'1';
+        fs::write(
+            temp.path().join("index10000.DMI"),
+            [index.as_slice(), mesh.as_slice()].join(&b'\n'),
+        )
+        .unwrap();
         assert_eq!(zone_from_filename(&input), None);
         let feature = parser_for(&input, encoding_rs::SHIFT_JIS)
             .unwrap()
@@ -837,6 +852,16 @@ mod tests {
             )
             .unwrap();
         assert_eq!(srs, 6676);
+        let (source, levels, files): (String, String, String) = connection
+            .query_row(
+                "SELECT source_path, map_levels, dm_files FROM dm_dmi_metadata",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .unwrap();
+        assert_eq!(source, "index10000.DMI");
+        assert_eq!(levels, "[10000]");
+        assert_eq!(files, "[\"01.dm\"]");
     }
 
     #[test]

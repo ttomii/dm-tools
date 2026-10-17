@@ -1,3 +1,4 @@
+import {loadDmiInfo} from "./dmi-info.js";
 import {
   editableColorProperties,
   editableKinds,
@@ -54,6 +55,8 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
     state.activeDetailTab = tab;
     const isStyleEditor = tab === "style-editor";
     const isFeatureDetails = tab === "feature-details";
+    elements.dmiInfoPanel.hidden = tab !== "dmi-info";
+    elements.tabDmiInfo.setAttribute("aria-selected", String(tab === "dmi-info"));
     elements.styleEditorPanel.hidden = !isStyleEditor;
     elements.featureDetailsPanel.hidden = !isFeatureDetails;
     elements.tabStyleEditor.setAttribute("aria-selected", String(isStyleEditor));
@@ -317,6 +320,7 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
           elements.styleEditorStatus.textContent = String(error);
         });
     });
+    elements.tabDmiInfo.addEventListener("click", () => setDetailTab("dmi-info"));
     elements.tabStyleEditor.addEventListener("click", () => setDetailTab("style-editor"));
     elements.tabFeatureDetails.addEventListener("click", () => setDetailTab("feature-details"));
     elements.featureKindSelect.addEventListener("change", () => {
@@ -375,6 +379,7 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
     const protocol = new pmtiles.Protocol();
     maplibregl.addProtocol("pmtiles", protocol.tile);
     const manifest = await api.manifest();
+    await loadDmiInfo(elements.dmiContent, manifest, api);
     const styles = manifest.styles ?? ["automatic"];
     for (const styleUrl of styles) {
       const option = document.createElement("option");

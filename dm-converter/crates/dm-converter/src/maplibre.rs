@@ -178,6 +178,19 @@ pub fn write_from_gpkg(
     timed("writing PMTiles manifest", || {
         write_manifest(output, layer_name, &summary)
     })?;
+    if let Some(value) = crate::dmi::read(&connection)? {
+        fs::write(
+            output.join("dmi-info.json"),
+            serde_json::to_string_pretty(&value)?,
+        )?;
+        let manifest_path = output.join("pmtiles-manifest.json");
+        let mut manifest: serde_json::Value = serde_json::from_slice(&fs::read(&manifest_path)?)?;
+        manifest["dmiInfo"] = json!("dmi-info.json");
+        fs::write(
+            manifest_path,
+            serde_json::to_string_pretty(&manifest)? + "\n",
+        )?;
+    }
     Ok(summary)
 }
 
@@ -1668,8 +1681,19 @@ mod tests {
         };
         let tiles = collect_tile_feature_layers(&source, &keys).unwrap();
         assert!(tiles.keys().any(|key| key.z == 12));
+        let metadata = json!({"version": 1, "indexes": [{
+            "source": "index.dmi", "mapLevels": [10000], "dmFiles": ["01.dm"], "zone": 8
+        }]});
+        crate::dmi::store(&connection, &metadata).unwrap();
         let output = temp.path().join("output");
         write_from_gpkg(&output, "coarse", &gpkg, false).unwrap();
+        let manifest: serde_json::Value =
+            serde_json::from_slice(&fs::read(output.join("pmtiles-manifest.json")).unwrap())
+                .unwrap();
+        assert_eq!(manifest["dmiInfo"], "dmi-info.json");
+        let exported: serde_json::Value =
+            serde_json::from_slice(&fs::read(output.join("dmi-info.json")).unwrap()).unwrap();
+        assert_eq!(exported, metadata);
         let archive = fs::read(output.join("coarse.pmtiles")).unwrap();
         let header = pmtiles::Header::try_from_bytes(archive[..127].to_vec().into()).unwrap();
         assert_eq!(header.min_zoom, 12);

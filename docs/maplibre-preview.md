@@ -6,6 +6,7 @@
 {layer-name}.pmtiles
 {layer-name}.gpkg
 pmtiles-manifest.json
+dmi-info.json (DMI情報がある場合)
 ```
 
 `{layer-name}.gpkg`はDM入力から直接MapLibre出力を生成した場合だけ作成されます。
@@ -15,6 +16,14 @@ pmtiles-manifest.json
 DM入力から直接MapLibre出力を生成した場合は、PMTiles生成に使った中間GeoPackageが
 `{layer-name}.gpkg`として残ります。このGeoPackageがある場合、`dm-preview`はレイヤ別
 地物一覧と地物選択用APIに使用します。
+
+## DMI情報
+
+DMI情報を含む変換結果では「DMI情報」タブに、DMIごとの地図情報レベル、
+対応DM、座標系、計画機関、作業規程、図郭一覧、分類コード対応などを表示します。
+manifestの `dmiInfo` を参照するため、元のDM/DMIは不要です。
+DMI情報がない旧データも表示できます。bundleへもJSONとmanifestを引き継ぎます。
+保存形式は[manifest・DMI情報JSON仕様](pmtiles-manifest-specification.md)を参照してください。
 
 ## Preview
 
@@ -76,7 +85,8 @@ DM入力から生成したプレビュー用データでは、元の`OUTPUT`にG
 指定した`DIR`が保存先になります。
 
 配布用ディレクトリには、GeoPackage、プレビュー画面の`index.html`、`assets/`、
-`vendor/`は含まれません。スタイル編集後の`style.json`、PMTiles、sprite、glyphsだけを
+`vendor/`は含まれません。スタイル編集後の`style.json`、PMTiles、sprite、glyphsと、DMI情報がある場合の
+manifest・DMI情報JSONを
 静的Web配信に使用します。
 
 別の配布先を使う場合は次のように指定します。

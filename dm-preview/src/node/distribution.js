@@ -1,4 +1,4 @@
-import {readdir, realpath, stat} from "node:fs/promises";
+import {cp, readdir, realpath, stat, writeFile} from "node:fs/promises";
 import path from "node:path";
 import {InputError} from "../core/manifest-policy.js";
 import {createBundle} from "./bundle.js";
@@ -16,7 +16,13 @@ export const prepareDistribution = async (previewRoot, manifest, output) => {
   if (state === "missing" || state === "empty") {
     await createBundle(resolveOutputPath(previewRoot, manifest.pmtiles), destination, {includeDefaultStyle: false});
   }
-  return readDistributionManifest(destination, manifest);
+  const distribution = await readDistributionManifest(destination, manifest);
+  if (manifest.dmiInfo) {
+    await cp(resolveOutputPath(previewRoot, manifest.dmiInfo), path.join(destination, "dmi-info.json"));
+    distribution.manifest = {...distribution.manifest, dmiInfo: "dmi-info.json"};
+    await writeFile(path.join(destination, MANIFEST_FILENAME), `${JSON.stringify(distribution.manifest, undefined, 2)}\n`);
+  }
+  return distribution;
 };
 
 const readDistributionManifest = async (root, fallback) => {

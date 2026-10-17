@@ -23,6 +23,7 @@ export const parseManifest = (value) => {
   const center = parseCenter(value.center);
   const styles = parseStyles(value.styles);
   const manifest = {version: 1, layerName: value.layerName, pmtiles, levels, sourceLayers, bounds, center};
+  if (value.dmiInfo !== undefined) manifest.dmiInfo = parseRelativePath(value.dmiInfo, "dmiInfo");
   return styles ? {...manifest, styles} : manifest;
 };
 
@@ -54,7 +55,7 @@ export const parseRelativePath = (value, name) => {
   return value;
 };
 
-export const manifestPaths = (manifest) => [manifest.pmtiles, ...(manifest.styles ?? [])];
+export const manifestPaths = (manifest) => [manifest.pmtiles, ...(manifest.styles ?? []), ...(manifest.dmiInfo ? [manifest.dmiInfo] : [])];
 
 export const isStyle = (value) => isRecord(value) && value.version === 8 && isRecord(value.sources);
 
