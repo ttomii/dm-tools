@@ -26,7 +26,7 @@ export const createLevelStyle = (templates, manifest) => {
       layer.id = `${layer.id}-level-${level}`;
       layer.filter = replaceLevel(layer.filter, level);
       const zoomShift = Math.log2(level / base);
-      if (layer.minzoom !== undefined) layer.minzoom = Math.max(0, layer.minzoom - zoomShift);
+      if (layer.minzoom !== undefined) layer.minzoom = Math.max(0, layer.minzoom - zoomShift - 1);
       if (layer.maxzoom !== undefined) layer.maxzoom -= zoomShift;
       for (const group of [layer.paint, layer.layout]) {
         for (const property of Object.keys(group ?? {})) {
@@ -54,14 +54,14 @@ const replaceLevel = (value, level) => {
 };
 
 const scaleSize = (value, ratio) => {
-  if (ratio === 1) return value;
   if (typeof value === "number") return value * ratio;
   if (value[0] === "interpolate" && value[2]?.[0] === "zoom") {
     // Shift the zoom stops as well as the visibility range so sizes continue
     // scaling below the template's original minimum zoom.
     const shifted = value.map((item, index) => index >= 3 && index % 2 === 1 ? item - Math.log2(ratio) : item);
+    shifted.splice(3, 0, shifted[3] - 1, scaleSize(value[4], 0.5));
     if (ratio > 1) shifted.push(value.at(-2), scaleSize(value.at(-1), ratio));
     return shifted;
   }
-  return ["*", value, ratio];
+  return ratio === 1 ? value : ["*", value, ratio];
 };

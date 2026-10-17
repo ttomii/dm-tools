@@ -9,14 +9,21 @@ use rusqlite::{Connection, Row};
 use serde_json::json;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fs::{self, File};
+use std::ops::RangeInclusive;
 use std::path::Path;
 use std::sync::Arc;
 use thiserror::Error;
 
 use crate::timing::{ProgressDisplay, timed};
 
-const MIN_ZOOM: u8 = 14;
+const MIN_ZOOM: u8 = 13;
 const MAX_ZOOM: u8 = 18;
+
+fn min_zoom_for_level(level: i64) -> u8 {
+    let reduction = ((level.max(5000) as f64 / 5000.0).log2().ceil()) as u8;
+    MIN_ZOOM.saturating_sub(reduction)
+}
+
 const EXTENT: u32 = 4096;
 const BUFFER: i32 = 64;
 const SIMPLIFY_TOLERANCE: f64 = 4.0;
@@ -133,6 +140,7 @@ struct TileSource<'a> {
     connection: &'a Connection,
     layers: &'a [GpkgLayer],
     projector: &'a Projector,
+    zoom_ranges: &'a BTreeMap<i64, RangeInclusive<u8>>,
 }
 
 type TileLayers = BTreeMap<String, Vec<Arc<ProjectedFeature>>>;
@@ -154,13 +162,15 @@ pub fn write_from_gpkg(
     let mut summary = timed("summarizing GeoPackage features", || {
         summarize_gpkg(&connection, &layers, &projector)
     })?;
+    let zoom_ranges = tile_zoom_ranges(&summary);
     let keys = timed("collecting PMTiles tile candidates", || {
-        tile_keys(&layers, &projector)
+        tile_keys(&layers, &projector, &zoom_ranges)
     })?;
     let tile_source = TileSource {
         connection: &connection,
         layers: &layers,
         projector: &projector,
+        zoom_ranges: &zoom_ranges,
     };
     summary.tiles = timed("writing PMTiles tiles", || {
         write_pmtiles(output, layer_name, &summary, &tile_source, keys, progress)
@@ -408,9 +418,40 @@ fn mercator_to_lon_lat(point: Coordinate) -> (f64, f64) {
     (lon, lat)
 }
 
+fn tile_zoom_ranges(summary: &MapLibreSummary) -> BTreeMap<i64, RangeInclusive<u8>> {
+    let latitude = (summary.bounds[1] + summary.bounds[3]) / 2.0;
+    let levels = summary.levels.iter().copied().collect::<Vec<_>>();
+    let boundary = |level: i64| {
+        let scale_at_zoom_zero =
+            2.0 * WEB_MERCATOR_HALF / 512.0 * 96.0 * 39.37 * latitude.to_radians().cos();
+        (scale_at_zoom_zero / level as f64)
+            .log2()
+            .floor()
+            .clamp(0.0, MAX_ZOOM as f64) as u8
+    };
+    levels
+        .iter()
+        .enumerate()
+        .map(|(index, level)| {
+            let max = if index == 0 {
+                MAX_ZOOM
+            } else {
+                boundary(*level)
+            };
+            let min = levels
+                .get(index + 1)
+                .map(|next| boundary(*next))
+                .unwrap_or_else(|| min_zoom_for_level(*level))
+                .min(max);
+            (*level, min..=max)
+        })
+        .collect()
+}
+
 fn tile_keys(
     layers: &[GpkgLayer],
     projector: &Projector,
+    zoom_ranges: &BTreeMap<i64, RangeInclusive<u8>>,
 ) -> Result<BTreeSet<TileKey>, MapLibreError> {
     let mut keys = BTreeSet::new();
     for layer in layers {
@@ -437,7 +478,7 @@ fn tile_keys(
             },
         ];
         let projected = projector.project(layer.zone, &corners)?;
-        for zoom in MIN_ZOOM..=MAX_ZOOM {
+        for zoom in zoom_ranges[&layer.level].clone() {
             let (min_x, min_y, max_x, max_y) = tile_range(&projected, zoom);
             for x in min_x..=max_x {
                 for y in min_y..=max_y {
@@ -1263,6 +1304,12 @@ fn write_pmtiles(
     keys: BTreeSet<TileKey>,
     progress: bool,
 ) -> Result<u64, MapLibreError> {
+    let min_zoom = source
+        .zoom_ranges
+        .values()
+        .map(|range| *range.start())
+        .min()
+        .unwrap_or(MIN_ZOOM);
     let center = [
         (summary.bounds[0] + summary.bounds[2]) / 2.0,
         (summary.bounds[1] + summary.bounds[3]) / 2.0,
@@ -1272,21 +1319,21 @@ fn write_pmtiles(
         .iter()
         .collect::<BTreeSet<_>>()
         .into_iter()
-        .map(|id| json!({"id": id, "minzoom": MIN_ZOOM, "maxzoom": MAX_ZOOM}))
+        .map(|id| json!({"id": id, "minzoom": min_zoom, "maxzoom": MAX_ZOOM}))
         .collect::<Vec<_>>();
     let metadata = serde_json::to_string(&json!({
         "name": layer_name,
         "format": "pbf",
         "type": "overlay",
-        "minzoom": MIN_ZOOM,
+        "minzoom": min_zoom,
         "maxzoom": MAX_ZOOM,
         "bounds": summary.bounds,
-        "center": [center[0], center[1], MIN_ZOOM],
+        "center": [center[0], center[1], min_zoom],
         "vector_layers": vector_layers
     }))?;
     let file = File::create(output.join(format!("{layer_name}.pmtiles")))?;
     let mut writer = PmTilesWriter::new(TileType::Mvt)
-        .min_zoom(MIN_ZOOM)
+        .min_zoom(min_zoom)
         .max_zoom(MAX_ZOOM)
         .bounds(
             summary.bounds[0],
@@ -1295,7 +1342,7 @@ fn write_pmtiles(
             summary.bounds[3],
         )
         .center(center[0], center[1])
-        .center_zoom(MIN_ZOOM)
+        .center_zoom(min_zoom)
         .metadata(&metadata)
         .create(file)?;
     let candidate_count = keys.len();
@@ -1357,6 +1404,7 @@ fn collect_tile_feature_layers(
                 candidate_keys,
                 source_layer.as_str(),
                 Arc::new(feature),
+                source.zoom_ranges[&layer.level].clone(),
             );
         }
     }
@@ -1368,8 +1416,9 @@ fn add_feature_to_tiles(
     candidate_keys: &BTreeSet<TileKey>,
     source_layer: &str,
     feature: Arc<ProjectedFeature>,
+    zooms: RangeInclusive<u8>,
 ) {
-    for zoom in MIN_ZOOM..=MAX_ZOOM {
+    for zoom in zooms {
         let (min_x, min_y, max_x, max_y) = tile_range(&feature.points, zoom);
         for x in min_x..=max_x {
             for y in min_y..=max_y {
@@ -1502,6 +1551,130 @@ mod vector_tile {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn coarse_levels_extend_tile_generation_toward_smaller_scales() {
+        assert_eq!(min_zoom_for_level(2500), 13);
+        assert_eq!(min_zoom_for_level(5000), 13);
+        assert_eq!(min_zoom_for_level(10000), 12);
+        assert_eq!(min_zoom_for_level(20000), 11);
+        let mut coarse = sample_feature();
+        coarse.map_level = Some(10000);
+        let projected = Arc::new(ProjectedFeature {
+            feature: coarse,
+            user_id: 1,
+            points: vec![Coordinate {
+                x: 0.0,
+                y: 0.0,
+                z: None,
+            }],
+            decoration: None,
+        });
+        let key = TileKey {
+            z: 13,
+            x: 4096,
+            y: 4096,
+        };
+        let candidates = BTreeSet::from([key]);
+        let mut tiles = BTreeMap::new();
+        add_feature_to_tiles(&mut tiles, &candidates, "dm_2100_line", projected, 13..=18);
+        assert_eq!(tiles[&key]["dm_2100_line"].len(), 1);
+    }
+
+    #[test]
+    fn multiple_levels_overlap_only_at_the_transition_tile_zoom() {
+        let mut summary = MapLibreSummary {
+            bounds: [138.0, 35.0, 139.0, 35.0],
+            levels: BTreeSet::from([2500, 10000]),
+            ..MapLibreSummary::default()
+        };
+        let ranges = tile_zoom_ranges(&summary);
+        assert_eq!(ranges[&2500], 14..=18);
+        assert_eq!(ranges[&10000], 12..=14);
+        let candidates = (12..=18)
+            .map(|z| TileKey {
+                z,
+                x: 1 << (z - 1),
+                y: 1 << (z - 1),
+            })
+            .collect::<BTreeSet<_>>();
+        let mut tiles = BTreeMap::new();
+        for level in [2500, 10000] {
+            let mut feature = sample_feature();
+            feature.map_level = Some(level);
+            let projected = Arc::new(ProjectedFeature {
+                feature,
+                user_id: level,
+                points: vec![Coordinate {
+                    x: 0.0,
+                    y: 0.0,
+                    z: None,
+                }],
+                decoration: None,
+            });
+            add_feature_to_tiles(
+                &mut tiles,
+                &candidates,
+                "dm_2100_line",
+                projected,
+                ranges[&level].clone(),
+            );
+        }
+        for (key, layers) in tiles {
+            let levels = layers["dm_2100_line"]
+                .iter()
+                .map(|f| f.feature.map_level.unwrap())
+                .collect::<BTreeSet<_>>();
+            let expected = match key.z {
+                12 | 13 => BTreeSet::from([10000]),
+                14 => BTreeSet::from([2500, 10000]),
+                _ => BTreeSet::from([2500]),
+            };
+            assert_eq!(levels, expected);
+        }
+        summary.levels = BTreeSet::from([2500, 5000, 10000]);
+        let ranges = tile_zoom_ranges(&summary);
+        assert_eq!(ranges[&2500], 15..=18);
+        assert_eq!(ranges[&5000], 14..=15);
+        assert_eq!(ranges[&10000], 12..=14);
+    }
+
+    #[test]
+    fn archive_and_tile_candidates_include_the_coarse_minimum_zoom() {
+        use crate::gpkg::{GeoPackageWriter, LayerKey};
+        let temp = tempfile::tempdir().unwrap();
+        let gpkg = temp.path().join("coarse.gpkg");
+        let mut feature = sample_feature();
+        feature.map_level = Some(10000);
+        let key = LayerKey::from_feature(&feature);
+        let mut writer =
+            GeoPackageWriter::create(&gpkg, &BTreeSet::from([key]), &BTreeSet::new(), 20, false)
+                .unwrap();
+        writer.write(feature, 1).unwrap();
+        writer.finish().unwrap();
+        drop(writer);
+        let connection = Connection::open(&gpkg).unwrap();
+        let layers = read_layers(&connection).unwrap();
+        let projector = Projector::new(&layers).unwrap();
+        let summary = summarize_gpkg(&connection, &layers, &projector).unwrap();
+        let zoom_ranges = tile_zoom_ranges(&summary);
+        let keys = tile_keys(&layers, &projector, &zoom_ranges).unwrap();
+        assert_eq!(keys.iter().map(|key| key.z).min(), Some(12));
+        let source = TileSource {
+            connection: &connection,
+            layers: &layers,
+            projector: &projector,
+            zoom_ranges: &zoom_ranges,
+        };
+        let tiles = collect_tile_feature_layers(&source, &keys).unwrap();
+        assert!(tiles.keys().any(|key| key.z == 12));
+        let output = temp.path().join("output");
+        write_from_gpkg(&output, "coarse", &gpkg, false).unwrap();
+        let archive = fs::read(output.join("coarse.pmtiles")).unwrap();
+        let header = pmtiles::Header::try_from_bytes(archive[..127].to_vec().into()).unwrap();
+        assert_eq!(header.min_zoom, 12);
+        assert_eq!(header.max_zoom, 18);
+    }
 
     #[test]
     fn writes_version_one_maplibre_manifest() {
@@ -1722,6 +1895,7 @@ mod tests {
             &BTreeSet::from([key]),
             "dm_9999_line",
             projected,
+            MIN_ZOOM..=MAX_ZOOM,
         );
 
         let layers = tiles.get(&key).unwrap();
