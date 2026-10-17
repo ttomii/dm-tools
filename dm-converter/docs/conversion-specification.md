@@ -460,3 +460,13 @@ manifestの任意項目 `dmiInfo` に相対パスを記録します。GeoPackage
 - MapLibre出力では、内周を持つ面を変換できません。
 - 未実装の補助図形・記号展開は生成しません。
 - 平面直角座標系番号を取得できないGeoPackageはMapLibreへ変換できません。
+
+## PMTilesの部分更新
+
+`update-tiles INPUT.gpkg EXISTING.pmtiles --map-level LEVEL --min-zoom Z --max-zoom Z` は、
+指定範囲のMVTから対象LEVELの地物を削除して、GeoPackageから生成した地物を統合します。
+同名レイヤのタグ辞書を再割り当てし、他LEVELの地物を保持します。対象外ズームの圧縮済みタイル内容は変更しません。
+対象範囲の旧地物が入力からなくなった場合は削除します。空レイヤ・空タイルは出力しません。
+PMTilesのインデックスとファイル内オフセットは再構築するため、ファイル全体のバイト列は変わります。
+ヘッダの範囲・ズーム、JSONメタデータ、別ファイルのmanifestとDMI情報は保持します。
+利用条件・実行例は[README](../README.md#既存pmtilesの部分更新)を参照してください。

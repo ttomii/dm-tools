@@ -18,6 +18,8 @@ cargo build --release
 
 target/release/dm-converter convert ./dm-data ./result.gpkg
 target/release/dm-converter convert ./dm-data ./pmtiles --format pmtiles --layer-name dm
+# 既存PMTilesの指定レベル・ズームだけ更新
+target/release/dm-converter update-tiles ./pmtiles/dm.gpkg ./pmtiles/dm.pmtiles --map-level 10000 --min-zoom 15 --max-zoom 15
 ```
 
 実行ファイルは`target/release/dm-converter`に生成されます。入力には単一の

@@ -2,6 +2,21 @@
 
 DMファイルをGeoPackageまたはMapLibre向けPMTilesへ変換するRust CLIです。
 
+## 既存PMTilesの部分更新
+
+```bash
+dm-converter update-tiles input.gpkg output/shizuoka.pmtiles --map-level 10000 --min-zoom 15 --max-zoom 15
+```
+
+指定した地図情報レベル・ズームの地物を置換します。他レベルの地物と対象外ズームを保持し、削除された地物も反映します。
+GeoPackageはこのツールが生成したもの、PMTilesはgzip MVT・gzipディレクトリのv3形式を使用します。
+ズーム範囲は既存アーカイブの範囲内（最大18）に限ります。元の出力と同じレイヤ構成・範囲のGeoPackageを使用してください。
+
+処理は1スレッドで、地物を1レイヤずつ処理し、タイル断片を一時ディスクへ退避します。
+対象外タイルは圧縮済みデータをコピーします。PMTiles全体は一時ファイルへ再構築してから置換し、失敗時は既存ファイルを保持します。
+一時領域にはPMTiles約1ファイル分と生成するタイル断片の空き容量が必要です。manifest・DMI情報・GeoPackageは変更しません。
+GeoPackageを他のプロセスで編集している間は実行しないでください。
+
 ## テストとカバレッジ
 
 通常のテストは`dm-converter`ディレクトリで実行します。

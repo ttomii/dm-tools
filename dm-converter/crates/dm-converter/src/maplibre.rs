@@ -16,6 +16,10 @@ use thiserror::Error;
 
 use crate::timing::{ProgressDisplay, timed};
 
+#[path = "maplibre_partial.rs"]
+mod partial;
+pub use partial::update_tiles;
+
 const MIN_ZOOM: u8 = 13;
 const MAX_ZOOM: u8 = 18;
 
@@ -31,6 +35,8 @@ const WEB_MERCATOR_HALF: f64 = 20_037_508.342_789_244;
 const ANNOTATION_SOURCE_LAYER: &str = "dm_annotation";
 #[derive(Debug, Error)]
 pub enum MapLibreError {
+    #[error("{0}")]
+    PartialUpdate(String),
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
     #[error("coordinate transform failed: {0}")]
@@ -2531,7 +2537,7 @@ mod tests {
         ));
     }
 
-    fn sample_feature() -> Feature {
+    pub(super) fn sample_feature() -> Feature {
         Feature {
             source_file: "sample.dm".to_string(),
             source_line: 1,

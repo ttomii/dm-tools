@@ -16,6 +16,7 @@ PowerShellで、このREADMEがあるディレクトリから実行します。
 ```powershell
 .\dm-converter.exe convert C:\path\to\dm-data C:\path\to\result.gpkg
 .\dm-converter.exe convert C:\path\to\dm-data C:\path\to\maplibre --format pmtiles --layer-name dm
+.\dm-converter.exe update-tiles C:\path\to\maplibre\dm.gpkg C:\path\to\maplibre\dm.pmtiles --map-level 10000 --min-zoom 15 --max-zoom 15
 .\dm-preview\dm-preview.exe preview C:\path\to\maplibre
 # 配布用bundleだけを作る場合は、上記とは別に次を実行します。
 .\dm-preview\dm-preview.exe bundle C:\path\to\maplibre\dm.pmtiles C:\path\to\public-direct
@@ -25,5 +26,6 @@ PowerShellで、このREADMEがあるディレクトリから実行します。
 
 ```powershell
 .\dm-converter.exe convert --help
+.\dm-converter.exe update-tiles --help
 .\dm-preview\dm-preview.exe --help
 ```
