@@ -680,17 +680,38 @@ test("covers browser API, feature panel, sprite editor, and preview app startup"
       globalThis.fetch = originalFetch;
       globalThis.Image = originalImage;
     }
-    elements.background.click();
+    const background = () => map.getStyle().layers.find((layer) => layer.id === "background").paint;
+    assert.equal(background()["background-color"], "#ffffff");
+    assert.equal(background()["background-opacity"], 1);
+    elements.background.value = "#123456";
+    elements.background.dispatch("input");
+    assert.equal(background()["background-color"], "#123456");
+    for (const opacity of ["50", "0", "100"]) {
+      elements.backgroundOpacity.value = opacity;
+      elements.backgroundOpacity.dispatch("input");
+      assert.equal(background()["background-opacity"], Number(opacity) / 100);
+      assert.equal(elements.backgroundOpacityValue.textContent, `${opacity}%`);
+    }
     elements.basemap.dispatch("change");
     elements.dmToggle.dispatch("change");
     elements.tabDmiInfo.click();
     assert.equal(elements.dmiInfoPanel.hidden, false);
     assert.equal(elements.featureDetailsPanel.hidden, true);
     elements.tabFeatureDetails.click();
-    assert.equal(elements.dmiInfoPanel.hidden, true);
+    assert.equal(elements.dmiInfoPanel.hidden, false);
+    assert.equal(elements.featureDetailsPanel.hidden, false);
     assert.equal(elements.status.textContent, "z15.00 center 135.000000,35.000000");
     assert.equal(historyCalls.length, 2);
     assert.equal(elements.styleEditorStatus.textContent, "Error: sprite unavailable");
+    elements.backgroundOpacity.value = "0";
+    elements.backgroundOpacity.dispatch("input");
+    elements.select.dispatch("change");
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(maps.length, 2);
+    const reloadedBackground = maps[1].getStyle().layers.find((layer) => layer.id === "background");
+    assert.equal(reloadedBackground.paint["background-color"], "#123456");
+    assert.equal(reloadedBackground.paint["background-opacity"], 0);
+    assert.equal(baseStyle.layers[0].paint, undefined);
   } finally {
     globalThis.document = originalAppDocument;
   }
@@ -755,7 +776,9 @@ const response = (url, value) => ({
 const createAppElements = (document) => ({
   status: document.createElement("p"),
   select: document.createElement("select"),
-  background: document.createElement("button"),
+  background: Object.assign(document.createElement("input"), {value: "#ffffff"}),
+  backgroundOpacity: Object.assign(document.createElement("input"), {value: "100"}),
+  backgroundOpacityValue: document.createElement("output"),
   basemap: document.createElement("input"),
   dmToggle: document.createElement("input"),
   properties: document.createElement("div"),
@@ -771,6 +794,8 @@ const createAppElements = (document) => ({
   hitList: document.createElement("ol"),
   tabStyleEditor: document.createElement("button"),
   tabFeatureDetails: document.createElement("button"),
+  tabFeatureList: document.createElement("button"),
+  featureListPanel: document.createElement("section"),
   tabDmiInfo: document.createElement("button"),
   dmiInfoPanel: document.createElement("section"),
   dmiContent: document.createElement("div"),

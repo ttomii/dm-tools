@@ -42,7 +42,6 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
   const api = createApiClient({appBase, fetch});
   const state = {
     map: undefined,
-    dark: false,
     currentFeaturePage: 1,
     currentBaseStyle: undefined,
     styleEditorState: {writable: false, editableLayers: []},
@@ -236,6 +235,18 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
     });
   };
 
+  const backgroundPaint = () => ({
+    "background-color": elements.background.value,
+    "background-opacity": Number(elements.backgroundOpacity.value) / 100,
+  });
+
+  const applyBackground = () => {
+    elements.backgroundOpacityValue.textContent = `${elements.backgroundOpacity.value}%`;
+    for (const [property, value] of Object.entries(backgroundPaint())) {
+      state.map.setPaintProperty("background", property, value);
+    }
+  };
+
   const loadStyle = async (manifest) => {
     const camera = state.map
       ? {center: state.map.getCenter().toArray(), zoom: state.map.getZoom()}
@@ -261,6 +272,12 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
       resourceUrl: api.resourceUrl,
       styleUrl: elements.select.value,
     });
+    let background = runtimeStyle.layers.find((layer) => layer.id === "background");
+    if (!background) {
+      background = {id: "background", type: "background"};
+      runtimeStyle.layers.unshift(background);
+    }
+    background.paint = {...background.paint, ...backgroundPaint()};
     if (state.map) state.map.remove();
     state.map = new maplibregl.Map({
       container: "map",
@@ -365,10 +382,8 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
     elements.featureNext.addEventListener("click", () => loadFeaturePage(state.currentFeaturePage + 1).catch((error) => {
       elements.featureListStatus.textContent = String(error);
     }));
-    elements.background.addEventListener("click", () => {
-      state.dark = !state.dark;
-      state.map.setPaintProperty("background", "background-color", state.dark ? "#20242a" : "#ffffff");
-    });
+    elements.background.addEventListener("input", applyBackground);
+    elements.backgroundOpacity.addEventListener("input", applyBackground);
     elements.basemap.addEventListener("change", () => {
       state.map.setLayoutProperty("gsi-pale", "visibility", elements.basemap.checked ? "visible" : "none");
     });

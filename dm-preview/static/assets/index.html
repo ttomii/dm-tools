@@ -11,7 +11,8 @@
   <header>
     <strong>DM MapLibre Preview</strong>
     <select id="style"></select>
-    <button id="background" type="button">Background</button>
+    <label class="layer-toggle">背景 <input id="background" type="color" value="#ffffff" aria-label="背景色"></label>
+    <label class="layer-toggle">不透明度 <input id="background-opacity" type="range" min="0" max="100" value="100" aria-label="背景の不透明度"><output id="background-opacity-value" for="background-opacity">100%</output></label>
     <label class="layer-toggle"><input type="checkbox" id="dm" checked> DM地物</label>
     <label class="layer-toggle"><input type="checkbox" id="basemap" checked> 地理院地図(淡色)</label>
     <span id="status">Loading...</span>

@@ -45,6 +45,12 @@ node ./dm-preview/bin/dm-preview.js bundle ./maplibre/dm.pmtiles ./public
 入力側の`OUTPUT`に保存済みの`style.json`、sprite、glyphsがある場合は、それらを配布用bundleへ
 引き継ぎます。配布用bundleにはGeoPackageやプレビュー画面の資材は含まれません。
 
+### 背景の変更
+
+画面上部の「背景」で任意の色を選び、「不透明度」で透明度を調整できます。
+0%で完全透過、100%で不透明になります。地理院地図を非表示にすると背景を確認できます。
+背景設定は表示スタイルを切り替えても維持されます。プレビュー専用の設定で、保存するスタイルには反映しません。
+
 ### スタイル編集
 
 スタイル編集とAPIは[MapLibre出力とプレビュー](../docs/maplibre-preview.md)を参照してください。

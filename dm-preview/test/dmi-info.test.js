@@ -79,6 +79,7 @@ test("existing distribution persists refreshed DMI reference across restarts", a
 const createContainer = () => {
   const document = {createElement: (tagName) => ({
     tagName, ownerDocument: document, children: [], textContent: "",
+    setAttribute(name, value) { this.attributes ??= {}; this.attributes[name] = String(value); },
     append(...children) { this.children.push(...children); },
     replaceChildren(...children) { this.children = children; this.textContent = ""; },
   })};
@@ -86,12 +87,21 @@ const createContainer = () => {
 };
 const text = (element) => [element.textContent, ...element.children.map(text)].join(" ");
 
-test("DMI view separates levels and renders code mapping, directions and descriptions as text", () => {
+test("DMI view switches indexes and renders code mapping, directions and descriptions as text", () => {
   const container = createContainer();
   renderDmiInfo(container, info);
   assert.equal(container.children.length, 2);
-  assert.match(text(container.children[0]), /2500/);
-  assert.match(text(container.children[1]), /10000/);
+  const [selector, details] = container.children;
+  assert.equal(selector.tagName, "select");
+  assert.equal(selector.attributes["aria-label"], "DMI情報の切り替え");
+  assert.match(text(selector.children[0]), /2500.*fine\/index.dmi/);
+  assert.match(text(selector.children[1]), /10000.*coarse\/index.dmi/);
+  assert.match(text(details), /2500.*fine\/index.dmi/);
+  assert.doesNotMatch(text(details), /coarse\/index.dmi/);
+  selector.value = "1";
+  selector.onchange();
+  assert.match(text(details), /10000.*coarse\/index.dmi/);
+  assert.doesNotMatch(text(details), /fine\/index.dmi/);
   assert.match(text(container), /9999.*1103.*線.*独自.*3次元/);
   assert.match(text(container), /<img src=x onerror=alert\(1\)>/);
   renderDmiInfo(container, {version: 1, indexes: [{...index, mapLevels: [], dmFiles: []}]});

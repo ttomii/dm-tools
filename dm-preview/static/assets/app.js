@@ -5,6 +5,8 @@ const resolveElements = (document) => ({
   status: document.getElementById("status"),
   select: document.getElementById("style"),
   background: document.getElementById("background"),
+  backgroundOpacity: document.getElementById("background-opacity"),
+  backgroundOpacityValue: document.getElementById("background-opacity-value"),
   basemap: document.getElementById("basemap"),
   dmToggle: document.getElementById("dm"),
   properties: document.getElementById("properties"),
