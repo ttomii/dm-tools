@@ -23,7 +23,8 @@ DMI情報を含む変換結果では地物一覧と同じ上部パネルの「DM
 座標系、計画機関、作業規程、分類コード対応などを表示します。
 複数のDMIがある場合は、ドロップダウンで切り替えられます。
 manifestの `dmiInfo` を参照するため、元のDM/DMIは不要です。
-DMI情報がない旧データも表示できます。bundleへもJSONとmanifestを引き継ぎます。
+DMI情報がない旧データも表示できます。DMI情報は元の変換出力からプレビュー用APIで参照し、
+配布用ディレクトリにはコピーしません。
 保存形式は[manifest・DMI情報JSON仕様](pmtiles-manifest-specification.md)を参照してください。
 
 ## Preview
@@ -86,9 +87,10 @@ DM入力から生成したプレビュー用データでは、元の`OUTPUT`にG
 指定した`DIR`が保存先になります。
 
 配布用ディレクトリには、GeoPackage、プレビュー画面の`index.html`、`assets/`、
-`vendor/`は含まれません。スタイル編集後の`style.json`、PMTiles、sprite、glyphsと、DMI情報がある場合の
-manifest・DMI情報JSONを
-静的Web配信に使用します。
+`vendor/`、`pmtiles-manifest.json`、`dmi-info.json`は含まれません。
+スタイル編集後の`style.json`、PMTiles、sprite、glyphsを静的Web配信に使用します。
+既存の配布先に旧版が作成したmanifest・DMI情報JSONが残っている場合は、
+元の変換出力を指定してpreviewを起動すると除去します。
 
 別の配布先を使う場合は次のように指定します。
 

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import {mkdir, mkdtemp, readFile, rm, stat, writeFile} from "node:fs/promises";
+import {mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile} from "node:fs/promises";
 import {DatabaseSync} from "node:sqlite";
 import os from "node:os";
 import path from "node:path";
@@ -575,3 +575,39 @@ const pointBlob = (x, y) => {
   view.setFloat64(53, y, true);
   return blob;
 };
+
+
+test("server reads DMI metadata from preview data without placing it in the distribution", async (context) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "dm-preview-dmi-"));
+  context.after(() => rm(root, {recursive: true, force: true}));
+  const preview = path.join(root, "source");
+  const output = path.join(root, "public");
+  await mkdir(path.join(preview, "metadata"), {recursive: true});
+  await mkdir(output);
+  const info = {version: 1, indexes: [{planner: "静岡市"}]};
+  await writeFile(path.join(preview, "metadata", "dmi.json"), JSON.stringify(info));
+  await writeFile(path.join(preview, "private.txt"), "private");
+  const manifest = {version: 1, layerName: "sample", pmtiles: "sample.pmtiles", levels: [2500],
+    sourceLayers: [], bounds: [138, 34, 139, 36], center: [138.5, 35, 15]};
+  const {server, url} = await startServer(output, {
+    databaseAdapter, manifest, featureRoot: preview,
+    featureManifest: {...manifest, dmiInfo: "metadata/dmi.json"}, projectGeometry,
+  });
+  context.after(() => server.close());
+  const servedManifest = await (await fetch(new URL("pmtiles-manifest.json", url))).json();
+  assert.equal(servedManifest.dmiInfo, "api/dmi-info");
+  assert.deepEqual(await (await fetch(new URL(servedManifest.dmiInfo, url))).json(), info);
+  assert.equal((await fetch(new URL("api/dmi-info", url), {method: "HEAD"})).status, 200);
+  assert.equal((await fetch(new URL("private.txt", url))).status, 404);
+  const updated = {version: 1, indexes: []};
+  const dmiFile = path.join(preview, "metadata", "dmi.json");
+  await writeFile(dmiFile, JSON.stringify(updated));
+  assert.deepEqual(await (await fetch(new URL(servedManifest.dmiInfo, url))).json(), updated);
+  const outside = path.join(root, "outside.json");
+  await writeFile(outside, "{}");
+  await rm(dmiFile);
+  await symlink(outside, dmiFile);
+  assert.equal((await fetch(new URL(servedManifest.dmiInfo, url))).status, 404);
+  await assert.rejects(readFile(path.join(output, "dmi-info.json")), /ENOENT/);
+  await assert.rejects(readFile(path.join(output, "pmtiles-manifest.json")), /ENOENT/);
+});

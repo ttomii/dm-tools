@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import {mkdir, mkdtemp, readFile, rm, symlink, writeFile} from "node:fs/promises";
+import {mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile} from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import {test} from "node:test";
@@ -48,32 +48,40 @@ test("DMI reference validates relative paths, missing files and symlink boundari
   await assert.rejects(createBundle(path.join(source, manifest.pmtiles), path.join(root, "rejected")), /manifest path is not a file/);
 });
 
-test("bundle preserves DMI reference without the original input files", async (context) => {
+test("bundle contains only map assets even when the source has DMI metadata", async (context) => {
   const {root, source} = await createSource(context);
   const output = path.join(root, "public");
   await createBundle(path.join(source, manifest.pmtiles), output);
+  assert.deepEqual((await readdir(output)).sort(), ["glyphs", "sample.pmtiles", "sprite", "style.json"]);
   await rm(source, {recursive: true});
   const result = await readManifest(output);
-  assert.equal(result.manifest.dmiInfo, "dmi-info.json");
+  assert.equal(result.manifest.dmiInfo, undefined);
   assert.deepEqual(result.manifest.styles, ["style.json"]);
-  assert.deepEqual(JSON.parse(await readFile(path.join(output, result.manifest.dmiInfo))), info);
 });
 
-test("existing distribution persists refreshed DMI reference across restarts", async (context) => {
+test("distribution removes legacy metadata and keeps source metadata across restarts", async (context) => {
   const {root, source} = await createSource(context);
   const output = path.join(root, "public");
   await mkdir(output);
-  const {dmiInfo: ignored, ...oldManifest} = manifest;
-  await writeFile(path.join(output, "pmtiles-manifest.json"), JSON.stringify(oldManifest));
+  await writeFile(path.join(output, "pmtiles-manifest.json"), JSON.stringify({...manifest, dmiInfo: "dmi-info.json"}));
+  await writeFile(path.join(output, "dmi-info.json"), JSON.stringify(info));
   await writeFile(path.join(output, manifest.pmtiles), "existing-pmtiles");
-  await prepareDistribution(source, manifest, output);
-  assert.equal((await readManifest(output)).manifest.dmiInfo, "dmi-info.json");
-  assert.deepEqual(JSON.parse(await readFile(path.join(output, "dmi-info.json"))), info);
-  assert.equal(await readFile(path.join(output, manifest.pmtiles), "utf8"), "existing-pmtiles");
-  const updated = {...info, indexes: [index]};
-  await writeFile(path.join(source, manifest.dmiInfo), JSON.stringify(updated));
-  await prepareDistribution(source, manifest, output);
-  assert.deepEqual(JSON.parse(await readFile(path.join(output, "dmi-info.json"))), updated);
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const result = await prepareDistribution(source, manifest, output);
+    assert.equal(result.manifest.dmiInfo, undefined);
+    assert.deepEqual(await readdir(output), ["sample.pmtiles"]);
+    assert.deepEqual(JSON.parse(await readFile(path.join(source, manifest.dmiInfo))), info);
+    assert.deepEqual(JSON.parse(await readFile(path.join(source, "pmtiles-manifest.json"))), manifest);
+    assert.equal(await readFile(path.join(output, manifest.pmtiles), "utf8"), "existing-pmtiles");
+  }
+});
+
+test("new preview distribution does not copy source DMI metadata", async (context) => {
+  const {root, source} = await createSource(context);
+  const output = path.join(root, "public");
+  const result = await prepareDistribution(source, manifest, output);
+  assert.equal(result.manifest.dmiInfo, undefined);
+  assert.deepEqual((await readdir(output)).sort(), ["glyphs", "sample.pmtiles", "sprite"]);
 });
 
 const createContainer = () => {

@@ -139,8 +139,9 @@ JSON出力時は専用列から `source`、`mapLevels`、`dmFiles` を設定し�
 GeoPackage入力でPMTilesを再生成する場合も、このテーブルから引き継ぎます。
 テーブルのない従来のGeoPackageは従来どおり変換できます。
 
-DMI情報を含むbundleは `dmi-info.json` と `pmtiles-manifest.json` を出力します。
-保存済みStyleがある場合はmanifestの `styles` に記録します。
-既存の配布先を再利用するpreviewでも、元の変換結果にDMI情報があればJSONと
-参照を更新します。配布先を単独で開いても情報を読み込めます。
-DMI情報はPMTiles内に埋め込まないため、PMTilesだけをコピーした場合は表示できません。
+配布用bundleには地図表示に必要なStyle、PMTiles、sprite、glyphsだけを出力し、
+`dmi-info.json` と `pmtiles-manifest.json` は含めません。
+DMI情報は元の変換出力に保持し、previewは `/preview/api/dmi-info` から配信します。
+ブラウザ向けmanifestはプレビューサーバーが生成し、`dmiInfo` に `api/dmi-info` を設定します。
+既存の配布先を再利用するpreviewでは、旧版が配置した同名JSONを除去します。
+配布先を単独で開いた場合、DMI情報は表示されません。

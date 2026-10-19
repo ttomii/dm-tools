@@ -17,13 +17,6 @@ export const createBundle = async (pmtiles, output, options = {}) => {
   ];
   if (style) files.push(writeFile(path.join(destination, "style.json"), `${JSON.stringify(style, undefined, 2)}\n`));
 
-  if (source.manifest.dmiInfo) {
-    files.push(cp(resolveOutputPath(source.root, source.manifest.dmiInfo), path.join(destination, "dmi-info.json")));
-    files.push(writeFile(path.join(destination, MANIFEST_FILENAME), JSON.stringify({
-      ...source.manifest, pmtiles: pmtilesName, dmiInfo: "dmi-info.json",
-      styles: style ? ["style.json"] : undefined,
-    }, undefined, 2)));
-  }
   await Promise.all(files);
   return destination;
 };

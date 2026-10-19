@@ -60,7 +60,11 @@ const respond = async (request, response, root, options) => {
     return;
   }
   if (pathname === "/preview/pmtiles-manifest.json" && options.manifest) {
-    sendJson(request, response, 200, options.manifest);
+    const sourceManifest = options.featureManifest ?? options.manifest;
+    const manifest = sourceManifest.dmiInfo
+      ? {...options.manifest, dmiInfo: "api/dmi-info"}
+      : options.manifest;
+    sendJson(request, response, 200, manifest);
     return;
   }
   const file = await resolveFile(pathname, root, options);

@@ -21,6 +21,12 @@ export const resolveFile = async (pathname, root, options) => {
   if (pathname === "/" || pathname === "/preview" || pathname === "/preview/") {
     return indexHtml;
   }
+  if (normalized === "/api/dmi-info") {
+    const manifest = options.featureManifest ?? options.manifest;
+    return manifest?.dmiInfo
+      ? secureFile(options.featureRoot ?? root, `/${manifest.dmiInfo}`)
+      : undefined;
+  }
   if (normalized.startsWith("/assets/")) {
     return secureFile(appAssets, normalized.slice("/assets".length));
   }
