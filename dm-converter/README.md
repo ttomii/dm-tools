@@ -5,7 +5,7 @@ DMファイルをGeoPackageまたはMapLibre向けPMTilesへ変換するRust CLI
 ## 既存PMTilesの部分更新
 
 ```bash
-dm-converter update-tiles input.gpkg output/shizuoka.pmtiles --map-level 10000 --min-zoom 15 --max-zoom 15
+dm-converter update-tiles input.gpkg output/map.pmtiles --map-level 10000 --min-zoom 15 --max-zoom 15
 ```
 
 指定した地図情報レベル・ズームの地物を置換します。他レベルの地物と対象外ズームを保持し、削除された地物も反映します。
