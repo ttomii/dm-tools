@@ -604,15 +604,15 @@ fn encode_feature(
         .map(|point| tile_point(*point, key))
         .collect::<Vec<_>>();
     let tolerance = simplification::tolerance(key, input);
-    let polygon_points = if input.feature.geometry_kind == GeometryKind::Polygon
+    let simplified = (input.feature.geometry_kind == GeometryKind::Polygon
         && tolerance > 0.0
-        && polygons.permits(input)
-    {
-        simplification::polygon(&points, tolerance)
-    } else {
-        points.clone()
-    };
-    let geometry = clipped_geometry(input.feature.geometry_kind, &polygon_points, tolerance)?;
+        && polygons.permits(input))
+    .then(|| simplification::polygon(&points, tolerance));
+    let geometry = clipped_geometry(
+        input.feature.geometry_kind,
+        simplified.as_deref().unwrap_or(&points),
+        tolerance,
+    )?;
     let mut tags = Vec::new();
     push_int(&mut tags, encoder, "USER_ID", input.user_id);
     push_int(&mut tags, encoder, "DMCODE", input.feature.dmcode);
