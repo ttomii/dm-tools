@@ -329,7 +329,9 @@ fn read_layers(connection: &Connection) -> Result<Vec<GpkgLayer>, MapLibreError>
         };
         let zone = zone_from_srs_id(srs_id).ok_or_else(|| MapLibreError::UnsupportedLayer {
             layer: table_name.clone(),
-            reason: format!("SRS ID {srs_id} is not a JGD2011 plane rectangular coordinate system"),
+            reason: format!(
+                "SRS ID {srs_id} is not a supported Japanese plane rectangular coordinate system"
+            ),
         })?;
         let level = parts
             .get(4)
@@ -396,10 +398,12 @@ fn projection_error(error: proj4rs::errors::Error) -> MapLibreError {
 }
 
 fn zone_from_srs_id(srs_id: i64) -> Option<u8> {
-    srs_id
-        .checked_sub(6668)
-        .and_then(|zone| u8::try_from(zone).ok())
-        .filter(|zone| (1..=19).contains(zone))
+    [2442, 6668].into_iter().find_map(|base| {
+        srs_id
+            .checked_sub(base)
+            .and_then(|zone| u8::try_from(zone).ok())
+            .filter(|zone| (1..=19).contains(zone))
+    })
 }
 
 fn zone_origin(zone: u8) -> Result<(f64, f64), MapLibreError> {
@@ -1671,9 +1675,15 @@ mod tests {
         let mut feature = sample_feature();
         feature.map_level = Some(10000);
         let key = LayerKey::from_feature(&feature);
-        let mut writer =
-            GeoPackageWriter::create(&gpkg, &BTreeSet::from([key]), &BTreeSet::new(), 20, false)
-                .unwrap();
+        let mut writer = GeoPackageWriter::create(
+            &gpkg,
+            &BTreeSet::from([key]),
+            &BTreeSet::new(),
+            20,
+            false,
+            crate::datum::InputDatum::Jgd2011,
+        )
+        .unwrap();
         writer.write(feature, 1).unwrap();
         writer.finish().unwrap();
         drop(writer);
@@ -1806,7 +1816,7 @@ mod tests {
         assert_eq!(
             error.to_string(),
             "unsupported GeoPackage layer dm_2100_line_none_2500: \
-             SRS ID -1 is not a JGD2011 plane rectangular coordinate system"
+             SRS ID -1 is not a supported Japanese plane rectangular coordinate system"
         );
     }
 
@@ -2048,6 +2058,7 @@ mod tests {
             &BTreeSet::from([decoration_line_key.clone(), decoration_point_key.clone()]),
             20,
             false,
+            crate::datum::InputDatum::Jgd2011,
         )
         .unwrap();
 
@@ -2224,6 +2235,7 @@ mod tests {
             &BTreeSet::from([decoration_key]),
             1,
             false,
+            crate::datum::InputDatum::Jgd2011,
         )
         .unwrap();
         writer
@@ -2305,6 +2317,12 @@ mod tests {
             .is_err()
         );
         assert_eq!(zone_from_srs_id(6676), Some(8));
+        for (first, last) in [(2443, 2461), (6669, 6687)] {
+            assert_eq!(zone_from_srs_id(first), Some(1));
+            assert_eq!(zone_from_srs_id(last), Some(19));
+            assert_eq!(zone_from_srs_id(first - 1), None);
+            assert_eq!(zone_from_srs_id(last + 1), None);
+        }
         assert_eq!(zone_from_srs_id(-1), None);
         assert_eq!(
             projection_error(proj4rs::errors::Error::NanCoordinateValue).to_string(),

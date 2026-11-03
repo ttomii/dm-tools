@@ -103,6 +103,7 @@ impl GeoPackageWriter {
         decoration_layer_keys: &BTreeSet<DecorationLayerKey>,
         batch_size: usize,
         progress: bool,
+        input_datum: crate::datum::InputDatum,
     ) -> Result<Self, WriterError> {
         let connection = Connection::open(path)?;
         connection.execute_batch(
@@ -164,20 +165,34 @@ impl GeoPackageWriter {
         )?;
         let epsg_codes = layer_keys
             .iter()
-            .filter_map(|key| key.plane_rectangular_zone.map(zone_to_epsg))
+            .filter_map(|key| {
+                key.plane_rectangular_zone
+                    .map(|zone| input_datum.epsg(zone))
+            })
             .collect::<BTreeSet<_>>();
         for code in epsg_codes {
             connection.execute(
                 "INSERT INTO gpkg_spatial_ref_sys
                  (srs_name, srs_id, organization, organization_coordsys_id, definition, description)
-                 VALUES (?1, ?1, 'EPSG', ?1, 'undefined', ?2)",
-                params![code, format!("EPSG:{code}")],
+                 VALUES (?2, ?1, 'EPSG', ?1, 'undefined', ?3)",
+                params![
+                    code,
+                    format!(
+                        "{} / Japan Plane Rectangular CS {}",
+                        input_datum.name(),
+                        code - input_datum.epsg(1) + 1
+                    ),
+                    format!("EPSG:{code}")
+                ],
             )?;
         }
         let mut layers = BTreeMap::new();
         for key in layer_keys {
             let name = layer_name(key);
-            let srs_id = key.plane_rectangular_zone.map(zone_to_epsg).unwrap_or(-1);
+            let srs_id = key
+                .plane_rectangular_zone
+                .map(|zone| input_datum.epsg(zone))
+                .unwrap_or(-1);
             create_base_layer(&connection, &name, key.kind, srs_id)?;
             layers.insert(
                 key.clone(),
@@ -197,7 +212,7 @@ impl GeoPackageWriter {
             let srs_id = key
                 .source
                 .plane_rectangular_zone
-                .map(zone_to_epsg)
+                .map(|zone| input_datum.epsg(zone))
                 .unwrap_or(-1);
             create_decoration_layer(&connection, &name, key.kind, srs_id)?;
             decoration_layers.insert(
@@ -898,10 +913,6 @@ fn geometry_type_name(kind: GeometryKind) -> &'static str {
     }
 }
 
-fn zone_to_epsg(zone: u8) -> i64 {
-    6668 + i64::from(zone)
-}
-
 fn quote_identifier(identifier: &str) -> String {
     format!("\"{}\"", identifier.replace('"', "\"\""))
 }
@@ -970,9 +981,15 @@ mod tests {
             plane_rectangular_zone: Some(8),
             map_level: Some(2500),
         };
-        let mut writer =
-            GeoPackageWriter::create(&path, &BTreeSet::from([key]), &BTreeSet::new(), 1, false)
-                .unwrap();
+        let mut writer = GeoPackageWriter::create(
+            &path,
+            &BTreeSet::from([key]),
+            &BTreeSet::new(),
+            1,
+            false,
+            crate::datum::InputDatum::Jgd2011,
+        )
+        .unwrap();
         let attributes = Attributes {
             dmregion: Some(3),
             dminfo: Some(42),
@@ -1097,7 +1114,15 @@ mod tests {
                 map_level: Some(2500),
             },
         ]);
-        let writer = GeoPackageWriter::create(&path, &keys, &BTreeSet::new(), 10, false).unwrap();
+        let writer = GeoPackageWriter::create(
+            &path,
+            &keys,
+            &BTreeSet::new(),
+            10,
+            false,
+            crate::datum::InputDatum::Jgd2011,
+        )
+        .unwrap();
         assert!(
             writer
                 .layers
@@ -1138,7 +1163,15 @@ mod tests {
                 map_level: Some(10000),
             },
         ]);
-        let writer = GeoPackageWriter::create(&path, &keys, &BTreeSet::new(), 10, false).unwrap();
+        let writer = GeoPackageWriter::create(
+            &path,
+            &keys,
+            &BTreeSet::new(),
+            10,
+            false,
+            crate::datum::InputDatum::Jgd2011,
+        )
+        .unwrap();
         assert!(
             writer
                 .layers
@@ -1191,6 +1224,7 @@ mod tests {
             &BTreeSet::from([decoration_line_key.clone(), decoration_point_key.clone()]),
             10,
             false,
+            crate::datum::InputDatum::Jgd2011,
         )
         .unwrap();
 
@@ -1353,6 +1387,7 @@ mod tests {
             &BTreeSet::new(),
             1,
             false,
+            crate::datum::InputDatum::Jgd2011,
         )
         .unwrap();
         let error = base_writer
@@ -1380,6 +1415,7 @@ mod tests {
             &BTreeSet::from([decoration_key.clone()]),
             1,
             false,
+            crate::datum::InputDatum::Jgd2011,
         )
         .unwrap();
         let error = decoration_writer
@@ -1421,6 +1457,7 @@ mod tests {
             &BTreeSet::new(),
             10,
             false,
+            crate::datum::InputDatum::Jgd2011,
         )
         .unwrap();
         writer
@@ -1472,6 +1509,7 @@ mod tests {
             &BTreeSet::from([decoration_key]),
             10,
             false,
+            crate::datum::InputDatum::Jgd2011,
         )
         .unwrap();
         decoration_writer

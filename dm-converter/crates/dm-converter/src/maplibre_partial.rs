@@ -446,6 +446,7 @@ mod tests {
             &BTreeSet::new(),
             20,
             false,
+            crate::datum::InputDatum::Jgd2011,
         )
         .unwrap();
         writer.write(fine, 1).unwrap();

@@ -1,5 +1,6 @@
 // © TOMII, Tatsuru
 
+mod datum;
 mod decorations;
 mod dmi;
 mod gpkg;
@@ -7,6 +8,7 @@ mod maplibre;
 mod timing;
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
+use datum::InputDatum;
 use dm_parser::{
     DmParser, ParseEvent, ParserConfig, display_source, plane_rectangular_zone_from_record,
 };
@@ -83,6 +85,9 @@ struct ConvertArgs {
     /// MapLibre layer name
     #[arg(long)]
     layer_name: Option<String>,
+    /// Datum of input DM coordinates (ignored for GeoPackage input)
+    #[arg(long, value_enum, default_value_t = InputDatum::Jgd2024)]
+    input_datum: InputDatum,
     /// DM text encoding
     #[arg(long, default_value = "shift_jis", value_parser = parse_encoding)]
     encoding: &'static Encoding,
@@ -242,6 +247,7 @@ fn run_gpkg(args: &ConvertArgs, output: &Path, files: &[PathBuf]) -> Result<RunS
         &decoration_keys,
         args.batch_size,
         args.progress,
+        args.input_datum,
     )?;
     let mut summary = RunSummary::default();
     let mut ids: BTreeMap<LayerKey, i64> = BTreeMap::new();
@@ -799,6 +805,7 @@ mod tests {
             output: output.to_path_buf(),
             format,
             layer_name: (format == OutputFormat::Pmtiles).then(|| "sample".to_string()),
+            input_datum: InputDatum::Jgd2024,
             encoding: encoding_rs::SHIFT_JIS,
             include_codes: Vec::new(),
             include_types: Vec::new(),
@@ -823,6 +830,93 @@ mod tests {
             geometry,
             attributes: dm_parser::Attributes::default(),
             warnings: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn parses_input_datum_and_defaults_to_jgd2024() {
+        let cli = Cli::try_parse_from(["dm-converter", "convert", "in.dm", "out.gpkg"]).unwrap();
+        let Command::Convert(args) = cli.command else {
+            panic!("expected convert")
+        };
+        assert_eq!(args.input_datum, InputDatum::Jgd2024);
+        for (value, expected) in [
+            ("jgd2000", InputDatum::Jgd2000),
+            ("jgd2011", InputDatum::Jgd2011),
+            ("jgd2024", InputDatum::Jgd2024),
+        ] {
+            let cli = Cli::try_parse_from([
+                "dm-converter",
+                "convert",
+                "in.dm",
+                "out.gpkg",
+                "--input-datum",
+                value,
+            ])
+            .unwrap();
+            let Command::Convert(args) = cli.command else {
+                panic!("expected convert")
+            };
+            assert_eq!(args.input_datum, expected);
+        }
+        assert!(
+            Cli::try_parse_from([
+                "dm-converter",
+                "convert",
+                "in.dm",
+                "out.gpkg",
+                "--input-datum",
+                "wgs84"
+            ])
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn writes_selected_datum_and_converts_each_to_pmtiles() {
+        for (datum, epsg, name) in [
+            (InputDatum::Jgd2000, 2450, "JGD2000"),
+            (InputDatum::Jgd2011, 6676, "JGD2011"),
+            (InputDatum::Jgd2024, 6676, "JGD2024"),
+        ] {
+            let temp = tempfile::tempdir().unwrap();
+            let input = temp.path().join("08sample.dm");
+            fs::write(&input, sample_line_dm(2204, false)).unwrap();
+            let output = temp.path().join("map");
+            let mut args = args_for(&input, &output, OutputFormat::Pmtiles);
+            args.input_datum = datum;
+            assert_eq!(run_conversion(args), ExitCode::SUCCESS);
+            assert!(output.join("sample.pmtiles").exists());
+            let connection = rusqlite::Connection::open(output.join("sample.gpkg")).unwrap();
+            let mut statement = connection.prepare("SELECT g.table_name, g.srs_id, c.srs_id, s.srs_name FROM gpkg_geometry_columns g JOIN gpkg_contents c USING (table_name) JOIN gpkg_spatial_ref_sys s ON s.srs_id=g.srs_id").unwrap();
+            let rows = statement
+                .query_map([], |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, i64>(1)?,
+                        row.get::<_, i64>(2)?,
+                        row.get::<_, String>(3)?,
+                    ))
+                })
+                .unwrap();
+            let rows = rows.collect::<Result<Vec<_>, _>>().unwrap();
+            assert!(!rows.is_empty());
+            for (table, geometry_srs, contents_srs, srs_name) in rows {
+                assert_eq!(geometry_srs, epsg);
+                assert_eq!(contents_srs, epsg);
+                assert_eq!(srs_name, format!("{name} / Japan Plane Rectangular CS 8"));
+                let blob: Vec<u8> = connection
+                    .query_row(
+                        &format!("SELECT geom FROM \"{table}\" LIMIT 1"),
+                        [],
+                        |row| row.get(0),
+                    )
+                    .unwrap();
+                assert_eq!(
+                    i32::from_le_bytes(blob[4..8].try_into().unwrap()),
+                    epsg as i32
+                );
+            }
         }
     }
 
@@ -996,6 +1090,7 @@ mod tests {
             output: input.path().with_extension("output.gpkg"),
             format: OutputFormat::Gpkg,
             layer_name: None,
+            input_datum: InputDatum::Jgd2024,
             encoding: encoding_rs::SHIFT_JIS,
             include_codes: Vec::new(),
             include_types: Vec::new(),
@@ -1234,9 +1329,15 @@ mod tests {
         assert!(output.exists());
 
         let empty_gpkg = temp.path().join("empty.gpkg");
-        let mut writer =
-            GeoPackageWriter::create(&empty_gpkg, &BTreeSet::new(), &BTreeSet::new(), 1, false)
-                .unwrap();
+        let mut writer = GeoPackageWriter::create(
+            &empty_gpkg,
+            &BTreeSet::new(),
+            &BTreeSet::new(),
+            1,
+            false,
+            crate::datum::InputDatum::Jgd2011,
+        )
+        .unwrap();
         writer.finish().unwrap();
         let output = temp.path().join("empty-output");
         let args = args_for(&empty_gpkg, &output, OutputFormat::Pmtiles);
