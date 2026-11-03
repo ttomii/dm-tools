@@ -283,6 +283,7 @@ dependencies = [
  "proj4rs",
  "prost",
  "rayon",
+ "rstar",
  "rusqlite",
  "serde",
  "serde_json",

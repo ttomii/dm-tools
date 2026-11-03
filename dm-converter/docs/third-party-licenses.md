@@ -17,6 +17,7 @@
 - `proj4rs`: MIT OR Apache-2.0
 - `prost`: Apache-2.0
 - `geo`: MIT OR Apache-2.0
+- `rstar`（ポリゴン外接矩形の空間インデックス）: MIT OR Apache-2.0
 
 `dm-preview`のJavaScript依存と同梱MapLibre資材のライセンスは
 [`../../dm-preview/THIRD_PARTY_LICENSES`](../../dm-preview/THIRD_PARTY_LICENSES)を

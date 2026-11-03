@@ -134,6 +134,10 @@ fn spool_layers(
     zooms: RangeInclusive<u8>,
     directory: &Path,
 ) -> Result<BTreeSet<u64>, MapLibreError> {
+    // Include all polygon source layers, not just the layer currently being spooled.
+    let polygon_layers = read_layers(connection)?;
+    let polygon_projector = Projector::new(&polygon_layers)?;
+    let polygons = PolygonIndex::read(connection, &polygon_layers, &polygon_projector)?;
     let mut generated = BTreeSet::new();
     for (position, layer) in layers.iter().enumerate() {
         eprintln!(
@@ -156,7 +160,7 @@ fn spool_layers(
         }
         for (key, tile_layers) in tiles {
             let id = TileId::from(TileCoord::new(key.z, key.x, key.y)?).value();
-            let bytes = encode_tile(key, tile_layers)?;
+            let bytes = encode_tile(key, tile_layers, &polygons)?;
             fs::OpenOptions::new()
                 .create(true)
                 .append(true)
@@ -174,7 +178,7 @@ fn is_level(
     values: &[vector_tile::Value],
     level: i64,
 ) -> bool {
-    feature.tags.chunks_exact(2).any(|tag| {
+    feature.tags.as_chunks::<2>().0.iter().any(|tag| {
         keys.get(tag[0] as usize).is_some_and(|key| key == "LEVEL")
             && values.get(tag[1] as usize).is_some_and(|value| {
                 value.int_value == Some(level)
@@ -194,7 +198,7 @@ fn compact_layer(layer: &mut vector_tile::Layer) -> Result<(), MapLibreError> {
         if feature.tags.len() % 2 != 0 {
             return Err(invalid("invalid MVT tag list"));
         }
-        for pair in feature.tags.chunks_exact_mut(2) {
+        for pair in feature.tags.as_chunks_mut::<2>().0 {
             let key = old_keys
                 .get(pair[0] as usize)
                 .ok_or_else(|| invalid("invalid MVT key index"))?;
@@ -232,7 +236,7 @@ fn merge_layers(
             let key_offset = layer.keys.len() as u32;
             let value_offset = layer.values.len() as u32;
             for feature in &mut incoming.features {
-                for tag in feature.tags.chunks_exact_mut(2) {
+                for tag in feature.tags.as_chunks_mut::<2>().0 {
                     tag[0] += key_offset;
                     tag[1] += value_offset;
                 }
@@ -428,6 +432,80 @@ fn read_directory(file: &mut File, offset: u64, length: u64) -> Result<Vec<Entry
 mod tests {
     use super::*;
     use crate::gpkg::{GeoPackageWriter, LayerKey};
+
+    fn polygon_snapshot(path: &Path) -> BTreeMap<(u64, String, Option<u64>), Vec<u32>> {
+        let mut archive = Archive::open(path).unwrap();
+        let ids = archive.tiles.keys().copied().collect::<Vec<_>>();
+        let mut result = BTreeMap::new();
+        for id in ids {
+            let tile = decode_tile(&archive.raw_tile(id).unwrap()).unwrap();
+            for layer in tile.layers {
+                for feature in layer.features {
+                    result.insert((id, layer.name.clone(), feature.id), feature.geometry);
+                }
+            }
+        }
+        result
+    }
+
+    #[test]
+    fn partial_polygon_tiles_match_fresh_generation_across_source_layers() {
+        let temp = tempfile::tempdir().unwrap();
+        let input = temp.path().join("polygons.gpkg");
+        let features = [(2100, 0.0), (3000, 0.0), (4000, 1000.0)].map(|(dmcode, offset)| {
+            let mut feature = super::super::tests::sample_feature();
+            feature.dmcode = dmcode;
+            feature.geometry_kind = GeometryKind::Polygon;
+            feature.geometry = Geometry::Polygon(
+                [
+                    (1000.0, 1000.0),
+                    (1050.0, 1000.1),
+                    (1100.0, 1000.0),
+                    (1100.0, 1100.0),
+                    (1000.0, 1100.0),
+                    (1000.0, 1000.0),
+                ]
+                .into_iter()
+                .map(|(x, y)| Coordinate {
+                    x: x + offset,
+                    y,
+                    z: None,
+                })
+                .collect(),
+            );
+            feature
+        });
+        let keys = features.iter().map(LayerKey::from_feature).collect();
+        let mut writer = GeoPackageWriter::create(
+            &input,
+            &keys,
+            &BTreeSet::new(),
+            20,
+            false,
+            crate::datum::InputDatum::Jgd2011,
+        )
+        .unwrap();
+        for (index, feature) in features.into_iter().enumerate() {
+            writer.write(feature, index as i64 + 1).unwrap();
+        }
+        writer.finish().unwrap();
+        drop(writer);
+        write_from_gpkg(temp.path(), "test", &input, false).unwrap();
+        let path = temp.path().join("test.pmtiles");
+        let before = polygon_snapshot(&path);
+        let coarse_vertices = before
+            .iter()
+            .filter_map(|((id, name, _), geometry)| {
+                let coord: TileCoord = TileId::new(*id).unwrap().into();
+                (coord.z() == 13).then(|| (name.as_str(), (geometry[3] >> 3) + 1))
+            })
+            .collect::<BTreeSet<_>>();
+        assert!(coarse_vertices.contains(&("dm_2100_polygon", 5)));
+        assert!(coarse_vertices.contains(&("dm_3000_polygon", 5)));
+        assert!(coarse_vertices.contains(&("dm_4000_polygon", 4)));
+        update_tiles(&input, &path, 2500, 13, 18).unwrap();
+        assert_eq!(polygon_snapshot(&path), before);
+    }
 
     #[test]
     fn partial_update_preserves_other_levels_and_zooms_and_can_delete() {
