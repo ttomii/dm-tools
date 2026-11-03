@@ -592,12 +592,11 @@ fn encode_layer(
     })
 }
 
-fn encode_feature(
+fn encode_feature_geometry(
     key: TileKey,
     input: &ProjectedFeature,
-    encoder: &mut LayerEncoder,
     polygons: &PolygonIndex,
-) -> Option<vector_tile::Feature> {
+) -> Option<Vec<u32>> {
     let points = input
         .points
         .iter()
@@ -608,11 +607,20 @@ fn encode_feature(
         && tolerance > 0.0
         && polygons.permits(input))
     .then(|| simplification::polygon(&points, tolerance));
-    let geometry = clipped_geometry(
+    clipped_geometry(
         input.feature.geometry_kind,
         simplified.as_deref().unwrap_or(&points),
         tolerance,
-    )?;
+    )
+}
+
+fn encode_feature(
+    key: TileKey,
+    input: &ProjectedFeature,
+    encoder: &mut LayerEncoder,
+    polygons: &PolygonIndex,
+) -> Option<vector_tile::Feature> {
+    let geometry = encode_feature_geometry(key, input, polygons)?;
     let mut tags = Vec::new();
     push_int(&mut tags, encoder, "USER_ID", input.user_id);
     push_int(&mut tags, encoder, "DMCODE", input.feature.dmcode);

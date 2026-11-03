@@ -16,21 +16,10 @@ impl PolygonIndex {
             .iter()
             .filter(|layer| layer.kind == GeometryKind::Polygon)
         {
-            let mut statement = connection.prepare(&format!(
-                "SELECT geom FROM {}",
-                quote_identifier(&layer.table_name)
-            ))?;
-            let mut rows = statement.query([])?;
-            while let Some(row) = rows.next()? {
-                let blob: Vec<u8> = row.get(0)?;
-                let points = projector.project(layer.zone, &read_geometry(&blob, layer.kind)?)?;
-                if let Some(envelope) = bounds(&points) {
-                    envelopes
-                        .entry(layer.level)
-                        .or_default()
-                        .push(Rectangle::from_corners(envelope.lower(), envelope.upper()));
-                }
-            }
+            envelopes
+                .entry(layer.level)
+                .or_default()
+                .extend(read_layer_envelopes(connection, layer, projector)?);
         }
         Ok(Self(
             envelopes
@@ -58,6 +47,27 @@ impl PolygonIndex {
             .count()
             == 1
     }
+}
+
+fn read_layer_envelopes(
+    connection: &Connection,
+    layer: &GpkgLayer,
+    projector: &Projector,
+) -> Result<Vec<Rectangle<[f64; 2]>>, MapLibreError> {
+    let mut statement = connection.prepare(&format!(
+        "SELECT geom FROM {}",
+        quote_identifier(&layer.table_name)
+    ))?;
+    let mut rows = statement.query([])?;
+    let mut envelopes = Vec::new();
+    while let Some(row) = rows.next()? {
+        let blob: Vec<u8> = row.get(0)?;
+        let points = projector.project(layer.zone, &read_geometry(&blob, layer.kind)?)?;
+        if let Some(envelope) = bounds(&points) {
+            envelopes.push(Rectangle::from_corners(envelope.lower(), envelope.upper()));
+        }
+    }
+    Ok(envelopes)
 }
 
 fn bounds(points: &[Coordinate]) -> Option<AABB<[f64; 2]>> {
