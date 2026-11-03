@@ -617,7 +617,12 @@ fn coordinates(
         let y = required_f64(row, offset, 7, "Y coordinate")?;
         let x = required_f64(row, offset + 7, 7, "X coordinate")?;
         let z = if dimensions == 3 {
-            Some(required_f64(row, offset + 14, 7, "Z coordinate")? * mesh.unit)
+            // Some producers leave missing elevations blank in 3D records.
+            // Require the full field so truncated records still fail validation.
+            match field(row, offset + 14, 7) {
+                Some(value) if value.iter().all(|byte| *byte == b' ') => None,
+                _ => Some(required_f64(row, offset + 14, 7, "Z coordinate")? * mesh.unit),
+            }
         } else {
             None
         };
@@ -1197,6 +1202,94 @@ mod tests {
             })
             .unwrap();
         assert_eq!(feature.attributes.text.as_deref(), Some("新潟市"));
+    }
+
+    #[test]
+    fn parses_blank_z_without_losing_xy_or_numeric_z() {
+        for following in [3, 6] {
+            let header = fixed_line(&[
+                (0, "E2"),
+                (2, "2100"),
+                (20, &following.to_string()),
+                (27, "0005"),
+                (31, "0002"),
+            ]);
+            let rows = vec![
+                fixed_line(&[
+                    (0, "0000010"),
+                    (7, "0000020"),
+                    (21, "0000030"),
+                    (28, "0000040"),
+                    (35, "0000050"),
+                    (42, "0000060"),
+                    (49, "0000070"),
+                    (56, "0000000"),
+                    (63, "0000080"),
+                    (70, "0000090"),
+                    (77, "-000010"),
+                ]),
+                fixed_line(&[(0, "0000100"), (7, "0000110")]),
+            ];
+            let events = DmParser::new(
+                Cursor::new(sample(header, rows)),
+                "synthetic.dm",
+                ParserConfig::default(),
+            )
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+            assert_eq!(events.len(), 1);
+            let ParseEvent::Feature(feature) = &events[0] else {
+                panic!("expected feature")
+            };
+            let Geometry::LineString(points) = &feature.geometry else {
+                panic!("expected line")
+            };
+            assert_eq!(
+                points,
+                &vec![
+                    Coordinate {
+                        x: 200020.0,
+                        y: 100010.0,
+                        z: None
+                    },
+                    Coordinate {
+                        x: 200040.0,
+                        y: 100030.0,
+                        z: Some(50.0)
+                    },
+                    Coordinate {
+                        x: 200070.0,
+                        y: 100060.0,
+                        z: Some(0.0)
+                    },
+                    Coordinate {
+                        x: 200090.0,
+                        y: 100080.0,
+                        z: Some(-10.0)
+                    },
+                    Coordinate {
+                        x: 200110.0,
+                        y: 100100.0,
+                        z: None
+                    },
+                ]
+            );
+        }
+    }
+
+    #[test]
+    fn rejects_malformed_or_truncated_z() {
+        let mesh = Mesh {
+            origin_x: 0.0,
+            origin_y: 0.0,
+            unit: 1.0,
+        };
+        for row in [
+            b"00000100000020invalid".to_vec(),
+            b"00000100000020".to_vec(),
+        ] {
+            assert!(coordinates(&[row], 3, 1, mesh).is_err());
+        }
     }
 
     #[test]
