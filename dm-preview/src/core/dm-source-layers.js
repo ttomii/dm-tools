@@ -1,3 +1,5 @@
+import {styleOrigin} from "./style-origin.js";
+
 const DEFAULT_SOURCE_LAYERS = {
   dm_default_line: "line",
   dm_default_point: "point",
@@ -19,6 +21,7 @@ export const expandDefaultStyleLayers = (layers, sourceLayers) => {
         ...layer,
         id: `${layer.id}-${getDmCode(sourceLayer)}`,
         "source-layer": sourceLayer,
+        metadata: {...layer.metadata, "dm:style-origin": styleOrigin(layer)},
       }));
   });
 };

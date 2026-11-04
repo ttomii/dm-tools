@@ -20,7 +20,7 @@
     <section id="feature-list-panel">
       <div id="list-tabs" role="tablist" aria-label="一覧切り替え">
         <button id="tab-feature-list" type="button" role="tab" aria-selected="true">地物一覧</button>
-        <button id="tab-dmi-info" type="button" role="tab" aria-selected="false">DMI情報</button>
+        <button id="tab-dmi-info" type="button" role="tab" aria-selected="false">データ情報</button>
       </div>
       <section id="feature-list-content" class="list-tab-panel">
         <div class="panel-heading">
@@ -44,7 +44,16 @@
           <button id="feature-next" type="button">次へ</button>
         </div>
       </section>
-      <section id="dmi-info" class="list-tab-panel" hidden><div id="dmi-content">DMI情報はありません。</div></section>
+      <section id="dmi-info" class="list-tab-panel" hidden>
+        <section aria-labelledby="style-inventory-heading">
+          <h3 id="style-inventory-heading">スタイル定義一覧</h3>
+          <div id="style-inventory"></div>
+        </section>
+        <section aria-labelledby="dmi-heading">
+          <h3 id="dmi-heading">DMI情報</h3>
+          <div id="dmi-content">DMI情報はありません。</div>
+        </section>
+      </section>
     </section>
     <section id="detail-panel">
       <div id="detail-tabs" role="tablist" aria-label="表示切り替え">

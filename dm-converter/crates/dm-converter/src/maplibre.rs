@@ -187,6 +187,7 @@ pub fn write_from_gpkg(
     timed("writing PMTiles manifest", || {
         write_manifest(output, layer_name, &summary)
     })?;
+    write_feature_inventory(output, &connection, &layers)?;
     if let Some(value) = crate::dmi::read(&connection)? {
         fs::write(
             output.join("dmi-info.json"),
@@ -201,6 +202,60 @@ pub fn write_from_gpkg(
         )?;
     }
     Ok(summary)
+}
+
+fn feature_inventory(
+    connection: &Connection,
+    layers: &[GpkgLayer],
+) -> Result<serde_json::Value, MapLibreError> {
+    let mut entries = Vec::new();
+    for layer in layers {
+        let table = quote_identifier(&layer.table_name);
+        let sql = if layer.decoration {
+            format!(
+                "SELECT SRC_DMCODE, DECORATION, SRC_LAYER, COUNT(*) FROM {table}
+                     GROUP BY SRC_DMCODE, DECORATION, SRC_LAYER ORDER BY 1, 2, 3"
+            )
+        } else {
+            format!(
+                "SELECT DMCODE, NULL, NULL, COUNT(*) FROM {table}
+                     GROUP BY DMCODE ORDER BY DMCODE"
+            )
+        };
+        let mut statement = connection.prepare(&sql)?;
+        let rows = statement.query_map([], |row| {
+            Ok(json!({
+                "level": layer.level,
+                "dmCode": row.get::<_, i64>(0)?,
+                "kind": layer.kind.as_str(),
+                "sourceLayer": source_layer_from_table(layer),
+                "count": row.get::<_, i64>(3)?,
+                "decoration": row.get::<_, Option<String>>(1)?,
+                "srcLayer": row.get::<_, Option<String>>(2)?,
+            }))
+        })?;
+        entries.extend(rows.collect::<Result<Vec<_>, _>>()?);
+    }
+    Ok(json!({"version": 1, "entries": entries}))
+}
+
+fn write_feature_inventory(
+    output: &Path,
+    connection: &Connection,
+    layers: &[GpkgLayer],
+) -> Result<(), MapLibreError> {
+    fs::write(
+        output.join("feature-inventory.json"),
+        serde_json::to_string_pretty(&feature_inventory(connection, layers)?)? + "\n",
+    )?;
+    let manifest_path = output.join("pmtiles-manifest.json");
+    let mut manifest: serde_json::Value = serde_json::from_slice(&fs::read(&manifest_path)?)?;
+    manifest["featureInventory"] = json!("feature-inventory.json");
+    fs::write(
+        manifest_path,
+        serde_json::to_string_pretty(&manifest)? + "\n",
+    )?;
+    Ok(())
 }
 
 fn summarize_gpkg(
@@ -1758,6 +1813,50 @@ mod tests {
     }
 
     #[test]
+    fn feature_inventory_keeps_levels_and_only_actual_generated_shapes() {
+        let connection = Connection::open_in_memory().unwrap();
+        connection.execute_batch(
+            "CREATE TABLE dm_1101_line_08_2500(DMCODE INTEGER);
+             INSERT INTO dm_1101_line_08_2500 VALUES (1101), (1101);
+             CREATE TABLE dm_1101_line_08_5000(DMCODE INTEGER);
+             INSERT INTO dm_1101_line_08_5000 VALUES (1101);
+             CREATE TABLE dm_1101_line_08_2500_deco_line(SRC_DMCODE INTEGER, DECORATION TEXT, SRC_LAYER TEXT);"
+        ).unwrap();
+        let base = GpkgLayer {
+            table_name: "dm_1101_line_08_2500".to_string(),
+            kind: GeometryKind::Line,
+            zone: 8,
+            level: 2500,
+            decoration: false,
+            bounds: [0.0; 4],
+        };
+        let coarse = GpkgLayer {
+            table_name: "dm_1101_line_08_5000".to_string(),
+            level: 5000,
+            ..base.clone()
+        };
+        let decoration = GpkgLayer {
+            table_name: "dm_1101_line_08_2500_deco_line".to_string(),
+            decoration: true,
+            ..base.clone()
+        };
+        let layers = vec![base, coarse, decoration];
+        let value = feature_inventory(&connection, &layers).unwrap();
+        let rows = value["entries"].as_array().unwrap();
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0]["count"], 2);
+        assert_eq!(rows[0]["level"], 2500);
+        assert_eq!(rows[1]["count"], 1);
+        assert_eq!(rows[1]["level"], 5000);
+        assert!(rows.iter().all(|row| row["decoration"].is_null()));
+        connection.execute_batch("INSERT INTO dm_1101_line_08_2500_deco_line VALUES (1101, 'bridge_end', 'dm_1101_line_08_2500');").unwrap();
+        let generated = feature_inventory(&connection, &layers).unwrap();
+        assert_eq!(generated["entries"][2]["decoration"], "bridge_end");
+        assert_eq!(generated["entries"][2]["count"], 1);
+        assert_eq!(feature_inventory(&connection, &layers[..2]).unwrap(), value);
+    }
+
+    #[test]
     fn writes_version_one_maplibre_manifest() {
         let output = tempfile::tempdir().unwrap();
         let summary = MapLibreSummary {
@@ -2224,6 +2323,38 @@ mod tests {
         assert!(summary.source_layers.contains("dm_annotation"));
         assert!(summary.source_layers.contains("dm_2100_line_deco_line"));
         assert!(summary.source_layers.contains("dm_4000_point_deco_point"));
+        let inventory: serde_json::Value =
+            serde_json::from_slice(&fs::read(output.join("feature-inventory.json")).unwrap())
+                .unwrap();
+        let entries = inventory["entries"].as_array().unwrap();
+        assert_eq!(inventory["version"], 1);
+        assert_eq!(entries.len(), 6);
+        assert_eq!(
+            entries
+                .iter()
+                .map(|entry| entry["count"].as_i64().unwrap())
+                .sum::<i64>(),
+            6
+        );
+        assert!(
+            entries
+                .iter()
+                .any(|entry| entry["sourceLayer"] == "dm_annotation"
+                    && entry["kind"] == "text"
+                    && entry["level"] == 2500)
+        );
+        assert!(
+            entries
+                .iter()
+                .any(|entry| entry["sourceLayer"] == "dm_4000_point_deco_point"
+                    && entry["dmCode"] == 4000
+                    && entry["decoration"] == "test_point"
+                    && entry["srcLayer"] == "dm_4000_point_08_2500")
+        );
+        let manifest: serde_json::Value =
+            serde_json::from_slice(&fs::read(output.join("pmtiles-manifest.json")).unwrap())
+                .unwrap();
+        assert_eq!(manifest["featureInventory"], "feature-inventory.json");
 
         let connection = Connection::open(&gpkg).unwrap();
         let layers = read_layers(&connection).unwrap();

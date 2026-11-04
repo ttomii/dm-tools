@@ -799,6 +799,7 @@ const createAppElements = (document) => ({
   tabDmiInfo: document.createElement("button"),
   dmiInfoPanel: document.createElement("section"),
   dmiContent: document.createElement("div"),
+  styleInventory: document.createElement("div"),
   styleEditorPanel: document.createElement("section"),
   featureDetailsPanel: document.createElement("section"),
   styleEditorStatus: document.createElement("p"),
@@ -883,7 +884,10 @@ class PreviewMap {
   remove() {}
 }
 
-const createDocument = () => ({createElement});
+const createDocument = () => {
+  const document = {createElement: (tagName) => Object.assign(createElement(tagName), {ownerDocument: document})};
+  return document;
+};
 
 const createElement = (tagName) => {
   const classes = new Set();

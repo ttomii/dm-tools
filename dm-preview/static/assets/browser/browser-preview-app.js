@@ -1,3 +1,4 @@
+import {createInventoryView} from "./style-inventory.js";
 import {loadDmiInfo} from "./dmi-info.js";
 import {
   editableColorProperties,
@@ -44,6 +45,7 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
     map: undefined,
     currentFeaturePage: 1,
     currentBaseStyle: undefined,
+    inventoryView: undefined,
     styleEditorState: {writable: false, editableLayers: []},
     spriteState: undefined,
     styleDirty: false,
@@ -83,6 +85,7 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
   };
 
   const renderStyleEditor = () => {
+    state.inventoryView?.setStyle(state.currentBaseStyle);
     const layers = state.styleEditorState.editableLayers ?? [];
     elements.styleLayerSelect.replaceChildren(...layers.map((layer) => {
       const option = document.createElement("option");
@@ -104,6 +107,7 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
   };
 
   const markStyleDirty = () => {
+    state.inventoryView?.setStyle(state.currentBaseStyle);
     state.styleDirty = true;
     elements.styleSave.disabled = !canSaveStyle(state.styleEditorState, state.styleDirty);
     elements.styleEditorStatus.textContent = "未保存の変更があります";
@@ -265,6 +269,7 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
         ? splitAnnotationStyleLayers(state.currentBaseStyle)
         : state.currentBaseStyle;
     });
+    state.inventoryView?.setStyle(state.currentBaseStyle);
     const runtimeStyle = createRuntimeStyle(state.currentBaseStyle, manifest, {
       basemapVisible: elements.basemap.checked,
       dmVisible: elements.dmToggle.checked,
@@ -401,7 +406,8 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
     const protocol = new pmtiles.Protocol();
     maplibregl.addProtocol("pmtiles", protocol.tile);
     const manifest = await api.manifest();
-    await loadDmiInfo(elements.dmiContent, manifest, api);
+    state.inventoryView = createInventoryView(elements.styleInventory, manifest);
+    await Promise.all([loadDmiInfo(elements.dmiContent, manifest, api), state.inventoryView.load(api)]);
     const styles = manifest.styles ?? ["automatic"];
     for (const styleUrl of styles) {
       const option = document.createElement("option");

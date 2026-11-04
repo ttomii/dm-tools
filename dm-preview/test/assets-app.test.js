@@ -68,16 +68,19 @@ test("core expands default style layers for every matching source layer", () => 
       ...layers[1],
       id: "default-line-7101",
       "source-layer": "dm_7101_line",
+      metadata: {"dm:style-origin": "default"},
     },
     {
       ...layers[1],
       id: "default-line-7102",
       "source-layer": "dm_7102_line",
+      metadata: {"dm:style-origin": "default"},
     },
     {
       ...layers[2],
       id: "default-point-2101",
       "source-layer": "dm_2101_point",
+      metadata: {"dm:style-origin": "default"},
     },
   ]);
 });

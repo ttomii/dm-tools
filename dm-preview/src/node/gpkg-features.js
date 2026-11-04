@@ -1,4 +1,4 @@
-import {stat} from "node:fs/promises";
+import {readFile, realpath, stat} from "node:fs/promises";
 import path from "node:path";
 import {
   ApiInputError,
@@ -7,6 +7,8 @@ import {
   parseGpkgTable,
   toFeature,
 } from "../core/gpkg-feature-policy.js";
+import {parseFeatureInventory} from "../core/style-inventory.js";
+import {resolveOutputPath} from "./manifest.js";
 import {ANNOTATION_SOURCE_LAYER} from "../core/dm-source-layers.js";
 
 export {ApiInputError};
@@ -50,6 +52,20 @@ export class GpkgFeatureStore {
     return {layer, page, pageSize, total, features};
   }
 
+  inventory() {
+    return {version: 1, entries: [...this.layers.values()].flatMap((tables) => tables.flatMap((table) => {
+      const match = /^dm_(\d+)_(point|line|polygon|text)_\d{2}_(\d+)(?:_deco_(point|line|polygon))?$/.exec(table.tableName);
+      const generated = Boolean(match[4]);
+      const columns = generated ? "SRC_DMCODE, DECORATION, SRC_LAYER" : "DMCODE, NULL AS DECORATION, NULL AS SRC_LAYER";
+      const group = generated ? "SRC_DMCODE, DECORATION, SRC_LAYER" : "DMCODE";
+      return this.databaseAdapter.queryRows(this.database,
+        `SELECT ${columns}, COUNT(*) AS count FROM ${quoteIdentifier(table.tableName)} GROUP BY ${group} ORDER BY ${group}`,
+      ).map((row) => ({level: Number(match[3]), dmCode: Number(row[generated ? "SRC_DMCODE" : "DMCODE"]),
+        kind: match[4] ?? match[2], sourceLayer: table.sourceLayer, count: Number(row.count),
+        decoration: row.DECORATION, srcLayer: row.SRC_LAYER}));
+    }))};
+  }
+
   close() {
     if (this.closed) return;
     this.closed = true;
@@ -63,6 +79,21 @@ export const createLazyFeatureStore = (root, manifest, options = {}) => {
     search: async (query) => {
       storePromise ??= GpkgFeatureStore.create(root, manifest, options);
       return (await storePromise).search(query);
+    },
+    inventory: async () => {
+      if (manifest.featureInventory) {
+        const file = await realpath(resolveOutputPath(root, manifest.featureInventory));
+        const canonicalRoot = await realpath(root);
+        if (!file.startsWith(`${canonicalRoot}${path.sep}`)) throw new ApiInputError("inventory path is outside output", 400);
+        return parseFeatureInventory(JSON.parse(await readFile(file, "utf8")));
+      }
+      try {
+        storePromise ??= GpkgFeatureStore.create(root, manifest, options);
+        return (await storePromise).inventory();
+      } catch (error) {
+        if (error instanceof ApiInputError && error.status === 404) return {version: 1, entries: [], complete: false};
+        throw error;
+      }
     },
     close: () => {
       storePromise?.then((store) => store.close()).catch(() => {});

@@ -1,3 +1,4 @@
+import {withStyleOrigins} from "./style-origin.js";
 import {ANNOTATION_SOURCE_LAYER, expandDefaultStyleLayers, getDmCode, isAnnotationSourceLayer} from "./dm-source-layers.js";
 
 const GSI_PALE_TILE_URL = "https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png";
@@ -73,7 +74,7 @@ export const splitAnnotationStyleLayers = (style) => {
 };
 
 export const mergeAnnotationStyleLayers = (style) => {
-  const mergedStyle = structuredClone(style);
+  const mergedStyle = withStyleOrigins(structuredClone(style));
   if (!Array.isArray(mergedStyle.layers)) return mergedStyle;
 
   const groups = new Map();

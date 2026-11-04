@@ -3,7 +3,7 @@ import {createServer as createHttpServer} from "node:http";
 import path from "node:path";
 import {createOutputAssetRoots} from "./asset-roots.js";
 import {createLazyFeatureStore} from "./gpkg-features.js";
-import {FEATURES_PATH, respondFeatures} from "./features-api.js";
+import {FEATURE_INVENTORY_PATH, FEATURES_PATH, respondFeatureInventory, respondFeatures} from "./features-api.js";
 import {requestPath, sendJson} from "./http-response.js";
 import {parseRange, resolveFile, sendFile} from "./static-files.js";
 import {respondStyleEditor, STYLE_EDITOR_PATH} from "./style-editor-api.js";
@@ -55,15 +55,20 @@ const respond = async (request, response, root, options) => {
     response.end();
     return;
   }
+  if (pathname === FEATURE_INVENTORY_PATH) {
+    await respondFeatureInventory(request, response, options.featureStore);
+    return;
+  }
   if (pathname === FEATURES_PATH) {
     await respondFeatures(request, response, options.featureStore);
     return;
   }
   if (pathname === "/preview/pmtiles-manifest.json" && options.manifest) {
     const sourceManifest = options.featureManifest ?? options.manifest;
+    const inventoryManifest = {...options.manifest, featureInventory: "api/feature-inventory"};
     const manifest = sourceManifest.dmiInfo
-      ? {...options.manifest, dmiInfo: "api/dmi-info"}
-      : options.manifest;
+      ? {...inventoryManifest, dmiInfo: "api/dmi-info"}
+      : inventoryManifest;
     sendJson(request, response, 200, manifest);
     return;
   }

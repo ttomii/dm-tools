@@ -5,7 +5,7 @@
 `pmtiles-manifest.json` は、dm-converterの出力をdm-previewや配布ツールが
 参照するためのJSONです。UTF-8を使用します。MapLibre Style JSONとは別の形式です。
 現在の `version` は `1` です。未知のバージョンは読込エラーになります。
-未知の追加項目は無視します。任意項目 `dmiInfo` の追加によるバージョン変更はありません。
+未知の追加項目は無視します。任意項目 `dmiInfo`・`featureInventory` の追加によるバージョン変更はありません。
 
 変換のデータ仕様は[変換仕様](../dm-converter/docs/conversion-specification.md)、
 プレビューと配布の操作は[MapLibre出力とプレビュー](maplibre-preview.md)を参照してください。
@@ -23,6 +23,7 @@
 | `center` | number[3] | はい | `[経度,緯度,ズーム]`。経度±180、緯度±90、ズーム0～24の範囲 |
 | `styles` | string[] | いいえ | Style JSONの相対パス。指定時は1つ以上。省略時、previewが縮尺に応じたStyleを生成 |
 | `dmiInfo` | string | いいえ | DMI情報JSONの相対パス。DMI情報がなければ項目を省略 |
+| `featureInventory` | string | いいえ | 地物内訳JSONの相対パス。新しいconverterのMapLibre出力時に作成。DMIの有無には依存しない |
 
 `sourceLayers` は `dm_annotation` または
 `dm_{数字}_{point|line|polygon|text}`、必要に応じてその後に
@@ -145,3 +146,42 @@ DMI情報は元の変換出力に保持し、previewは `/preview/api/dmi-info` 
 ブラウザ向けmanifestはプレビューサーバーが生成し、`dmiInfo` に `api/dmi-info` を設定します。
 既存の配布先を再利用するpreviewでは、旧版が配置した同名JSONを除去します。
 配布先を単独で開いた場合、DMI情報は表示されません。
+
+
+## 地物内訳JSON
+
+MapLibre変換時にGeoPackageの出力対象レイヤを集計し、`feature-inventory.json`へ保存します。
+DMIの分類一覧や生成ルールの対応コードではなく、実際に存在する地物を対象にします。
+Styleの定義有無は保存せず、previewが現在のStyleと照合します。
+
+トップレベルは `version: 1` と `entries` 配列です。各項目は次のとおりです。
+
+| 項目 | 型 | 内容 |
+| --- | --- | --- |
+| `level` | integer | 正の地図情報レベル |
+| `dmCode` | integer | 元図形のDMCODE。生成図形はSRC_DMCODE |
+| `kind` | string | `point`・`line`・`polygon`・`text`。生成図形の場合は生成後の形状 |
+| `sourceLayer` | string | PMTiles内のsource-layer。注記は `dm_annotation` |
+| `count` | integer | この内訳に属する地物数（正の整数）。タイル内の重複数ではない |
+| `decoration` | stringまたはnull | 自動生成図形のDECORATION。元図形はnull |
+| `srcLayer` | stringまたはnull | 自動生成図形の元GeoPackageレイヤ名。元図形はnull |
+
+同一source-layerでも地図情報レベル、DMコード、生成種別、生成元が異なる場合は別項目です。
+複数座標系にまたがる場合も複数項目になることがあります。レイヤ内に地物がない場合は項目を作りません。
+補助図形生成を無効にした場合は生成図形の項目がなく、生成条件を満たす地物がない場合も同様です。
+本JSONはプレビュー用資材であり、静的配信用bundleには含めません。
+
+```json
+{
+  "version": 1,
+  "entries": [
+    {"level": 2500, "dmCode": 7212, "kind": "line", "sourceLayer": "dm_7212_line", "count": 3, "decoration": null, "srcLayer": null},
+    {"level": 2500, "dmCode": 7212, "kind": "line", "sourceLayer": "dm_7212_line_deco_line", "count": 12, "decoration": "line_symbol", "srcLayer": "dm_7212_line_08_2500"}
+  ]
+}
+```
+
+previewは `GET /preview/api/feature-inventory` で元の変換出力の内訳を返します。
+内訳JSONのない旧出力ではGeoPackageから同じ項目を集計します。
+両方ともない場合は `{"version":1,"entries":[],"complete":false}` を返します。
+`complete:false` は内訳を確認できない状態であり、地物が存在しないことを意味しません。

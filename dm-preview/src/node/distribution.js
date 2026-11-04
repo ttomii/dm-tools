@@ -19,7 +19,7 @@ export const prepareDistribution = async (previewRoot, manifest, output) => {
   const distribution = await readDistributionManifest(destination, manifest);
   await rm(path.join(destination, MANIFEST_FILENAME), {force: true});
   await rm(path.join(destination, "dmi-info.json"), {force: true});
-  const {dmiInfo: omitted, ...mapManifest} = distribution.manifest;
+  const {dmiInfo: omitted, featureInventory: omittedInventory, ...mapManifest} = distribution.manifest;
   return {...distribution, manifest: mapManifest};
 };
 
