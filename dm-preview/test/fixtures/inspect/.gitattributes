@@ -1,0 +1,2 @@
+# Fixed-width DM records require padding and CRLF regardless of Git settings.
+*.dm -text -diff

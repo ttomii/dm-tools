@@ -146,17 +146,19 @@ export const getClickedDmFeatures = (map, point) => {
     .layers
     .filter((layer) => layer.source === "dm" && map.getLayoutProperty(layer.id, "visibility") !== "none");
   const lineLayers = dmLayers
-    .filter((layer) => getSourceLayerKind(layer["source-layer"]) === "line")
+    .filter((layer) => getSourceLayerKind(layer["source-layer"] ?? layer.metadata?.["dm:source-layer"]) === "line")
     .map((layer) => layer.id);
   const layers = dmLayers
-    .filter((layer) => getSourceLayerKind(layer["source-layer"]) !== "line")
+    .filter((layer) => getSourceLayerKind(layer["source-layer"] ?? layer.metadata?.["dm:source-layer"]) !== "line")
     .map((layer) => layer.id);
   if (layers.length === 0 && lineLayers.length === 0) return [];
   const clicked = layers.length === 0 ? [] : map.queryRenderedFeatures(point, {layers});
   const nearbyLines = lineLayers.length === 0
     ? []
     : map.queryRenderedFeatures(clickBuffer(point, LINE_CLICK_BUFFER_PIXELS), {layers: lineLayers});
-  return prioritizeClickedFeatures([...clicked, ...nearbyLines]);
+  return prioritizeClickedFeatures([...clicked, ...nearbyLines].map(feature => feature.properties?.DM_SOURCE_LAYER ? ({...feature, geometry: feature.geometry,
+    sourceLayer: feature.sourceLayer ?? feature.properties.DM_SOURCE_LAYER,
+    tableName: feature.properties.DM_TABLE}) : feature));
 };
 
 const clickBuffer = (point, pixels) => [
@@ -220,7 +222,7 @@ const formatFeatureDetailValue = (value) => {
 
 export const setHighlightedFeature = (map, feature) => {
   const source = map.getSource(HIGHLIGHT_SOURCE_ID);
-  source.setData(feature ? {type: "FeatureCollection", features: [toGeoJsonFeature(feature)]} : EMPTY_FEATURES);
+  source?.setData(feature ? {type: "FeatureCollection", features: [toGeoJsonFeature(feature)]} : EMPTY_FEATURES);
 };
 
 const createText = (tag, className, text) => {

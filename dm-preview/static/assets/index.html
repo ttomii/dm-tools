@@ -13,6 +13,12 @@
     <select id="style"></select>
     <label class="layer-toggle"><input type="checkbox" id="dm" checked> DM地物</label>
     <label class="layer-toggle"><input type="checkbox" id="basemap" checked> 地理院地図(淡色)</label>
+    <label class="reference-scale-control">基準縮尺 <select id="reference-scale" disabled>
+      <option value="250">1:250</option><option value="500" selected>1:500</option>
+      <option value="1000">1:1000</option><option value="2500">1:2500</option><option value="5000">1:5000</option>
+    </select></label>
+    <button type="button" id="zoom-scale" disabled>基準縮尺へ</button>
+    <span id="preparation-status" role="status" hidden></span>
     <span id="status">Loading...</span>
   </header>
   <main id="map"></main>
@@ -25,6 +31,7 @@
       <section id="feature-list-content" class="list-tab-panel">
         <div class="panel-heading">
           <div class="feature-list-controls">
+            <label>DMコード <select id="feature-code" disabled><option value="">すべて</option></select></label>
             <input id="feature-layer-filter" type="search" aria-label="レイヤを検索" placeholder="レイヤを検索">
             <select id="feature-kind" aria-label="図形種別">
               <option value="">すべて</option>
@@ -36,6 +43,7 @@
             <select id="feature-layer" aria-label="レイヤ"></select>
           </div>
         </div>
+        <p id="feature-navigation-status" role="status"></p>
         <div id="feature-list-status"></div>
         <ol id="feature-list"></ol>
         <div id="feature-list-pager">
@@ -45,6 +53,9 @@
         </div>
       </section>
       <section id="dmi-info" class="list-tab-panel" hidden>
+        <details id="data-generation" hidden><summary>データ生成</summary>
+          <p id="data-generation-status" role="status"></p><pre id="data-generation-log"></pre>
+        </details>
         <section aria-labelledby="style-inventory-heading">
           <h3 id="style-inventory-heading">スタイル定義一覧</h3>
           <div id="style-inventory"></div>
@@ -64,6 +75,13 @@
         <div class="panel-heading">
           <strong>スタイル編集</strong>
           <button id="style-save" type="button" disabled>保存</button>
+        </div>
+        <div class="style-reload-controls">
+          <label>再読込み元 <select id="style-source" disabled>
+            <option value="saved">保存したスタイル</option><option value="standard">標準スタイル</option>
+          </select></label>
+          <button type="button" id="style-reload" disabled>スタイル再読込み</button>
+          <button type="button" id="sprite-reload" disabled>sprite再読込み</button>
         </div>
         <div id="style-editor-status">読み込み中...</div>
         <div class="style-editor-controls">
@@ -90,7 +108,11 @@
           <div id="hit-list-status">クリックした位置の重なり</div>
           <ol id="hit-list"></ol>
         </div>
+        <div id="feature-properties-content">
+        <button id="feature-relations" type="button" disabled>生成元・補助図形を選択</button>
+        <p id="feature-relations-status" role="status"></p><div id="feature-relations-list"></div>
         <div id="properties"></div>
+        </div>
       </section>
     </section>
   </aside>

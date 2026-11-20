@@ -49,6 +49,7 @@ struct Segment {
 
 #[derive(Debug, Clone, Copy)]
 enum LineDecorationSpec {
+    PolygonDots,
     MajorDashEnds {
         major_decoration: &'static str,
         minor_decoration: &'static str,
@@ -60,6 +61,7 @@ enum LineDecorationSpec {
         cycle_mm: f64,
     },
     BridgeEnd {
+        large_scale_length_mm: Option<f64>,
         decoration: &'static str,
         length_mm: f64,
         both_sides: bool,
@@ -117,6 +119,11 @@ struct DecorationDef {
 
 const DECORATION_DEFS: &[DecorationDef] = &[
     DecorationDef {
+        dmcode: 3403,
+        source_kind: GeometryKind::Polygon,
+        specs: || vec![LineDecorationSpec::PolygonDots],
+    },
+    DecorationDef {
         dmcode: 1101,
         source_kind: GeometryKind::Line,
         specs: major_dash_end_specs,
@@ -140,6 +147,11 @@ const DECORATION_DEFS: &[DecorationDef] = &[
         dmcode: 2206,
         source_kind: GeometryKind::Line,
         specs: bridge_pier_specs,
+    },
+    DecorationDef {
+        dmcode: 2304,
+        source_kind: GeometryKind::Line,
+        specs: large_scale_rail_tick_specs,
     },
     DecorationDef {
         dmcode: 2305,
@@ -217,11 +229,20 @@ pub fn decoration_layer_keys_for(
     feature: &Feature,
     source_key: &LayerKey,
 ) -> Vec<DecorationLayerKey> {
+    if let Some(kinds) = crate::feature_patterns::layer_kinds(feature) {
+        return kinds
+            .into_iter()
+            .map(|kind| DecorationLayerKey {
+                source: source_key.clone(),
+                kind,
+            })
+            .collect();
+    }
     if !is_decoration_target(feature) {
         return Vec::new();
     }
     let mut kinds = Vec::new();
-    for spec in specs_for(feature.dmcode) {
+    for spec in specs_for(feature.dmcode, feature.map_level) {
         let kind = spec_geometry_kind(&spec);
         if !kinds.contains(&kind) {
             kinds.push(kind);
@@ -236,19 +257,39 @@ pub fn decoration_layer_keys_for(
         .collect()
 }
 
+pub fn generate_with_context(
+    feature: &Feature,
+    source_key: &LayerKey,
+    source_layer: &str,
+    source_user_id: i64,
+    context: &crate::pattern_context::PatternContext,
+) -> Vec<DecorationFeature> {
+    crate::feature_patterns::generate(feature, source_key, source_layer, source_user_id, context)
+        .unwrap_or_else(|| generate(feature, source_key, source_layer, source_user_id))
+}
+
 pub fn generate(
     feature: &Feature,
     source_key: &LayerKey,
     source_layer: &str,
     source_user_id: i64,
 ) -> Vec<DecorationFeature> {
+    if let Some(rows) = crate::feature_patterns::generate(
+        feature,
+        source_key,
+        source_layer,
+        source_user_id,
+        &crate::pattern_context::PatternContext::default(),
+    ) {
+        return rows;
+    }
     if !is_decoration_target(feature) {
         return Vec::new();
     }
     let level = feature
         .map_level
         .expect("line decoration target has supported map level");
-    let specs = specs_for(feature.dmcode);
+    let specs = specs_for(feature.dmcode, Some(level));
     if specs.is_empty() {
         return Vec::new();
     }
@@ -259,6 +300,30 @@ pub fn generate(
             kind: spec_geometry_kind(&spec),
         };
         match spec {
+            LineDecorationSpec::PolygonDots => {
+                if let Geometry::Polygon(points) = &feature.geometry {
+                    rows.extend(
+                        crate::polygon_dots::circle_centers(
+                            points,
+                            mm_to_meter(1.5, level),
+                            mm_to_meter(0.15, level),
+                        )
+                        .into_iter()
+                        .enumerate()
+                        .filter_map(|(index, point)| {
+                            decoration_feature(
+                                feature,
+                                &key,
+                                source_layer,
+                                source_user_id,
+                                "staggered_circles",
+                                index as i64 + 1,
+                                Geometry::Point(point),
+                            )
+                        }),
+                    );
+                }
+            }
             LineDecorationSpec::MajorDashEnds {
                 major_decoration,
                 minor_decoration,
@@ -291,12 +356,18 @@ pub fn generate(
                 ));
             }
             LineDecorationSpec::BridgeEnd {
+                large_scale_length_mm,
                 decoration,
                 length_mm,
                 both_sides,
             } => {
                 let Geometry::LineString(points) = &feature.geometry else {
                     continue;
+                };
+                let length_mm = if level <= 1000 {
+                    large_scale_length_mm.unwrap_or(length_mm)
+                } else {
+                    length_mm
                 };
                 rows.extend(bridge_endpoint_features(
                     feature,
@@ -481,7 +552,9 @@ fn spec_geometry_kind(spec: &LineDecorationSpec) -> GeometryKind {
         LineDecorationSpec::Semicircles { .. } | LineDecorationSpec::LineSemicircles { .. } => {
             GeometryKind::Polygon
         }
-        LineDecorationSpec::PointSymbols { .. } => GeometryKind::Point,
+        LineDecorationSpec::PointSymbols { .. } | LineDecorationSpec::PolygonDots => {
+            GeometryKind::Point
+        }
         LineDecorationSpec::MajorDashEnds { .. }
         | LineDecorationSpec::BridgeEnd { .. }
         | LineDecorationSpec::LineSymbols { .. }
@@ -499,14 +572,28 @@ fn is_decoration_target(feature: &Feature) -> bool {
 
 fn is_supported_decoration_level(dmcode: i64, level: Option<i64>) -> bool {
     match dmcode {
-        1101 | 7105 | 7106 | 7107 | 7212 => {
-            matches!(level, Some(500 | 1000 | 2500 | 5000))
+        2204 | 2304 | 3403 => matches!(level, Some(250 | 500 | 1000)),
+        1101 | 2205 | 2305 | 2306 | 4262 | 6130 | 7105 | 7106 | 7107 | 7212 | 7214 => {
+            matches!(level, Some(250 | 500 | 1000 | 2500 | 5000))
         }
         _ => matches!(level, Some(2500 | 5000)),
     }
 }
 
-fn specs_for(dmcode: i64) -> Vec<LineDecorationSpec> {
+fn specs_for(dmcode: i64, level: Option<i64>) -> Vec<LineDecorationSpec> {
+    if dmcode == 7214 && matches!(level, Some(250 | 500 | 1000)) {
+        return rock_coral_arc_symbols(ROCK_CORAL_SYMBOL_WIDTH_MM + 4.0);
+    }
+    if dmcode == 4262 && matches!(level, Some(250 | 500 | 1000)) {
+        return vec![LineDecorationSpec::Semicircles {
+            decoration: "pipe_symbol",
+            interval_mm: 10.0,
+            diameter_mm: 0.3,
+        }];
+    }
+    if matches!(dmcode, 2304 | 2305) && matches!(level, Some(250 | 500 | 1000)) {
+        return large_scale_rail_tick_specs();
+    }
     decoration_def(dmcode)
         .map(|def| (def.specs)())
         .unwrap_or_default()
@@ -531,6 +618,7 @@ fn major_dash_end_specs() -> Vec<LineDecorationSpec> {
 
 fn bridge_end_specs() -> Vec<LineDecorationSpec> {
     vec![LineDecorationSpec::BridgeEnd {
+        large_scale_length_mm: None,
         decoration: "bridge_end",
         length_mm: BRIDGE_END_DIAG_LEN_MM,
         both_sides: false,
@@ -539,6 +627,7 @@ fn bridge_end_specs() -> Vec<LineDecorationSpec> {
 
 fn bridge_opening_specs() -> Vec<LineDecorationSpec> {
     vec![LineDecorationSpec::BridgeEnd {
+        large_scale_length_mm: None,
         decoration: "bridge_opening",
         length_mm: 1.0,
         both_sides: false,
@@ -547,6 +636,7 @@ fn bridge_opening_specs() -> Vec<LineDecorationSpec> {
 
 fn footbridge_opening_specs() -> Vec<LineDecorationSpec> {
     vec![LineDecorationSpec::BridgeEnd {
+        large_scale_length_mm: Some(1.0),
         decoration: "footbridge_opening",
         length_mm: 0.6,
         both_sides: true,
@@ -559,6 +649,16 @@ fn bridge_pier_specs() -> Vec<LineDecorationSpec> {
         interval_mm: 25.0,
         length_mm: 1.0,
         one_sided_right: true,
+        along_tangent: false,
+    }]
+}
+
+fn large_scale_rail_tick_specs() -> Vec<LineDecorationSpec> {
+    vec![LineDecorationSpec::LineSymbols {
+        decoration: "perpendicular_tick",
+        interval_mm: 10.0,
+        length_mm: 2.0,
+        one_sided_right: false,
         along_tangent: false,
     }]
 }
@@ -645,10 +745,14 @@ fn code_7105_7107_right_tick_specs() -> Vec<LineDecorationSpec> {
 }
 
 fn rock_coral_arc_symbol_specs() -> Vec<LineDecorationSpec> {
+    rock_coral_arc_symbols(ROCK_CORAL_SYMBOL_INTERVAL_MM)
+}
+
+fn rock_coral_arc_symbols(interval_mm: f64) -> Vec<LineDecorationSpec> {
     vec![LineDecorationSpec::ArcLineSymbols {
         arc_decoration: "right_arc",
         center_decoration: "center_chord",
-        interval_mm: ROCK_CORAL_SYMBOL_INTERVAL_MM,
+        interval_mm,
         width_mm: ROCK_CORAL_SYMBOL_WIDTH_MM,
         height_mm: ROCK_CORAL_SYMBOL_HEIGHT_MM,
         center_line_length_mm: ROCK_CORAL_CENTER_LINE_LENGTH_MM,
@@ -1187,14 +1291,21 @@ fn long_side_semicircle_features(
     let center = polygon_centroid(points);
     for segment in long_side_segments(points) {
         let outside = outside_normal(segment, center);
-        for point in long_side_symbol_centers(segment, radius, interval) {
+        let centers = long_side_symbol_centers(segment, radius, interval);
+        let last = centers.len().saturating_sub(1);
+        for (index, point) in centers.into_iter().enumerate() {
+            let label = if index == 0 || index == last {
+                "pipe_end_symbol"
+            } else {
+                decoration
+            };
             let geometry = filled_semicircle(point, segment.tangent, outside, radius);
             if let Some(row) = decoration_feature(
                 feature,
                 key,
                 source_layer,
                 source_user_id,
-                decoration,
+                label,
                 start_index + rows.len() as i64 + 1,
                 Geometry::Polygon(geometry),
             ) {
@@ -1285,17 +1396,10 @@ fn long_side_symbol_centers(segment: Segment, radius: f64, interval: f64) -> Vec
     if segment.length <= radius * 2.0 {
         return Vec::new();
     }
-    let half_interval = interval / 2.0;
-    let distances = [
-        radius,
-        segment.length / 2.0 - half_interval,
-        segment.length / 2.0 + half_interval,
-        segment.length - radius,
-    ];
-    let mut valid_distances = distances
-        .into_iter()
-        .filter(|distance| *distance >= radius && *distance <= segment.length - radius)
-        .collect::<Vec<_>>();
+    let steps = ((segment.length - radius * 2.0) / interval).floor() as usize;
+    let start = (segment.length - steps as f64 * interval) / 2.0;
+    let mut valid_distances = vec![radius, segment.length - radius];
+    valid_distances.extend((0..=steps).map(|index| start + index as f64 * interval));
     valid_distances
         .sort_by(|left, right| left.partial_cmp(right).unwrap_or(std::cmp::Ordering::Equal));
     valid_distances.dedup_by(|left, right| (*left - *right).abs() < MIN_DECORATION_LENGTH);
@@ -1460,62 +1564,7 @@ fn one_sided_short_line(center: Coordinate, normal: Vec2, len: f64) -> Vec<Coord
 }
 
 fn line_slice(points: &[Coordinate], start: f64, end: f64) -> Option<Vec<Coordinate>> {
-    if end - start < MIN_DECORATION_LENGTH {
-        return None;
-    }
-    let mut result = Vec::new();
-    let mut distance = 0.0;
-    for pair in points.windows(2) {
-        let segment = Vec2::between(pair[0], pair[1]);
-        let length = segment.length();
-        if length < f64::EPSILON {
-            continue;
-        }
-        let segment_start = distance;
-        let segment_end = distance + length;
-        if segment_end < start {
-            distance = segment_end;
-            continue;
-        }
-        if segment_start > end {
-            break;
-        }
-        let overlap_start = start.max(segment_start);
-        let overlap_end = end.min(segment_end);
-        if overlap_end - overlap_start >= MIN_DECORATION_LENGTH {
-            push_coordinate(
-                &mut result,
-                interpolate(pair[0], pair[1], (overlap_start - segment_start) / length),
-            );
-            push_coordinate(
-                &mut result,
-                interpolate(pair[0], pair[1], (overlap_end - segment_start) / length),
-            );
-        }
-        distance = segment_end;
-    }
-    if result.len() >= 2 {
-        Some(result)
-    } else {
-        None
-    }
-}
-
-fn push_coordinate(points: &mut Vec<Coordinate>, point: Coordinate) {
-    if points.last().is_none_or(|last| {
-        (last.x - point.x).abs() >= MIN_DECORATION_LENGTH
-            || (last.y - point.y).abs() >= MIN_DECORATION_LENGTH
-    }) {
-        points.push(point);
-    }
-}
-
-fn interpolate(start: Coordinate, end: Coordinate, ratio: f64) -> Coordinate {
-    Coordinate {
-        x: start.x + (end.x - start.x) * ratio,
-        y: start.y + (end.y - start.y) * ratio,
-        z: None,
-    }
+    crate::pattern_geometry::line_slice(points, start, end, MIN_DECORATION_LENGTH)
 }
 
 fn line_length(points: &[Coordinate]) -> f64 {
@@ -1678,13 +1727,126 @@ mod tests {
     }
 
     #[test]
+    fn generates_3403_staggered_circle_centers_only_at_large_scales() {
+        for level in [250, 500, 1000] {
+            let mut feature = polygon_feature(3403);
+            feature.map_level = Some(level);
+            let scale = mm_to_meter(1.0, level);
+            feature.geometry = Geometry::Polygon(
+                [(0.0, 0.0), (3.0, 0.0), (3.0, 3.0), (0.0, 3.0), (0.0, 0.0)]
+                    .into_iter()
+                    .map(|(x, y)| Coordinate {
+                        x: x * scale,
+                        y: y * scale,
+                        z: None,
+                    })
+                    .collect(),
+            );
+            let key = LayerKey::from_feature(&feature);
+            let layers = decoration_layer_keys_for(&feature, &key);
+            assert_eq!(layers.len(), 1);
+            assert_eq!(layers[0].kind, GeometryKind::Point);
+            let rows = generate(&feature, &key, "source_polygon", 7);
+            assert_eq!(rows.len(), 5);
+            for (index, row) in rows.iter().enumerate() {
+                assert_eq!(row.decoration, "staggered_circles");
+                assert_eq!(row.src_layer, "source_polygon");
+                assert_eq!(row.src_user_id, 7);
+                assert_eq!(row.src_dmcode, 3403);
+                assert_eq!(row.deco_index, index as i64 + 1);
+            }
+            for excluded in [None, Some(2500), Some(5000)] {
+                feature.map_level = excluded;
+                assert!(generate(&feature, &key, "source_polygon", 7).is_empty());
+            }
+            feature.map_level = Some(level);
+            feature.attributes.dmfigtype = Some(99);
+            assert!(generate(&feature, &key, "source_polygon", 7).is_empty());
+        }
+    }
+
+    #[test]
     fn generates_bridge_openings() {
-        let feature = line_feature(2204);
+        let mut feature = line_feature(2204);
+        feature.map_level = Some(500);
         let key = LayerKey::from_feature(&feature);
-        let rows = generate(&feature, &key, "dm_2204_line_08_2500", 1);
+        let rows = generate(&feature, &key, "dm_2204_line_08_500", 1);
 
         assert_eq!(rows.len(), 2);
         assert!(rows.iter().all(|row| row.decoration == "bridge_opening"));
+    }
+
+    #[test]
+    fn wooden_bridge_openings_are_one_mm_and_outward_for_opposite_parallel_edges() {
+        for level in [250, 500, 1000] {
+            let length = mm_to_meter(40.0, level);
+            let width = mm_to_meter(6.0, level);
+            for (index, points) in [
+                vec![
+                    Coordinate {
+                        x: 0.0,
+                        y: 0.0,
+                        z: None,
+                    },
+                    Coordinate {
+                        x: length,
+                        y: 0.0,
+                        z: None,
+                    },
+                ],
+                vec![
+                    Coordinate {
+                        x: length,
+                        y: width,
+                        z: None,
+                    },
+                    Coordinate {
+                        x: 0.0,
+                        y: width,
+                        z: None,
+                    },
+                ],
+            ]
+            .into_iter()
+            .enumerate()
+            {
+                let mut feature = line_feature(2204);
+                feature.map_level = Some(level);
+                feature.geometry = Geometry::LineString(points.clone());
+                let key = LayerKey::from_feature(&feature);
+                let rows = generate(
+                    &feature,
+                    &key,
+                    &format!("dm_2204_line_08_{level}"),
+                    index as i64 + 1,
+                );
+                assert_eq!(rows.len(), 2);
+                for (row, endpoint) in rows.iter().zip(points.iter()) {
+                    assert_eq!(row.decoration, "bridge_opening");
+                    let opening = line_points(&row.geometry);
+                    assert_coordinate(opening[0], endpoint.x, endpoint.y);
+                    assert_length(opening, mm_to_meter(1.0, level));
+                    let dx = (opening[1].x - opening[0].x).abs();
+                    let dy = opening[1].y - opening[0].y;
+                    assert!((dx - dy.abs()).abs() < 1e-9);
+                    if index == 0 {
+                        assert!(dy < 0.0);
+                    } else {
+                        assert!(dy > 0.0);
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn wooden_bridge_openings_are_not_generated_for_other_levels() {
+        for level in [2500, 5000] {
+            let mut feature = line_feature(2204);
+            feature.map_level = Some(level);
+            let key = LayerKey::from_feature(&feature);
+            assert!(generate(&feature, &key, "unused", 1).is_empty());
+        }
     }
 
     #[test]
@@ -1729,6 +1891,28 @@ mod tests {
         let end_upper = line_points(&rows[3].geometry);
         assert_coordinate(end_upper[0], 100.0, 0.0);
         assert_coordinate(end_upper[1], 101.06066017177982, 1.0606601717798214);
+    }
+
+    #[test]
+    fn footbridge_openings_use_one_mm_at_large_scales_and_keep_coarse_lengths() {
+        for level in [250, 500, 1000, 2500, 5000] {
+            let mut feature = line_feature(2205);
+            feature.map_level = Some(level);
+            let key = LayerKey::from_feature(&feature);
+            let rows = generate(&feature, &key, "footbridge", 1);
+            assert_eq!(rows.len(), 4);
+            for row in &rows {
+                assert_eq!(row.decoration, "footbridge_opening");
+                assert_length(
+                    line_points(&row.geometry),
+                    mm_to_meter(if level <= 1000 { 1.0 } else { 0.6 }, level),
+                );
+            }
+            for (row, upper) in rows.iter().zip([false, true, false, true]) {
+                let line = line_points(&row.geometry);
+                assert_eq!(line[1].y > line[0].y, upper);
+            }
+        }
     }
 
     #[test]
@@ -1821,6 +2005,21 @@ mod tests {
     }
 
     #[test]
+    fn level_250_adopts_supported_500_decorations_at_half_ground_size() {
+        for code in [1101, 7105, 7106, 7107, 7212] {
+            let mut feature = line_feature(code);
+            feature.map_level = Some(250);
+            let key = LayerKey::from_feature(&feature);
+            assert!(!generate(&feature, &key, "sample_250", 1).is_empty());
+        }
+        let mut feature = line_feature(1101);
+        feature.map_level = Some(250);
+        let key = LayerKey::from_feature(&feature);
+        let rows = generate(&feature, &key, "sample_250", 1);
+        assert_length(line_points(&rows[1].geometry), 0.125);
+    }
+
+    #[test]
     fn skips_code_1101_decorations_outside_supported_map_levels() {
         let mut feature = line_feature(1101);
         feature.map_level = Some(10000);
@@ -1838,8 +2037,13 @@ mod tests {
             GeometryKind::Polygon
         );
         let rows = generate(&feature, &key, "dm_4262_polygon_08_2500", 1);
-        assert_eq!(rows.len(), 8);
-        assert!(rows.iter().all(|row| row.decoration == "pipe_symbol"));
+        assert_eq!(rows.len(), 32);
+        assert_eq!(
+            rows.iter()
+                .filter(|r| r.decoration == "pipe_end_symbol")
+                .count(),
+            4
+        );
         assert_eq!(rows[0].key.kind, GeometryKind::Polygon);
 
         let first_points = polygon_points(&rows[0].geometry);
@@ -1850,14 +2054,14 @@ mod tests {
         assert_eq!(first_points.first(), first_points.last());
 
         let second_points = polygon_points(&rows[1].geometry);
-        assert_coordinate(second_points[4], 46.25, -0.25);
+        assert_coordinate(second_points[4], 1.25, -0.25);
 
-        let bottom_end_points = polygon_points(&rows[3].geometry);
+        let bottom_end_points = polygon_points(&rows[15].geometry);
         assert_coordinate(bottom_end_points[0], 99.5, 0.0);
         assert_coordinate(bottom_end_points[4], 99.75, -0.25);
         assert_coordinate(bottom_end_points[8], 100.0, 0.0);
 
-        let top_start_points = polygon_points(&rows[4].geometry);
+        let top_start_points = polygon_points(&rows[16].geometry);
         assert_coordinate(top_start_points[0], 100.0, 10.0);
         assert_coordinate(top_start_points[4], 99.75, 10.25);
         assert_coordinate(top_start_points[8], 99.5, 10.0);
@@ -1983,7 +2187,24 @@ mod tests {
             coral.attributes.dmfigtype = Some(99);
             assert!(generate(&coral, &LayerKey::from_feature(&coral), &source, 42).is_empty());
         }
-        for level in [500, 1000, 10000] {
+        for level in [250, 500, 1000] {
+            let mut coral = line_feature(7214);
+            coral.map_level = Some(level);
+            let rows = generate(&coral, &LayerKey::from_feature(&coral), "coral", 1);
+            let arcs: Vec<_> = rows
+                .iter()
+                .filter(|row| row.decoration == "right_arc")
+                .collect();
+            assert!(arcs.len() > 2);
+            for pair in arcs.windows(2) {
+                let previous = line_points(&pair[0].geometry);
+                let next = line_points(&pair[1].geometry);
+                assert!(
+                    (next.last().unwrap().x - previous[0].x - mm_to_meter(4.0, level)).abs() < 1e-8
+                );
+            }
+        }
+        for level in [10000] {
             let mut coral = line_feature(7214);
             coral.map_level = Some(level);
             assert!(decoration_layer_keys_for(&coral, &LayerKey::from_feature(&coral)).is_empty());
@@ -2032,6 +2253,95 @@ mod tests {
 
         assert_coordinate(point_coordinate(&circles[0].geometry), 6.875, 0.0);
         assert_coordinate(point_coordinate(&circles[1].geometry), 15.625, 0.0);
+    }
+
+    #[test]
+    fn large_scale_rail_ticks_are_two_mm_centered_at_ten_mm_intervals() {
+        for dmcode in [2304, 2305] {
+            for level in [250, 500, 1000] {
+                let mut feature = line_feature(dmcode);
+                feature.map_level = Some(level);
+                let key = LayerKey::from_feature(&feature);
+                assert!(decoration_layer_key_for(&feature, &key).is_some());
+                let rows = generate(&feature, &key, "rail", 1);
+                assert!(rows.len() >= 2);
+                let meter_per_mm = level as f64 / 1000.0;
+                let expected_count =
+                    ((100.0 - meter_per_mm) / (10.0 * meter_per_mm)).floor() as usize + 1;
+                assert_eq!(rows.len(), expected_count);
+                for (index, row) in rows.iter().enumerate() {
+                    assert_eq!(row.decoration, "perpendicular_tick");
+                    let points = line_points(&row.geometry);
+                    let x = (0.5 + index as f64 * 10.0) * meter_per_mm;
+                    assert_coordinate(points[0], x, -meter_per_mm);
+                    assert_coordinate(points[1], x, meter_per_mm);
+                    assert_length(points, 2.0 * meter_per_mm);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn large_scale_rail_ticks_follow_bends_without_restarting_the_interval() {
+        for dmcode in [2304, 2305] {
+            let mut feature = line_feature(dmcode);
+            feature.map_level = Some(500);
+            feature.geometry = Geometry::LineString(vec![
+                Coordinate {
+                    x: 0.0,
+                    y: 0.0,
+                    z: None,
+                },
+                Coordinate {
+                    x: 2.0,
+                    y: 0.0,
+                    z: None,
+                },
+                Coordinate {
+                    x: 2.0,
+                    y: 10.0,
+                    z: None,
+                },
+            ]);
+            let key = LayerKey::from_feature(&feature);
+            let rows = generate(&feature, &key, "rail", 1);
+            assert_eq!(rows.len(), 3);
+            let first = line_points(&rows[0].geometry);
+            assert_coordinate(first[0], 0.25, -0.5);
+            assert_coordinate(first[1], 0.25, 0.5);
+            let second = line_points(&rows[1].geometry);
+            assert_coordinate(second[0], 2.5, 3.25);
+            assert_coordinate(second[1], 1.5, 3.25);
+            let third = line_points(&rows[2].geometry);
+            assert_coordinate(third[0], 2.5, 8.25);
+            assert_coordinate(third[1], 1.5, 8.25);
+        }
+    }
+
+    #[test]
+    fn large_scale_rail_ticks_skip_excluded_figtypes_and_unsupported_levels() {
+        for dmcode in [2304, 2305] {
+            let mut feature = line_feature(dmcode);
+            feature.map_level = Some(500);
+            feature.attributes.dmfigtype = Some(99);
+            let key = LayerKey::from_feature(&feature);
+            assert!(decoration_layer_key_for(&feature, &key).is_none());
+            assert!(generate(&feature, &key, "rail", 1).is_empty());
+            feature.attributes.dmfigtype = None;
+            for level in [None, Some(2000), Some(10000)] {
+                feature.map_level = level;
+                assert!(
+                    decoration_layer_key_for(&feature, &LayerKey::from_feature(&feature)).is_none()
+                );
+            }
+        }
+        for level in [2500, 5000] {
+            let mut feature = line_feature(2304);
+            feature.map_level = Some(level);
+            assert!(
+                decoration_layer_key_for(&feature, &LayerKey::from_feature(&feature)).is_none()
+            );
+        }
     }
 
     #[test]
@@ -2115,6 +2425,49 @@ mod tests {
         feature.attributes.dmfigtype = Some(12);
         let key = LayerKey::from_feature(&feature);
         assert!(generate(&feature, &key, "dm_6110_line_08_2500", 1).is_empty());
+    }
+
+    #[test]
+    fn code_2306_triangle_dimensions_and_spacing_match_at_all_map_levels() {
+        for level in [250, 500, 1000, 2500, 5000] {
+            let mut feature = line_feature(2306);
+            feature.map_level = Some(level);
+            let key = LayerKey::from_feature(&feature);
+            assert!(decoration_layer_key_for(&feature, &key).is_some());
+            let rows = generate(&feature, &key, "ropeway", 1);
+            assert!(rows.len() >= 2);
+            let unit = level as f64 / 1000.0;
+            for (index, row) in rows.iter().enumerate() {
+                assert_eq!(row.decoration, "attached_triangles");
+                let points = line_points(&row.geometry);
+                assert_eq!(points.len(), 5);
+                let x = (0.5 + index as f64 * 10.0) * unit;
+                assert_coordinate(points[0], x, 0.0);
+                assert_coordinate(points[1], x + 0.4 * unit, -0.3 * unit);
+                assert_coordinate(points[2], x + 0.8 * unit, 0.0);
+                assert_coordinate(points[3], x + 1.2 * unit, 0.3 * unit);
+                assert_coordinate(points[4], x + 1.6 * unit, 0.0);
+                for edge in points.windows(2) {
+                    assert_length(edge, 0.5 * unit);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn code_2306_skips_figtype_99_and_unsupported_levels() {
+        let mut feature = line_feature(2306);
+        feature.map_level = Some(500);
+        feature.attributes.dmfigtype = Some(99);
+        let key = LayerKey::from_feature(&feature);
+        assert!(generate(&feature, &key, "ropeway", 1).is_empty());
+        feature.attributes.dmfigtype = None;
+        for level in [None, Some(2000), Some(10000)] {
+            feature.map_level = level;
+            assert!(
+                decoration_layer_key_for(&feature, &LayerKey::from_feature(&feature)).is_none()
+            );
+        }
     }
 
     #[test]

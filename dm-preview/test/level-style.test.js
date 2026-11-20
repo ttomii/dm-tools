@@ -1,3 +1,4 @@
+import {evaluate} from "./helpers/pen-expressions.js";
 import assert from "node:assert/strict";
 import {readFile} from "node:fs/promises";
 import {test} from "node:test";
@@ -19,7 +20,7 @@ for (const coarse of [5000, 10000]) {
     assert.equal(fine.minzoom, large.maxzoom);
     assert.ok(JSON.stringify(large.filter).includes(`["get","LEVEL"],${coarse}`));
     const original = templates[5000].layers.find((layer) => layer.source === "dm");
-    assert.equal(large.paint["line-width"][4], original.paint["line-width"][4] / 2);
+    assert.equal(evaluate(large.paint["line-width"][4], {DMCODE: 2102}), evaluate(original.paint["line-width"][4], {DMCODE: 2102}) / 2);
     assert.equal(large.paint["line-width"][3], original.paint["line-width"][3] - Math.log2(coarse / 5000) - 1);
   });
 }
@@ -46,7 +47,7 @@ test("coarse lines remain visible at z12 and halve their width from z13", () => 
   assert.equal(line.minzoom, 12);
   assert.equal(line.paint["line-width"][3], 12);
   assert.equal(line.paint["line-width"][5], 13);
-  assert.equal(line.paint["line-width"][4], line.paint["line-width"][6] / 2);
+  assert.equal(evaluate(line.paint["line-width"][4], {DMCODE: 2102}), evaluate(line.paint["line-width"][6], {DMCODE: 2102}) / 2);
 });
 
 test("5000 data keeps a distinct interval between 2500 and 10000", () => {
@@ -70,4 +71,28 @@ test("level 10000 coral keeps the base line when reusing the 5000 template", () 
   assert.equal(base.layout?.visibility ?? "visible", "visible");
   assert.deepEqual(base.filter, ["all", ["==", ["get", "LEVEL"], 10000], ["!", eligible]]);
   assert.deepEqual(decoration.filter, ["all", ["==", ["get", "LEVEL"], 10000], eligible]);
+});
+
+
+test("empty templates do not suppress available levels at larger scales", () => {
+  const templates = {
+    250: {version: 8, sources: {dm: {}}, layers: []},
+    500: {version: 8, sources: {dm: {}}, layers: [{id: "line", source: "dm", type: "line", "source-layer": "dm_1101_line"}]},
+  };
+  const manifest = {levels: [250, 500], center: [139, 35, 20]};
+  const style = createLevelStyle(templates, manifest);
+  assert.deepEqual(style.metadata["dm:levels"], [500]);
+  assert.equal(style.layers[0].maxzoom, undefined);
+  assert.equal(style.layers[0].minzoom, undefined);
+  assert.deepEqual(createLevelStyle(templates, {...manifest, levels: [250]}).layers, []);
+});
+
+
+test("inspection keeps both 250 and 500 visible when zooming in", () => {
+  const template = (level) => ({version: 8, sources: {dm: {}}, layers: [{id: `line-${level}`, source: "dm", type: "line", "source-layer": "dm_1101_line", minzoom: 14}]});
+  const result = createLevelStyle({250: template(250), 500: template(500)}, {levels: [250, 500], center: [139, 36, 18]}, {automatic: false});
+  const layers = result.layers.filter(layer => layer.source === "dm");
+  assert.equal(layers.length, 2);
+  assert.ok(layers.every(layer => layer.maxzoom === undefined));
+  assert.ok(layers.every(layer => layer.minzoom === 13));
 });

@@ -1,3 +1,4 @@
+import {startBrowserApp} from "./browser/inspect-app.js";
 import {createBrowserPreviewApp} from "./browser/browser-preview-app.js";
 import * as maplibregl from "../vendor/maplibre-gl.mjs";
 
@@ -53,6 +54,6 @@ const app = createBrowserPreviewApp({
   fetch: window.fetch.bind(window),
 });
 
-app.start().catch((error) => {
+startBrowserApp({app, document, fetch: window.fetch.bind(window), location, window}).catch((error) => {
   document.getElementById("status").textContent = String(error);
 });

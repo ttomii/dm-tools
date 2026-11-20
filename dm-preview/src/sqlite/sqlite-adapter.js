@@ -1,10 +1,10 @@
 let driverPromise;
 
-export const openDatabase = async (file) => {
+export const openDatabase = async (file, {readOnly = true} = {}) => {
   const {driver, runtime} = await loadDriver();
   const database = runtime === "bun"
-    ? new driver.Database(file, {readonly: true})
-    : new driver.DatabaseSync(file, {readOnly: true, allowExtension: false});
+    ? new driver.Database(file, {readonly: readOnly})
+    : new driver.DatabaseSync(file, {readOnly, allowExtension: false});
   return {database, runtime};
 };
 

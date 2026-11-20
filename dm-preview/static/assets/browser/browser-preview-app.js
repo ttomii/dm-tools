@@ -1,3 +1,4 @@
+import {diagnosticStyle, applyInspectMode} from "../core/inspect-style.js";
 import {createInventoryView} from "./style-inventory.js";
 import {loadDmiInfo} from "./dmi-info.js";
 import {
@@ -43,13 +44,26 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
   const api = createApiClient({appBase, fetch});
   const state = {
     map: undefined,
+    manifest: undefined,
+    inspection: undefined,
+    featureCode: "",
+    selectedFeature: undefined,
     currentFeaturePage: 1,
     currentBaseStyle: undefined,
     inventoryView: undefined,
     styleEditorState: {writable: false, editableLayers: []},
     spriteState: undefined,
+    spriteRevision: 0,
     styleDirty: false,
     activeDetailTab: "style-editor",
+  };
+
+  let styleRevision = 0;
+  let featureRevision = 0;
+  const selectionListeners = new Set();
+  const rememberSelection = (feature) => {
+    state.selectedFeature = feature;
+    for (const listener of selectionListeners) listener(feature);
   };
 
   const setDetailTab = (tab) => {
@@ -198,6 +212,7 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
     const style = createBundledStyle(state.currentBaseStyle, manifest);
     const sprites = state.spriteState?.dirty ? await spritePayload(state.spriteState) : undefined;
     await api.saveStyleEditorState({style, sprites});
+    if (sprites) api.useStandardSprites(false);
     state.currentBaseStyle = usesCommonAnnotationSourceLayer(manifest)
       ? splitAnnotationStyleLayers(style)
       : style;
@@ -214,6 +229,7 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
   };
 
   const loadFeaturePage = async (page = 1) => {
+    const revision = ++featureRevision;
     if (!elements.featureLayerSelect.value) {
       clearFeatureList(elements.featureList, elements.featureListStatus, elements.featurePage, elements.featurePrev, elements.featureNext);
       return;
@@ -223,7 +239,10 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
       layer: elements.featureLayerSelect.value,
       page,
       pageSize: FEATURE_PAGE_SIZE,
+      ...(state.inspection?.level ? {level: state.inspection.level} : {}),
+      ...(state.featureCode ? {code: state.featureCode} : {}),
     });
+    if (revision !== featureRevision) return;
     state.currentFeaturePage = result.page;
     renderFeatureList({
       result,
@@ -234,6 +253,7 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
       next: elements.featureNext,
       onSelect: (feature) => {
         setDetailTab("feature-details");
+        rememberSelection(feature);
         selectListedFeature(state.map, elements.properties, feature);
       },
     });
@@ -251,26 +271,37 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
     }
   };
 
-  const loadStyle = async (manifest) => {
+  const loadStyle = async (manifest, {standard = false, preserveStyle = false} = {}) => {
+    const revision = ++styleRevision;
+    featureRevision++;
     const camera = state.map
       ? {center: state.map.getCenter().toArray(), zoom: state.map.getZoom()}
       : getInitialCamera(new URL(location.href), manifest.center);
-    state.currentBaseStyle = elements.select.value === "automatic"
+    if (!preserveStyle) state.currentBaseStyle = elements.select.value === "diagnostic"
+      ? diagnosticStyle(manifest)
+      : elements.select.value === "automatic"
       ? createLevelStyle(Object.fromEntries(await Promise.all(
         [...new Set(manifest.levels.map(presentationLevel))].map(async (level) => [
           level, await api.style(api.resourceUrl(`maplibre/style-${level}.json`)),
         ]),
-      )), manifest)
+      )), manifest, {automatic: !manifest.geojson && !state.inspection?.formalOnly})
       : await api.style(elements.select.value);
-    await loadStyleEditorState(manifest).catch((error) => {
+    if (!preserveStyle && !standard && elements.select.value !== "diagnostic") await loadStyleEditorState(manifest).catch((error) => {
       elements.styleEditorStatus.textContent = String(error);
       elements.styleSave.disabled = true;
       state.currentBaseStyle = usesCommonAnnotationSourceLayer(manifest)
         ? splitAnnotationStyleLayers(state.currentBaseStyle)
         : state.currentBaseStyle;
     });
+    if (standard || elements.select.value === "diagnostic") {
+      state.styleEditorState = {...state.styleEditorState, writable: true,
+        editableKinds: editableKinds(state.currentBaseStyle), editableLayers: editableLayers(state.currentBaseStyle)};
+      renderStyleEditor();
+    }
     state.inventoryView?.setStyle(state.currentBaseStyle);
-    const runtimeStyle = createRuntimeStyle(state.currentBaseStyle, manifest, {
+    const displayStyle = state.inspection?.mode === "original" || state.inspection?.mode === "generated"
+      ? diagnosticStyle(manifest) : state.currentBaseStyle;
+    const runtimeStyle = createRuntimeStyle(applyInspectMode(displayStyle, state.inspection), manifest, {
       basemapVisible: elements.basemap.checked,
       dmVisible: elements.dmToggle.checked,
       mergeAnnotationLayers: false,
@@ -283,6 +314,8 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
       runtimeStyle.layers.unshift(background);
     }
     background.paint = {...background.paint, ...backgroundPaint()};
+    if (state.inspection || state.spriteRevision) runtimeStyle.sprite += `?v=${state.spriteRevision || Date.now()}`;
+    if (revision !== styleRevision) return;
     if (state.map) state.map.remove();
     state.map = new maplibregl.Map({
       container: "map",
@@ -290,6 +323,7 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
       center: camera.center,
       zoom: camera.zoom,
       maxZoom: 24,
+      localIdeographFontFamily: false,
     });
     setupFeatureLayerOptions(elements.featureLayerSelect, runtimeStyle, {
       kind: elements.featureKindSelect.value,
@@ -298,7 +332,11 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
     });
     updateFeatureLayerParameter(location, history, elements.featureLayerSelect.value);
     state.map.addControl(new maplibregl.NavigationControl());
-    state.map.on("load", () => addHighlightLayers(state.map));
+    state.map.on("load", () => {
+      if (revision !== styleRevision) return;
+      addHighlightLayers(state.map);
+      if (state.selectedFeature) setSelectedFeature(state.map, elements.properties, toGeoJsonFeature(state.selectedFeature));
+    });
     updateStatus(elements.status, state.map);
     state.map.on("move", () => updateStatus(elements.status, state.map));
     state.map.on("moveend", () => updateMapParameters(location, history, state.map));
@@ -311,9 +349,11 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
         status: elements.hitListStatus,
         onSelect: (feature) => {
           setDetailTab("feature-details");
+          rememberSelection(feature);
           selectHitFeature(state.map, elements.properties, feature);
         },
       });
+      rememberSelection(features[0]);
       setSelectedFeature(state.map, elements.properties, features[0] ? toGeoJsonFeature(features[0]) : undefined);
     });
     await loadFeaturePage(1).catch((error) => {
@@ -322,14 +362,14 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
     });
   };
 
-  const wireEvents = (manifest) => {
+  const wireEvents = () => {
     const colorChangeScheduler = createLatestAsyncScheduler({
       delay: 16,
       onError: (error) => {
         elements.styleEditorStatus.textContent = String(error);
       },
     });
-    elements.select.addEventListener("change", () => loadStyle(manifest));
+    elements.select.addEventListener("change", () => loadStyle(state.manifest));
     for (const [kind, input] of Object.entries(elements.styleKindInputs)) {
       input.addEventListener("change", () => {
         colorChangeScheduler.schedule(() => applyKindColor(kind, input.value));
@@ -343,15 +383,11 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
     });
     elements.styleSave.addEventListener("click", () => {
       colorChangeScheduler.flush()
-        .then(() => saveStyleEditor(manifest))
+        .then(() => saveStyleEditor(state.manifest))
         .catch((error) => {
           elements.styleEditorStatus.textContent = String(error);
         });
     });
-    elements.tabFeatureList.addEventListener("click", () => setListTab("feature-list"));
-    elements.tabDmiInfo.addEventListener("click", () => setListTab("dmi-info"));
-    elements.tabStyleEditor.addEventListener("click", () => setDetailTab("style-editor"));
-    elements.tabFeatureDetails.addEventListener("click", () => setDetailTab("feature-details"));
     elements.featureKindSelect.addEventListener("change", () => {
       setupFeatureLayerOptions(elements.featureLayerSelect, state.map.getStyle(), {
         kind: elements.featureKindSelect.value,
@@ -405,23 +441,62 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
   const start = async () => {
     const protocol = new pmtiles.Protocol();
     maplibregl.addProtocol("pmtiles", protocol.tile);
-    const manifest = await api.manifest();
-    state.inventoryView = createInventoryView(elements.styleInventory, manifest);
-    await Promise.all([loadDmiInfo(elements.dmiContent, manifest, api), state.inventoryView.load(api)]);
-    const styles = manifest.styles ?? ["automatic"];
-    for (const styleUrl of styles) {
-      const option = document.createElement("option");
-      option.value = styleUrl === "automatic" ? styleUrl : api.resourceUrl(styleUrl);
-      option.textContent = styleUrl === "automatic" ? "自動（縮尺で切り替え）" : styleLabel(styleUrl, manifest);
-      elements.select.append(option);
-    }
-    elements.select.disabled = styles.length === 1;
-    wireEvents(manifest);
+    wireEvents();
     setDetailTab(state.activeDetailTab);
-    await loadStyle(manifest);
+    await reload();
   };
 
-  return {start};
+  const reload = async ({dataChanged = false, standard = false} = {}) => {
+    if (dataChanged) {
+      rememberSelection(undefined); elements.properties.replaceChildren(); elements.hitList.replaceChildren();
+    }
+    const manifest = await api.manifest();
+    state.manifest = manifest;
+    state.inventoryView = createInventoryView(elements.styleInventory, manifest);
+    await Promise.all([loadDmiInfo(elements.dmiContent, manifest, api), state.inventoryView.load(api)]);
+    const previousStyle = elements.select.value;
+    elements.select.replaceChildren();
+    const styles = (manifest.styles ?? ["automatic"]).filter((style) => !state.inspection?.formalOnly || style !== "diagnostic");
+    for (const styleUrl of styles) {
+      const option = document.createElement("option");
+      option.value = ["automatic", "diagnostic"].includes(styleUrl) ? styleUrl : api.resourceUrl(styleUrl);
+      option.textContent = styleUrl === "diagnostic" ? "原形状（診断用）"
+        : styleUrl === "automatic" ? (manifest.geojson || state.inspection?.formalOnly ? "正式図式" : "自動（縮尺で切り替え）") : styleLabel(styleUrl, manifest);
+      elements.select.append(option);
+    }
+    if (elements.select.options && [...elements.select.options].some((option) => option.value === previousStyle)) elements.select.value = previousStyle;
+    elements.select.disabled = styles.length === 1;
+    await loadStyle(manifest, {standard});
+  };
+
+  elements.tabFeatureList.addEventListener("click", () => setListTab("feature-list"));
+  elements.tabDmiInfo.addEventListener("click", () => setListTab("dmi-info"));
+  elements.tabStyleEditor.addEventListener("click", () => setDetailTab("style-editor"));
+  elements.tabFeatureDetails.addEventListener("click", () => setDetailTab("feature-details"));
+
+  return {start, reload, reloadSprites: async () => {
+    api.useStandardSprites(); state.spriteState = undefined;
+    state.spriteRevision = Math.max(Date.now(), state.spriteRevision + 1);
+    if (state.manifest) await loadStyle(state.manifest, {preserveStyle: true});
+  }, map: () => state.map, manifest: () => state.manifest,
+    inspect: async (options) => { state.inspection = options; if (state.manifest) await loadStyle(state.manifest, {preserveStyle: true}); },
+    onSelection: (listener) => selectionListeners.add(listener),
+    showFeatures: async ({code, layer}) => {
+      state.featureCode = code;
+      if (layer) elements.featureLayerSelect.value = layer;
+      updateFeatureLayerParameter(location, history, elements.featureLayerSelect.value);
+      await loadFeaturePage(1);
+    },
+    selectFeature: (feature) => {
+      rememberSelection(feature); setDetailTab("feature-details");
+      if (!feature) {
+        setSelectedFeature(state.map, elements.properties, undefined);
+        elements.hitList.replaceChildren(); elements.hitListStatus.textContent = "";
+        return;
+      }
+      selectListedFeature(state.map, elements.properties, feature);
+    },
+  };
 };
 
 const usesCommonAnnotationSourceLayer = (manifest) => manifest.sourceLayers?.includes("dm_annotation") ?? false;

@@ -1,6 +1,9 @@
 import {execFileSync} from "node:child_process";
-import {mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync} from "node:fs";
+import {existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync} from "node:fs";
 import path from "node:path";
+import {Resvg} from "@resvg/resvg-js";
+import {calibratedNativeSvg} from "./native-size.mjs";
+import {normalizeSvgPen} from "../../src/core/svg-pen.js";
 import {
   iconEntry,
   orderIconMappingRows,
@@ -35,14 +38,19 @@ export const generateMaplibreAssets = ({packageRoot, selectedValues}) => {
   writeCsv(path.join(assetRoot, "icons/icon-mapping.csv"), iconRows);
 
   const images = spriteImages(iconEntries, iconSource, iconPng);
+  const variantsFile = path.join(assetRoot, "pen-icon-variants.json");
+  const variants = existsSync(variantsFile) ? JSON.parse(readFileSync(variantsFile, "utf8")).variants : [];
+  for (const variant of variants) images.push({...variant,
+    source: path.join(iconSource, `${variant.baseId.slice(3)}.svg`), path: path.join(iconPng, `${variant.id}.png`)});
   if (selectedSpriteIds.length > 0) {
-    const selectedImages = selectedSpriteIds.map((spriteId) => findImage(images, spriteId));
+    selectedSpriteIds.forEach((spriteId) => findImage(images, spriteId));
+    const selectedImages = images.filter((image) => selectedSpriteIds.includes(image.id) || selectedSpriteIds.includes(image.baseId));
     updateSprite(selectedImages, 1, path.join(spriteRoot, "sprite"));
     updateSprite(selectedImages, 2, path.join(spriteRoot, "sprite@2x"));
     return;
   }
   for (const image of images) {
-    renderIcon(image.source, image.path, image.width, image.height);
+    renderIcon(image.source, image.path, image.width, image.height, image);
   }
   generateSprite(images, 1, path.join(spriteRoot, "sprite"));
   generateSprite(images, 2, path.join(spriteRoot, "sprite@2x"));
@@ -80,31 +88,40 @@ const walk = (directory, prefix = "") => readdirSync(directory, {withFileTypes: 
     : [relative];
 });
 
-const renderIcon = (source, output, width, height) => {
-  const isSvg = source.toLowerCase().endsWith(".svg");
-  const renderedSource = isSvg ? normalizeSvg(source, output) : source;
-  const args = [
-    renderedSource, "-background", "none", "-resize", `${width}x${height}>`,
-    "-gravity", "center", "-extent", `${width}x${height}`,
-  ];
-  if (isSvg) args.push("-transparent", "white");
-  args.push(output);
-  execFileSync("convert", args);
-  if (renderedSource !== source) rmSync(renderedSource, {force: true});
+const renderIcon = (source, output, width, height, pen) => {
+  if (/\.svg$/i.test(source)) {
+    renderSvg(source, output, width, height, pen);
+  } else {
+    execFileSync("convert", [source, "-background", "none", "-resize", `${width}x${height}>`,
+      "-gravity", "center", "-extent", `${width}x${height}`, output]);
+  }
 };
 
-const normalizeSvg = (source, output) => {
-  const normalized = `${output}.normalized.svg`;
-  const content = readFileSync(source, "utf8")
-    .replaceAll(/param\([^)]+\)\s+([^"'\s;]+)/g, "$1");
-  writeFileSync(normalized, content);
-  return normalized;
+const renderSvg = (source, output, width, height, pen) => {
+  if(pen?.nativeSource)source=path.join(path.dirname(source),pen.nativeSource);
+  let original = readFileSync(source, "utf8").replaceAll(/param\([^)]+\)\s+([^"'\s;]+)/g, "$1");
+  if(pen?.nativeSize)original=calibratedNativeSvg(original,pen.nativeSize,pen.pen).svg;
+  const canonical = new Resvg(original, {dpi: 96});
+  const normalized = pen?.pixelStroke ? normalizeSvgPen(canonical.toString(), {
+    pixelStroke: pen.pixelStroke * width / pen.width, width, height,
+    referenceStroke: Number(original.match(/data-dm-reference-stroke=["']([^"']+)/)?.[1]) || undefined,
+  }) : canonical.toString();
+  const renderer = new Resvg(normalized, {dpi: 96, fitTo: {mode: "zoom", value: Math.min(width / canonical.width, height / canonical.height)}});
+  writeFileSync(output, renderer.render().asPng());
+  execFileSync("convert", [output, "-background", "none", "-gravity", "center", "-extent", `${width}x${height}`, "-transparent", "white", output]);
 };
 
 const generateSprite = (images, ratio, output) => {
   const cell = 32 * ratio;
   const width = cell * 10;
-  const height = cell * Math.ceil(images.length / 10);
+  let plannedX = 0; let plannedY = 0;
+  for (const [position, image] of images.entries()) {
+    if (plannedX + image.width * ratio > width) { plannedX = 0; plannedY += cell; }
+    plannedX += image.width * ratio;
+    const next = images[position + 1];
+    if (image.width * ratio !== cell && next && !CUSTOM_SIZES.has(next.id)) plannedX = Math.ceil(plannedX / cell) * cell;
+  }
+  const height = plannedY + cell;
   const canvas = `${output}.png`;
   execFileSync("convert", ["-size", `${width}x${height}`, "xc:none", canvas]);
   const atlasIndex = {};
@@ -119,7 +136,7 @@ const generateSprite = (images, ratio, output) => {
       y += cell;
     }
     const rendered = ratio === 1 ? image.path : `${image.path}.2x.png`;
-    if (ratio === 2) renderIcon(image.source, rendered, imageWidth, imageHeight);
+    if (ratio === 2) renderIcon(image.source, rendered, imageWidth, imageHeight, image);
     const centeredY = y + Math.floor((cell - imageHeight) / 2);
     execFileSync("convert", [canvas, rendered, "-geometry", `+${x}+${centeredY}`, "-composite", canvas]);
     atlasIndex[image.id] = {width: imageWidth, height: imageHeight, x, y: centeredY, pixelRatio: ratio};
@@ -139,7 +156,7 @@ const updateSprite = (images, ratio, output) => {
     const frame = atlasIndex[image.id];
     if (!frame) throw new Error(`missing sprite frame for ${image.id}`);
     const rendered = ratio === 1 ? image.path : `${image.path}.2x.png`;
-    renderIcon(image.source, rendered, frame.width, frame.height);
+    renderIcon(image.source, rendered, frame.width, frame.height, image);
     clearSpriteFrame(canvas, frame);
     execFileSync("convert", [canvas, rendered, "-geometry", `+${frame.x}+${frame.y}`, "-composite", canvas]);
   }

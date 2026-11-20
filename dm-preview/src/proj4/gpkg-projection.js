@@ -33,11 +33,15 @@ export const projectGeometry = (geometry, zone) => {
   };
 };
 
+const projections = new Map();
+
 const projectPoint = (point, zone) => {
+  if (projections.has(zone)) return projections.get(zone).forward(point);
   const [lat0, lon0] = ORIGINS[zone - 1];
-  return proj4(
+  const projection = proj4(
     `+proj=tmerc +lat_0=${lat0} +lon_0=${lon0} +k=0.9999 +x_0=0 +y_0=0 +ellps=GRS80 +units=m +type=crs`,
     "WGS84",
-    point,
   );
+  projections.set(zone, projection);
+  return projection.forward(point);
 };

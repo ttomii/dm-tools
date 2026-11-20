@@ -27,7 +27,7 @@ export const startServer = async (output, options = {}) => {
   effectiveOptions.featureStore = featureStore;
   reportDiagnostic(effectiveOptions, {event: "startup", output: root, assetRoots});
   const server = createHttpServer((request, response) => {
-    respond(request, response, root, effectiveOptions).catch((error) => {
+    respondWithContext(request, response, root, effectiveOptions).catch((error) => {
       console.error(`preview server error: ${error.message}`);
       if (!response.headersSent) response.writeHead(500);
       response.end();
@@ -44,10 +44,16 @@ export const startServer = async (output, options = {}) => {
   return {server, url};
 };
 
+const respondWithContext = async (request, response, root, options) => {
+  if (await options.handleRequest?.(request, response)) return;
+  const context = options.getContext?.();
+  await respond(request, response, context?.root ?? root, {...options, ...context});
+};
+
 const respond = async (request, response, root, options) => {
   const pathname = requestPath(request.url);
   if (pathname === STYLE_EDITOR_PATH) {
-    await respondStyleEditor(request, response, root, options);
+    await respondStyleEditor(request, response, options.styleRoot ?? root, options);
     return;
   }
   if (!["GET", "HEAD"].includes(request.method)) {
@@ -57,6 +63,10 @@ const respond = async (request, response, root, options) => {
   }
   if (pathname === FEATURE_INVENTORY_PATH) {
     await respondFeatureInventory(request, response, options.featureStore);
+    return;
+  }
+  if (["/preview/api/related", "/preview/api/restore"].includes(pathname)) {
+    await respondRelations(request, response, options.featureStore);
     return;
   }
   if (pathname === FEATURES_PATH) {
@@ -72,7 +82,8 @@ const respond = async (request, response, root, options) => {
     sendJson(request, response, 200, manifest);
     return;
   }
-  const file = await resolveFile(pathname, root, options);
+  const assetRoot = pathname.startsWith("/preview/inspect-data/") ? root : options.styleRoot ?? root;
+  const file = await resolveFile(pathname, assetRoot, options);
   if (!file) {
     reportDiagnostic(options, {
       event: "not-found",
@@ -107,3 +118,11 @@ const listen = (server, port) => new Promise((resolve, reject) => {
   server.once("error", reject);
   server.listen(port, "127.0.0.1", resolve);
 });
+
+const respondRelations = async (request, response, featureStore) => {
+  try {
+    if (!featureStore) { sendJson(request, response, 404, {error: "feature API is not available"}); return; }
+    const query = new URL(request.url, "http://127.0.0.1").searchParams;
+    sendJson(request, response, 200, await featureStore[requestPath(request.url).endsWith("/restore") ? "restore" : "related"](query));
+  } catch (error) { sendJson(request, response, error.status ?? 500, {error: error.message}); }
+};

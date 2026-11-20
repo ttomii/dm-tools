@@ -33,6 +33,8 @@ GeoPackageはこのツールが生成したもの、PMTilesはgzip MVT・gzipデ
 一時領域にはPMTiles約1ファイル分と生成するタイル断片の空き容量が必要です。manifest・DMI情報・GeoPackageは変更しません。
 GeoPackageを他のプロセスで編集している間は実行しないでください。
 
+DM入力の変換対象レベルは`--include-levels 250,500,2500,5000`のように指定できます。省略時は全レベルを変換します。GeoPackage入力には適用しません。
+
 ## テストとカバレッジ
 
 通常のテストは`dm-converter`ディレクトリで実行します。

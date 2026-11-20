@@ -28,7 +28,7 @@ export const expandDefaultStyleLayers = (layers, sourceLayers) => {
 
 export const getDmSourceLayers = (style) => [...new Set((style.layers ?? [])
   .filter(isDmLayer)
-  .map((layer) => layer["source-layer"]))]
+  .map((layer) => layer["source-layer"] ?? layer.metadata?.["dm:source-layer"]))]
   .sort(compareLayerName);
 
 export const getSourceLayerKind = (sourceLayer) => {
@@ -75,4 +75,4 @@ const findLiteralNumberArray = (value) => {
   return [];
 };
 
-const isDmLayer = (layer) => layer.source === "dm" && layer["source-layer"];
+const isDmLayer = (layer) => layer.source === "dm" && (layer["source-layer"] ?? layer.metadata?.["dm:source-layer"]);

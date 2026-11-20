@@ -18,10 +18,14 @@ export const parseFeatureQuery = (query) => {
   const page = parsePositiveInteger(query.get("page"), "page", 1);
   const pageSize = parsePositiveInteger(query.get("pageSize"), "pageSize", PAGE_SIZE_DEFAULT);
   if (pageSize > PAGE_SIZE_MAX) throw new ApiInputError(`pageSize must be ${PAGE_SIZE_MAX} or less`);
-  return {layer, page, pageSize};
+  const level = query.has("level") ? parsePositiveInteger(query.get("level"), "level") : undefined;
+  const code = query.has("code") ? Number(query.get("code")) : undefined;
+  if (code !== undefined && (!Number.isInteger(code) || code < 0 || code > 9999)) throw new ApiInputError("invalid DM code");
+  return {layer, page, pageSize, ...(level === undefined ? {} : {level}), ...(code === undefined ? {} : {code})};
 };
 
 export const parseGpkgTable = (tableName, geometryType, srsId) => {
+  if (tableName === "inspect_labels" && geometryType === "POINT") return {tableName, sourceLayer: "inspect_labels", kind: "point", zone: zoneFromSrsId(srsId)};
   const match = /^dm_(\d+)_(polygon|line|point|text)_(\d{2})_(\d+)(?:_deco_(polygon|line|point))?$/.exec(tableName);
   if (!match) return undefined;
   const sourceKind = match[2];
@@ -63,7 +67,7 @@ export const toFeature = ({table, row, geometry}) => {
 };
 
 const parseLayer = (value) => {
-  if (!value || !(value === ANNOTATION_SOURCE_LAYER || /^dm_[0-9]+_(point|line|polygon|text)(?:_deco_(?:point|line|polygon))?$/.test(value))) {
+  if (!value || !(value === "inspect_labels" || value === ANNOTATION_SOURCE_LAYER || /^dm_[0-9]+_(point|line|polygon|text)(?:_deco_(?:point|line|polygon))?$/.test(value))) {
     throw new ApiInputError("layer is required");
   }
   return value;

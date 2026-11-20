@@ -52,11 +52,13 @@ const entryStyle = (entry, style) => {
   const uncertain = layers.some((layer) => filterMatches(layer.filter, entry) === undefined);
   const status = uncertain || origins.has("unknown") ? "unknown" : origins.has("individual")
     ? origins.size > 1 ? "mixed" : "individual" : origins.has("default") ? "default" : "missing";
-  return {status, hasIndividual: layers.some((layer) => styleOrigin(layer) === "individual" && filterMatches(layer.filter, entry) === true), layers: layers.map((layer) => ({id: layer.id, origin: styleOrigin(layer), sourceLayer: layer["source-layer"]}))};
+  return {status, hasIndividual: layers.some((layer) => styleOrigin(layer) === "individual" && filterMatches(layer.filter, entry) === true), layers: layers.map((layer) => ({id: layer.id, origin: styleOrigin(layer), sourceLayer: layer["source-layer"] ?? layer.metadata?.["dm:source-layer"]}))};
 };
 
-const sourceMatches = (layer, entry) => layer["source-layer"] === entry.sourceLayer ||
-  (!entry.decoration && !entry.generated && layer["source-layer"] === `dm_default_${entry.kind}`);
+const sourceMatches = (layer, entry) => {
+  const source = layer["source-layer"] ?? layer.metadata?.["dm:source-layer"];
+  return source === entry.sourceLayer || (!entry.decoration && !entry.generated && source === `dm_default_${entry.kind}`);
+};
 
 // Evaluate code/level/decoration restrictions only; other properties describe
 // subtypes within an entry (e.g. horizontal and vertical annotation).

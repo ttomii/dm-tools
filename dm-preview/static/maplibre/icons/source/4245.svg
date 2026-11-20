@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="-4 -4 8 8" data-dm-reference-stroke="0.15000000000000002">
+<title>4245 ヘリポート</title>
+<desc>座標単位mm。入力位置: 0,0。図式p.87。記号の中心</desc>
+<path d="M 2.925 0 A 2.925 2.925 0 1 0 -2.925 0 A 2.925 2.925 0 1 0 2.925 0 Z" fill="#ffffff" stroke="#000000" stroke-width="0.15000000000000002"/>
+<path d="M -1.5 -2 L -1.5 2 M 1.5 -2 L 1.5 2 M -1.5 0 L 1.5 0" fill="none" stroke="#000000" stroke-width="0.15000000000000002"/>
+</svg>

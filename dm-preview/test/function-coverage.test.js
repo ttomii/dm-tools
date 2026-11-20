@@ -740,7 +740,8 @@ test("loads the browser bootstrap module after resolving its runtime vendor impo
   globalThis.location = {href: "http://localhost/preview/"};
   globalThis.window = {
     pmtiles: {Protocol: class {}},
-    fetch: async () => response("http://localhost/preview/", {}),
+    fetch: async (url) => String(url).endsWith("api/inspect/state")
+      ? {ok: false, status: 404} : response("http://localhost/preview/", {}),
   };
   try {
     await import(`../static/assets/app.js?coverage=${Date.now()}`);
