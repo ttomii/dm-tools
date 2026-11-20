@@ -3,7 +3,7 @@ members = ["crates/dm-parser", "crates/dm-converter"]
 resolver = "2"
 
 [workspace.package]
-version = "2.1.0"
+version = "2.2.0"
 edition = "2024"
 rust-version = "1.88"
 authors = ["TOMII, Tatsuru"]
@@ -22,6 +22,7 @@ pmtiles = { version = "0.23", default-features = false, features = ["write"] }
 proj4rs = "0.1"
 prost = "0.14"
 rayon = "1.10"
+rstar = "0.12"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tempfile = "3"

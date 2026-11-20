@@ -1,3 +1,5 @@
+import {styleOrigin} from "./style-origin.js";
+
 const DEFAULT_SOURCE_LAYERS = {
   dm_default_line: "line",
   dm_default_point: "point",
@@ -19,13 +21,14 @@ export const expandDefaultStyleLayers = (layers, sourceLayers) => {
         ...layer,
         id: `${layer.id}-${getDmCode(sourceLayer)}`,
         "source-layer": sourceLayer,
+        metadata: {...layer.metadata, "dm:style-origin": styleOrigin(layer)},
       }));
   });
 };
 
 export const getDmSourceLayers = (style) => [...new Set((style.layers ?? [])
   .filter(isDmLayer)
-  .map((layer) => layer["source-layer"]))]
+  .map((layer) => layer["source-layer"] ?? layer.metadata?.["dm:source-layer"]))]
   .sort(compareLayerName);
 
 export const getSourceLayerKind = (sourceLayer) => {
@@ -72,4 +75,4 @@ const findLiteralNumberArray = (value) => {
   return [];
 };
 
-const isDmLayer = (layer) => layer.source === "dm" && layer["source-layer"];
+const isDmLayer = (layer) => layer.source === "dm" && (layer["source-layer"] ?? layer.metadata?.["dm:source-layer"]);

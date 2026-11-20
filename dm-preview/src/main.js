@@ -1,3 +1,5 @@
+import {startInspect} from "./node/inspect.js";
+import {parseInspectArguments} from "./node/inspect-arguments.js";
 import {createBundle} from "./node/bundle.js";
 import {defaultDistributionPath, prepareDistribution} from "./node/distribution.js";
 import {openBrowser} from "./node/open-browser.js";
@@ -10,6 +12,10 @@ export const main = async (args) => {
   const options = parseArguments(args);
   if (options.help) {
     console.log(createHelpText());
+    return;
+  }
+  if (options.command === "inspect") {
+    await startInspect(options, {databaseAdapter, projectGeometry});
     return;
   }
   if (options.command === "bundle") {
@@ -47,6 +53,7 @@ export const parseArguments = (args) => {
   if (args.includes("--help") || args.includes("-h")) return {help: true};
   if (args[0] === "preview") return parsePreviewArguments(args.slice(1));
   if (args[0] === "bundle") return parseBundleArguments(args.slice(1));
+  if (args[0] === "inspect") return parseInspectArguments(args.slice(1));
   return parsePreviewArguments(args);
 };
 
@@ -56,6 +63,7 @@ export const createHelpText = () => [
   "Usage:",
   "  dm-preview preview OUTPUT [--distribution DIR] [--no-open] [--port PORT] [--verbose]",
   "  dm-preview bundle PMTILES OUTPUT",
+  "  dm-preview inspect [INPUT] --work-dir DIR [--converter PATH] [--input-datum DATUM] [--no-open] [--port PORT]",
   "  dm-preview OUTPUT [--distribution DIR] [--no-open] [--port PORT]",
   "  dm-preview --help",
   "",
@@ -63,6 +71,7 @@ export const createHelpText = () => [
   "  preview  Start a local preview server for a MapLibre output directory.",
   "           OUTPUT is resolved from the current working directory.",
   "           The legacy form without the preview command is also supported.",
+  "  inspect  Convert original DM and inspect results in the full preview application.",
   "  bundle   Copy PMTILES and required preview assets into OUTPUT for distribution.",
   "           OUTPUT must be empty or absent.",
   "",

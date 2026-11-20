@@ -9,3 +9,8 @@
 *.gpkg
 *.gpkg-shm
 *.gpkg-wal
+
+/dm-preview/test-results/
+/display-check/
+
+/display-catalog/

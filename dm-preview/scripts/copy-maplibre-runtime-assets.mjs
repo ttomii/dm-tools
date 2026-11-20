@@ -2,6 +2,7 @@ import {cpSync, mkdirSync, rmSync} from "node:fs";
 import path from "node:path";
 
 const STYLE_FILES = [
+  "style-250.json",
   "style-500.json",
   "style-1000.json",
   "style-2500.json",

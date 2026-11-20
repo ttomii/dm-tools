@@ -239,7 +239,13 @@ mod tests {
     #[test]
     fn records_run_start_and_handles_progress_display_messages() {
         mark_run_start();
-        assert!(total_elapsed() < Duration::from_secs(1));
+        let started = *RUN_START.get().expect("run start is recorded");
+        let before = started.elapsed();
+        mark_run_start();
+        assert_eq!(RUN_START.get(), Some(&started));
+        let elapsed = total_elapsed();
+        assert!(elapsed >= before);
+        assert!(elapsed <= started.elapsed());
 
         let mut display = ProgressDisplay::new(true);
         display.message("coverage test");

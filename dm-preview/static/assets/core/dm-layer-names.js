@@ -511,3 +511,7 @@ const normalizeDmCode = (dmcode) => {
   if (!/^\d{1,4}$/.test(value)) return "";
   return value.padStart(4, "0");
 };
+
+export const dmCodes = () => [...new Set([...Object.keys(DM_LAYER_NAMES), ...Object.keys(TEXT_LAYER_NAMES)])].map(Number);
+
+export const dmAnnotationCodes = () => Object.keys(TEXT_LAYER_NAMES).map(Number);

@@ -3,8 +3,13 @@
 mod datum;
 mod decorations;
 mod dmi;
+mod enclosure_patterns;
+mod feature_patterns;
 mod gpkg;
 mod maplibre;
+mod pattern_context;
+mod pattern_geometry;
+mod polygon_dots;
 mod timing;
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
@@ -66,7 +71,7 @@ Notes:
   Directory inputs are searched recursively for .dm files, case-insensitively.
   --layer-name is required with --format pmtiles and must contain only ASCII letters, digits, hyphens, or underscores.
   PMTiles output uses an output directory; existing outputs require --overwrite.
-  GeoPackage input skips DM parsing options such as --include-codes, --include-types, and --decorations.
+  GeoPackage input skips DM parsing options such as --include-codes, --include-levels, --include-types, and --decorations.
   Rust dm-converter does not provide a preview command. Use the dm-preview Node.js package.
 
 Exit codes:
@@ -94,6 +99,9 @@ struct ConvertArgs {
     /// Include only these DM classification codes
     #[arg(long, value_delimiter = ',')]
     include_codes: Vec<i64>,
+    /// Include only these map information levels
+    #[arg(long, value_delimiter = ',')]
+    include_levels: Vec<i64>,
     /// Include only these geometry types
     #[arg(long, value_delimiter = ',')]
     include_types: Vec<GeometryType>,
@@ -225,8 +233,12 @@ fn run(args: &ConvertArgs) -> Result<RunSummary, AppError> {
 }
 
 fn run_gpkg(args: &ConvertArgs, output: &Path, files: &[PathBuf]) -> Result<RunSummary, AppError> {
-    let (keys, decoration_keys, discovery_warnings) =
-        timed("scanning input files", || discover_layers(args, files))?;
+    let DiscoveredLayers {
+        keys,
+        decorations: decoration_keys,
+        warnings: discovery_warnings,
+        patterns: pattern_context,
+    } = timed("scanning input files", || discover_layers(args, files))?;
     if keys.is_empty() {
         return Err(AppError::Input(
             "no supported features matched the selected filters".to_string(),
@@ -264,11 +276,12 @@ fn run_gpkg(args: &ConvertArgs, output: &Path, files: &[PathBuf]) -> Result<RunS
                         let source_user_id = next_id(&mut ids, source_key.clone());
                         if args.decorations {
                             let source_layer = gpkg::layer_name(&source_key);
-                            for decoration in decorations::generate(
+                            for decoration in decorations::generate_with_context(
                                 &feature,
                                 &source_key,
                                 &source_layer,
                                 source_user_id,
+                                &pattern_context,
                             ) {
                                 let user_id = next_id(&mut decoration_ids, decoration.key.clone());
                                 writer.write_decoration(decoration, user_id)?;
@@ -495,12 +508,17 @@ fn output_parent(path: &Path) -> &Path {
         .unwrap_or_else(|| Path::new("."))
 }
 
-fn discover_layers(
-    args: &ConvertArgs,
-    files: &[PathBuf],
-) -> Result<(BTreeSet<LayerKey>, BTreeSet<gpkg::DecorationLayerKey>, u64), AppError> {
+struct DiscoveredLayers {
+    keys: BTreeSet<LayerKey>,
+    decorations: BTreeSet<gpkg::DecorationLayerKey>,
+    warnings: u64,
+    patterns: pattern_context::PatternContext,
+}
+
+fn discover_layers(args: &ConvertArgs, files: &[PathBuf]) -> Result<DiscoveredLayers, AppError> {
     let mut keys = BTreeSet::new();
     let mut decoration_keys = BTreeSet::new();
+    let mut pattern_context = pattern_context::PatternContext::default();
     let mut warnings = 0;
     let mut progress = ProgressDisplay::new(args.progress);
     for (index, file) in files.iter().enumerate() {
@@ -511,6 +529,7 @@ fn discover_layers(
                     let key = LayerKey::from_feature(&feature);
                     keys.insert(key.clone());
                     if args.decorations {
+                        pattern_context.observe(&feature);
                         decoration_keys
                             .extend(decorations::decoration_layer_keys_for(&feature, &key));
                     }
@@ -520,7 +539,12 @@ fn discover_layers(
             }
         }
     }
-    Ok((keys, decoration_keys, warnings))
+    Ok(DiscoveredLayers {
+        keys,
+        decorations: decoration_keys,
+        warnings,
+        patterns: pattern_context,
+    })
 }
 
 fn next_id<K: Ord>(ids: &mut BTreeMap<K, i64>, key: K) -> i64 {
@@ -693,7 +717,11 @@ fn is_gpkg(path: &Path) -> bool {
 }
 
 fn included(args: &ConvertArgs, feature: &dm_parser::Feature) -> bool {
-    (args.include_codes.is_empty() || args.include_codes.contains(&feature.dmcode))
+    (args.include_levels.is_empty()
+        || feature
+            .map_level
+            .is_some_and(|level| args.include_levels.contains(&level)))
+        && (args.include_codes.is_empty() || args.include_codes.contains(&feature.dmcode))
         && (args.include_types.is_empty()
             || args
                 .include_types
@@ -808,6 +836,7 @@ mod tests {
             input_datum: InputDatum::Jgd2024,
             encoding: encoding_rs::SHIFT_JIS,
             include_codes: Vec::new(),
+            include_levels: Vec::new(),
             include_types: Vec::new(),
             overwrite: false,
             batch_size: 1,
@@ -1093,6 +1122,7 @@ mod tests {
             input_datum: InputDatum::Jgd2024,
             encoding: encoding_rs::SHIFT_JIS,
             include_codes: Vec::new(),
+            include_levels: Vec::new(),
             include_types: Vec::new(),
             overwrite: false,
             batch_size: 10_000,
@@ -1222,6 +1252,11 @@ mod tests {
             dm_parser::GeometryKind::Line,
             dm_parser::Geometry::LineString(coordinates),
         );
+        assert!(included(&args, &line));
+        args.include_levels = vec![500];
+        assert!(!included(&args, &line));
+        let mut line = line;
+        line.map_level = Some(500);
         assert!(included(&args, &line));
         args.include_codes = vec![9999];
         assert!(!included(&args, &line));

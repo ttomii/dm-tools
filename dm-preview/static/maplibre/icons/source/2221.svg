@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <title>2221 バス停</title>
+  <desc>図上単位16px/mm。円径1mm、円の下端から支柱2mm、横棒1mm。円の中心を取得位置とする。</desc>
+  <g fill="none" stroke="#000000" stroke-width="2.4" stroke-linecap="butt">
+    <circle cx="32" cy="12" r="8"/>
+    <path d="M32 20V52 M24 52H40"/>
+  </g>
+</svg>

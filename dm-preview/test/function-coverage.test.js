@@ -740,7 +740,8 @@ test("loads the browser bootstrap module after resolving its runtime vendor impo
   globalThis.location = {href: "http://localhost/preview/"};
   globalThis.window = {
     pmtiles: {Protocol: class {}},
-    fetch: async () => response("http://localhost/preview/", {}),
+    fetch: async (url) => String(url).endsWith("api/inspect/state")
+      ? {ok: false, status: 404} : response("http://localhost/preview/", {}),
   };
   try {
     await import(`../static/assets/app.js?coverage=${Date.now()}`);
@@ -799,6 +800,7 @@ const createAppElements = (document) => ({
   tabDmiInfo: document.createElement("button"),
   dmiInfoPanel: document.createElement("section"),
   dmiContent: document.createElement("div"),
+  styleInventory: document.createElement("div"),
   styleEditorPanel: document.createElement("section"),
   featureDetailsPanel: document.createElement("section"),
   styleEditorStatus: document.createElement("p"),
@@ -883,7 +885,10 @@ class PreviewMap {
   remove() {}
 }
 
-const createDocument = () => ({createElement});
+const createDocument = () => {
+  const document = {createElement: (tagName) => Object.assign(createElement(tagName), {ownerDocument: document})};
+  return document;
+};
 
 const createElement = (tagName) => {
   const classes = new Set();

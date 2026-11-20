@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="-3 -3 6 6" data-dm-reference-stroke="0.2">
+<title>7309 公共電子基準点</title>
+<desc>座標単位mm。入力位置: 0,0。図式p.124。記号の中心</desc>
+<path d="M 0 0 L 1.25 2.165 H -1.25 Z M 0 .577 L .75 1.876 H -.75 Z M 0 0 V -1.5 L .625 -1 L 1.25 -1.5 L 1.875 -1 L 2.5 -1.5" fill="none" stroke="#000000" stroke-width="0.2"/>
+<path d="M -.05 1.443 A .05 .05 0 1 0 .05 1.443 A .05 .05 0 1 0 -.05 1.443 Z" fill="none" stroke="#000000" stroke-width="0.2"/>
+</svg>

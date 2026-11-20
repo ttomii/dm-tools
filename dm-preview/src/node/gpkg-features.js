@@ -1,4 +1,5 @@
-import {stat} from "node:fs/promises";
+import {findRelatedFeatures, findStableFeature} from "./gpkg-relations.js";
+import {readFile, realpath, stat} from "node:fs/promises";
 import path from "node:path";
 import {
   ApiInputError,
@@ -7,6 +8,8 @@ import {
   parseGpkgTable,
   toFeature,
 } from "../core/gpkg-feature-policy.js";
+import {parseFeatureInventory} from "../core/style-inventory.js";
+import {resolveOutputPath} from "./manifest.js";
 import {ANNOTATION_SOURCE_LAYER} from "../core/dm-source-layers.js";
 
 export {ApiInputError};
@@ -39,15 +42,52 @@ export class GpkgFeatureStore {
   }
 
   search(query) {
-    const {layer, page, pageSize} = parseFeatureQuery(query);
-    const tables = this.layers.get(layer);
-    if (!tables?.length) throw new ApiInputError(`unknown layer: ${layer}`, 404);
+    const {layer, page, pageSize, level, code} = parseFeatureQuery(query);
+    const available = this.layers.get(layer);
+    if (!available?.length) throw new ApiInputError(`unknown layer: ${layer}`, 404);
+    const tables = available.filter((table) => {
+      const match = /^dm_(\d+)_(?:polygon|line|point|text)_\d{2}_(\d+)/.exec(table.tableName);
+      if (!match) return level === undefined && code === undefined;
+      return (code === undefined || Number(match[1]) === code) && (level === undefined || Number(match[2]) === level);
+    });
     const total = tables.reduce((sum, table) => sum + this.databaseAdapter.countRows(this.database, table.tableName), 0);
     const features = readPage(this.database, tables, (page - 1) * pageSize, pageSize, {
       databaseAdapter: this.databaseAdapter,
       projectGeometry: this.projectGeometry,
     });
     return {layer, page, pageSize, total, features};
+  }
+
+  restore(query) {
+    return findStableFeature(this, query);
+  }
+
+  related(query) {
+    return findRelatedFeatures(this, query);
+  }
+
+  geojson() {
+    return {type: "FeatureCollection", features: [...this.layers.values()].flatMap(tables => tables.flatMap(table =>
+      readFeatures(this.database, table, 0, this.databaseAdapter.countRows(this.database, table.tableName), {
+        databaseAdapter: this.databaseAdapter, projectGeometry: this.projectGeometry,
+      }).map(feature => ({type: "Feature", id: feature.id, geometry: feature.geometry,
+        properties: {...geojsonProperties(feature.properties, table), DM_SOURCE_LAYER: feature.sourceLayer, DM_TABLE: feature.tableName}})),
+    ))};
+  }
+
+  inventory() {
+    return {version: 1, entries: [...this.layers.values()].flatMap((tables) => tables.flatMap((table) => {
+      const match = /^dm_(\d+)_(point|line|polygon|text)_\d{2}_(\d+)(?:_deco_(point|line|polygon))?$/.exec(table.tableName);
+      if (!match) return [];
+      const generated = Boolean(match[4]);
+      const columns = generated ? "SRC_DMCODE, DECORATION, SRC_LAYER" : "DMCODE, NULL AS DECORATION, NULL AS SRC_LAYER";
+      const group = generated ? "SRC_DMCODE, DECORATION, SRC_LAYER" : "DMCODE";
+      return this.databaseAdapter.queryRows(this.database,
+        `SELECT ${columns}, COUNT(*) AS count FROM ${quoteIdentifier(table.tableName)} GROUP BY ${group} ORDER BY ${group}`,
+      ).map((row) => ({level: Number(match[3]), dmCode: Number(row[generated ? "SRC_DMCODE" : "DMCODE"]),
+        kind: match[4] ?? match[2], sourceLayer: table.sourceLayer, count: Number(row.count),
+        decoration: row.DECORATION, srcLayer: row.SRC_LAYER}));
+    }))};
   }
 
   close() {
@@ -59,10 +99,38 @@ export class GpkgFeatureStore {
 
 export const createLazyFeatureStore = (root, manifest, options = {}) => {
   let storePromise;
+  let geojsonPromise;
   return {
+    geojson: () => geojsonPromise ??= (async () => {
+      storePromise ??= GpkgFeatureStore.create(root, manifest, options);
+      return (await storePromise).geojson();
+    })(),
+    restore: async (query) => {
+      storePromise ??= GpkgFeatureStore.create(root, manifest, options);
+      return (await storePromise).restore(query);
+    },
+    related: async (query) => {
+      storePromise ??= GpkgFeatureStore.create(root, manifest, options);
+      return (await storePromise).related(query);
+    },
     search: async (query) => {
       storePromise ??= GpkgFeatureStore.create(root, manifest, options);
       return (await storePromise).search(query);
+    },
+    inventory: async () => {
+      if (manifest.featureInventory) {
+        const file = await realpath(resolveOutputPath(root, manifest.featureInventory));
+        const canonicalRoot = await realpath(root);
+        if (!file.startsWith(`${canonicalRoot}${path.sep}`)) throw new ApiInputError("inventory path is outside output", 400);
+        return parseFeatureInventory(JSON.parse(await readFile(file, "utf8")));
+      }
+      try {
+        storePromise ??= GpkgFeatureStore.create(root, manifest, options);
+        return (await storePromise).inventory();
+      } catch (error) {
+        if (error instanceof ApiInputError && error.status === 404) return {version: 1, entries: [], complete: false};
+        throw error;
+      }
     },
     close: () => {
       storePromise?.then((store) => store.close()).catch(() => {});
@@ -133,4 +201,17 @@ const identityProjection = (geometry) => geometry;
 const requiredDatabaseAdapter = (adapter) => {
   if (adapter?.openDatabase && adapter?.closeDatabase && adapter?.queryRows && adapter?.countRows) return adapter;
   throw new ApiInputError("GeoPackage database adapter is not configured", 500);
+};
+
+const geojsonProperties = (properties, table) => {
+  const match = /^dm_(\d+)_(?:point|line|polygon|text)_(\d{2})_(\d+)/.exec(table.tableName);
+  const result = {...properties};
+  if (match) {
+    result.DMCODE ??= result.SRC_DMCODE ?? Number(match[1]);
+    result.ZONE ??= Number(match[2]);
+    result.LEVEL ??= Number(match[3]);
+  }
+  if (typeof result.ANGLE === "number") result.ROTATION = ((table.sourceLayer.endsWith("_text") ? -result.ANGLE : 90 - result.ANGLE) % 360 + 360) % 360;
+  if (typeof result.TEXT === "string") result.TEXT_VERTICAL = result.TEXT.replaceAll("ー", "︱");
+  return result;
 };

@@ -178,7 +178,7 @@ test("server serves style bundle assets from output directory", async (context) 
   const origin = new URL(url).origin;
 
   assert.match(await (await fetch(url)).text(), /DM MapLibre Preview/);
-  assert.deepEqual(await (await fetch(`${origin}/preview/pmtiles-manifest.json`)).json(), manifest);
+  assert.deepEqual(await (await fetch(`${origin}/preview/pmtiles-manifest.json`)).json(), {...manifest, featureInventory: "api/feature-inventory"});
   assert.equal(await (await fetch(`${origin}/preview/style.json`)).text(), "{}");
   assert.equal((await fetch(`${origin}/preview/maplibre/style-2500.json`)).status, 200);
   assert.equal((await fetch(`${origin}/preview/sprite.json`)).status, 200);

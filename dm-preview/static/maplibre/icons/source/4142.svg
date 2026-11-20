@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="-2 -2 4 4" data-dm-reference-stroke="0.15000000000000002">
+<title>4142 電　力　柱</title>
+<desc>座標単位mm。入力位置: 0,0。図式p.77。柱の円の中心。架線の方向で回転</desc>
+<path d="M 0.425 0 A 0.425 0.425 0 1 0 -0.425 0 A 0.425 0.425 0 1 0 0.425 0 Z" fill="#ffffff" stroke="#000000" stroke-width="0.15000000000000002"/>
+<path d="M 1.062391 -0.743754 L 0.424995 -0.318753" fill="none" stroke="#000000" stroke-width="0.15000000000000002"/>
+<path d="M 1.062391 0.637494 L 0.318586 0.212493" fill="none" stroke="#000000" stroke-width="0.15000000000000002"/>
+<path d="M -0.531327 0.106247 L -1.381326 0.106247" fill="none" stroke="#000000" stroke-width="0.15000000000000002"/>
+</svg>

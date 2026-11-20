@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="-3 -3 6 6" data-dm-reference-stroke="0.15000000000000002">
+<title>6223 陵　　　墓</title>
+<desc>座標単位mm。入力位置: 0,-0.5。図式p.109。中央縦線と下側横棒の交点</desc>
+<path d="M -0.75 -1.0 L 0.75 -1.0" fill="none" stroke="#000000" stroke-width="0.15000000000000002"/>
+<path d="M 0 -1.0 L 0 1.0" fill="none" stroke="#000000" stroke-width="0.15000000000000002"/>
+<path d="M -0.75 -0.5 L 0.75 -0.5" fill="none" stroke="#000000" stroke-width="0.15000000000000002"/>
+<path d="M -1.25 1.0 C -0.75 1.0 -0.75 -0.5 -0.75 -0.5" fill="none" stroke="#000000" stroke-width="0.15000000000000002"/>
+<path d="M 1.25 1.0 C 0.75 1.0 0.75 -0.5 0.75 -0.5" fill="none" stroke="#000000" stroke-width="0.15000000000000002"/>
+</svg>

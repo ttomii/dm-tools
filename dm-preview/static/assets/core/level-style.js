@@ -12,9 +12,10 @@ const SIZE_PROPERTIES = new Set([
   "text-halo-blur", "icon-size", "icon-halo-width", "icon-halo-blur",
 ]);
 
-export const createLevelStyle = (templates, manifest) => {
-  const levels = [...new Set(manifest.levels)].sort((a, b) => a - b);
-  const style = structuredClone(templates[presentationLevel(levels[0])]);
+export const createLevelStyle = (templates, manifest, {automatic = true} = {}) => {
+  const levels = [...new Set(manifest.levels)].sort((a, b) => a - b)
+    .filter((level) => templates[presentationLevel(level)].layers.some((layer) => layer.source === "dm"));
+  const style = structuredClone(templates[presentationLevel(levels[0] ?? manifest.levels[0])]);
   if (levels.length > 1) style.name = "DM";
   style.metadata = {...style.metadata, "dm:levels": levels};
   if (levels.length === 1) style.metadata["dm:map-level"] = levels[0];
@@ -25,6 +26,7 @@ export const createLevelStyle = (templates, manifest) => {
     const layers = structuredClone(templates[base].layers).filter((layer) => layer.source === "dm");
     for (const layer of layers) {
       layer.id = `${layer.id}-level-${level}`;
+      if (layer.metadata?.["dm:pen-level"]) layer.metadata["dm:pen-level"] = level;
       layer.filter = replaceLevel(layer.filter, level);
       const zoomShift = Math.log2(level / base);
       if (layer.minzoom !== undefined) layer.minzoom = Math.max(0, layer.minzoom - zoomShift - 1);
@@ -34,10 +36,10 @@ export const createLevelStyle = (templates, manifest) => {
           if (SIZE_PROPERTIES.has(property)) group[property] = scaleSize(group[property], level / base);
         }
       }
-      if (levels[index + 1]) {
+      if (automatic && levels[index + 1]) {
         layer.minzoom = Math.max(layer.minzoom ?? 0, after(getZoomByScale(switchScale(levels[index + 1], levels), manifest.center[1])));
       }
-      if (index > 0) {
+      if (automatic && index > 0) {
         layer.maxzoom = Math.min(layer.maxzoom ?? 24, after(getZoomByScale(switchScale(level, levels), manifest.center[1])));
       }
       style.layers.push(layer);

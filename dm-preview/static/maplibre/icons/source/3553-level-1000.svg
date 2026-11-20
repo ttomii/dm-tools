@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="-4 -4 8 8" data-dm-reference-stroke="0.2">
+<title>3553 揚水機場</title>
+<desc>座標単位mm。入力位置: 0,0。図式p.74。半円部の中央（500は基線上0.75mm、1000は0.5mm）</desc>
+<path d="M -1 0.5 C -1 -0.052284749799999974 -0.5522847498 -0.5 0 -0.5 C 0.5522847498 -0.5 1 -0.052284749799999974 1 0.5" fill="none" stroke="#000000" stroke-width="0.2"/>
+<path d="M -1.5 0.5 L 1.5 0.5" fill="none" stroke="#000000" stroke-width="0.2"/>
+<path d="M 0 -0.5 L 0 -1.0" fill="none" stroke="#000000" stroke-width="0.2"/>
+<path d="M -0.7071067811865475 -0.20710678118654746 L -1.0606601717798212 -0.5606601717798212" fill="none" stroke="#000000" stroke-width="0.2"/>
+<path d="M 0.7071067811865475 -0.20710678118654746 L 1.0606601717798212 -0.5606601717798212" fill="none" stroke="#000000" stroke-width="0.2"/>
+</svg>

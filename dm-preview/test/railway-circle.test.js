@@ -1,0 +1,20 @@
+import assert from "node:assert/strict";
+import {test} from "node:test";
+import {readFile} from "node:fs/promises";
+import {getZoomByScale} from "../src/core/map-scale.js";
+import {MM_TO_PX} from "../src/core/pen-width.js";
+import {evaluate} from "./helpers/pen-expressions.js";
+for (const level of [250, 500, 1000]) test(`2421/${level} is a plain 1.5 mm circle`, async () => {
+ const style = JSON.parse(await readFile(new URL(`../static/maplibre/style-${level}.json`, import.meta.url)));
+ const layers = style.layers.filter(layer => layer["source-layer"] === "dm_2421_point");
+ assert.equal(layers.length, 1);
+ const circle = layers[0]; assert.equal(circle.type, "circle");
+ assert.deepEqual(circle.filter, ["==", ["get", "LEVEL"], level]);
+ const zoom = getZoomByScale(level, 36);
+ const radius = evaluate(circle.paint["circle-radius"], {}, zoom) / MM_TO_PX;
+ const stroke = evaluate(circle.paint["circle-stroke-width"], {}, zoom) / MM_TO_PX;
+ assert.ok(Math.abs(2 * (radius + stroke) - 1.5) < 1e-8);
+ assert.ok(Math.abs(stroke - 0.15) < 1e-8);
+ assert.equal(circle.paint["circle-color"], "#ffffff");
+ assert.equal(circle.paint["circle-stroke-color"], "#000000");
+});

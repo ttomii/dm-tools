@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="-3 -3 6 6" data-dm-reference-stroke="0.15000000000000002">
+<title>2241 道路情報板</title>
+<desc>座標単位mm。入力位置: 0,0。図式p.53。両脚の中央。取得方向（図式y軸）を上向きに正規化</desc>
+<path d="M -2.0 0.75 L -2.0 -0.75 L -1.5 -0.75 L -1.5 0.75 Z" fill="none" stroke="#000000" stroke-width="0.15000000000000002"/>
+<path d="M -1.5 0.75 L 0.0 0.75" fill="none" stroke="#000000" stroke-width="0.15000000000000002"/>
+<path d="M -1.5 -0.75 L 0.0 -0.75" fill="none" stroke="#000000" stroke-width="0.15000000000000002"/>
+</svg>

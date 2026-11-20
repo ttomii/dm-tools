@@ -1,15 +1,18 @@
 export const createApiClient = ({appBase, fetch}) => {
+  let standardSprites = false;
   const resourceUrl = (relativePath) => new URL(
-    relativePath.split("/").map(encodeURIComponent).join("/"),
+    (standardSprites && /^sprite(?:@2x)?(?:\.(?:png|json))?$/.test(relativePath)
+      ? `maplibre/sprite/${relativePath}` : relativePath).split("/").map(encodeURIComponent).join("/"),
     appBase,
   ).toString();
 
-  const fetchJson = async (url, options) => fetch(url, options)
+  const fetchJson = async (url, options) => fetch(url, {cache: "no-store", ...options})
     .then(checkResponse)
     .then((response) => response.json());
 
   return {
     resourceUrl,
+    useStandardSprites: (enabled = true) => { standardSprites = enabled; },
     manifest: () => fetchJson(resourceUrl("pmtiles-manifest.json")),
     style: (url) => fetchJson(url),
     features: (query) => fetchJson(apiUrl(appBase, "api/features", query)),

@@ -1,13 +1,15 @@
+import {rebasePenWidths} from "./pen-width.js";
+import {withStyleOrigins} from "./style-origin.js";
 import {ANNOTATION_SOURCE_LAYER, expandDefaultStyleLayers, getDmCode, isAnnotationSourceLayer} from "./dm-source-layers.js";
 
 const GSI_PALE_TILE_URL = "https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png";
 const GSI_ATTRIBUTION = "<a href=\"https://maps.gsi.go.jp/development/ichiran.html\" target=\"_blank\" rel=\"noopener\">地理院タイル</a>";
 
 export const createRuntimeStyle = (baseStyle, manifest, options) => {
-  const style = usesCommonAnnotationSourceLayer(manifest) && options.mergeAnnotationLayers !== false
+  const style = rebasePenWidths(usesCommonAnnotationSourceLayer(manifest) && options.mergeAnnotationLayers !== false
     ? mergeAnnotationStyleLayers(baseStyle)
-    : structuredClone(baseStyle);
-  style.sources.dm.url = `pmtiles://${options.resourceUrl(manifest.pmtiles)}`;
+    : structuredClone(baseStyle), manifest.center?.[1] ?? 36);
+  if (!manifest.geojson) style.sources.dm.url = `pmtiles://${options.resourceUrl(manifest.pmtiles)}`;
   style.sprite = options.resourceUrl("sprite");
   style.glyphs = `${options.resourceUrl("glyphs")}/{fontstack}/{range}.pbf`;
   const layers = shouldExpandDefaultStyleLayers(manifest, options)
@@ -36,14 +38,14 @@ export const createRuntimeStyle = (baseStyle, manifest, options) => {
       };
     }
   }
-  return style;
+  return manifest.geojson ? createGeojsonCatalogStyle(style, options.resourceUrl(manifest.geojson)) : style;
 };
 
 export const createBundledStyle = (style, manifest, options = {}) => {
   const pmtiles = options.pmtiles ?? manifest.pmtiles;
-  const bundled = usesCommonAnnotationSourceLayer(manifest)
+  const bundled = rebasePenWidths(usesCommonAnnotationSourceLayer(manifest)
     ? mergeAnnotationStyleLayers(style)
-    : structuredClone(style);
+    : structuredClone(style), manifest.center?.[1] ?? 36);
   bundled.layers = hideHiddenDmFeatures(
     expandDefaultStyleLayers(bundled.layers ?? [], manifest.sourceLayers ?? []),
   );
@@ -73,7 +75,7 @@ export const splitAnnotationStyleLayers = (style) => {
 };
 
 export const mergeAnnotationStyleLayers = (style) => {
-  const mergedStyle = structuredClone(style);
+  const mergedStyle = withStyleOrigins(structuredClone(style));
   if (!Array.isArray(mergedStyle.layers)) return mergedStyle;
 
   const groups = new Map();
@@ -214,8 +216,17 @@ const hideHiddenDmFeatures = (layers) => layers.map((layer) => {
 
 const withDmVisibilityFilters = (layer) => {
   const filters = [DMSKIP_VISIBLE_FILTER];
-  if (layer["source-layer"] === "dm_6101_line") filters.push(DM6101_VISIBLE_FILTER);
+  if (layer["source-layer"] === "dm_6101_line" && !selectsLowerEdge(layer.filter)) filters.push(DM6101_VISIBLE_FILTER);
   return filters.reduce((filter, visibilityFilter) => withFilter(filter, visibilityFilter), layer.filter);
+};
+
+const selectsLowerEdge = filter => {
+  if (!Array.isArray(filter)) return false;
+  if (filter[1]?.[0] === "get" && filter[1][1] === "DMFIGTYPE") {
+    return filter[0] === "==" && filter[2] === 12
+      || filter[0] === "in" && filter[2]?.[0] === "literal" && filter[2][1].includes(12);
+  }
+  return ["all", "any"].includes(filter[0]) && filter.slice(1).some(selectsLowerEdge);
 };
 
 const withFilter = (filter, required) => {
@@ -232,3 +243,19 @@ const containsFilter = (filter, required) => {
 };
 
 const isRecord = (value) => typeof value === "object" && Boolean(value) && !Array.isArray(value);
+
+export const createGeojsonCatalogStyle = (style, url) => ({
+  ...style,
+  sources: {...style.sources, dm: {type: "geojson", data: url, maxzoom: 24, tolerance: 0}},
+  layers: [...style.layers.map(layer => {
+    if (layer.source !== "dm" || !layer["source-layer"]) return layer;
+    const {"source-layer": sourceLayer, ...rendering} = layer;
+    const sourceFilter = ["==", ["get", "DM_SOURCE_LAYER"], sourceLayer];
+    return {...rendering, metadata: {...layer.metadata, "dm:source-layer": sourceLayer},
+      filter: layer.filter ? ["all", sourceFilter, layer.filter] : sourceFilter};
+  }), {id: "inspect-code-labels", source: "dm", type: "symbol",
+    filter: ["==", ["get", "DM_SOURCE_LAYER"], "inspect_labels"],
+    layout: {"text-field": ["get", "TEXT"], "text-font": ["BIZ UDPGothic Regular"], "text-size": 12,
+      "text-anchor": "left", "text-allow-overlap": false},
+    paint: {"text-color": "#222222", "text-halo-color": "#ffffff", "text-halo-width": 1}}],
+});

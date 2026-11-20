@@ -20,6 +20,7 @@ const files = {
   "sprite/sprite.png": "sprite",
   "sprite/sprite@2x.json": "{}",
   "sprite/sprite@2x.png": "sprite 2x",
+  "style-250.json": "style 250",
   "style-500.json": "{}",
   "style-1000.json": "{}",
   "style-2500.json": "{}",

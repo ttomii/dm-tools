@@ -18,7 +18,10 @@ use crate::timing::{ProgressDisplay, timed};
 
 #[path = "maplibre_partial.rs"]
 mod partial;
+#[path = "maplibre_simplify.rs"]
+mod simplification;
 pub use partial::update_tiles;
+use simplification::PolygonIndex;
 
 const MIN_ZOOM: u8 = 13;
 const MAX_ZOOM: u8 = 18;
@@ -184,6 +187,7 @@ pub fn write_from_gpkg(
     timed("writing PMTiles manifest", || {
         write_manifest(output, layer_name, &summary)
     })?;
+    write_feature_inventory(output, &connection, &layers)?;
     if let Some(value) = crate::dmi::read(&connection)? {
         fs::write(
             output.join("dmi-info.json"),
@@ -198,6 +202,60 @@ pub fn write_from_gpkg(
         )?;
     }
     Ok(summary)
+}
+
+fn feature_inventory(
+    connection: &Connection,
+    layers: &[GpkgLayer],
+) -> Result<serde_json::Value, MapLibreError> {
+    let mut entries = Vec::new();
+    for layer in layers {
+        let table = quote_identifier(&layer.table_name);
+        let sql = if layer.decoration {
+            format!(
+                "SELECT SRC_DMCODE, DECORATION, SRC_LAYER, COUNT(*) FROM {table}
+                     GROUP BY SRC_DMCODE, DECORATION, SRC_LAYER ORDER BY 1, 2, 3"
+            )
+        } else {
+            format!(
+                "SELECT DMCODE, NULL, NULL, COUNT(*) FROM {table}
+                     GROUP BY DMCODE ORDER BY DMCODE"
+            )
+        };
+        let mut statement = connection.prepare(&sql)?;
+        let rows = statement.query_map([], |row| {
+            Ok(json!({
+                "level": layer.level,
+                "dmCode": row.get::<_, i64>(0)?,
+                "kind": layer.kind.as_str(),
+                "sourceLayer": source_layer_from_table(layer),
+                "count": row.get::<_, i64>(3)?,
+                "decoration": row.get::<_, Option<String>>(1)?,
+                "srcLayer": row.get::<_, Option<String>>(2)?,
+            }))
+        })?;
+        entries.extend(rows.collect::<Result<Vec<_>, _>>()?);
+    }
+    Ok(json!({"version": 1, "entries": entries}))
+}
+
+fn write_feature_inventory(
+    output: &Path,
+    connection: &Connection,
+    layers: &[GpkgLayer],
+) -> Result<(), MapLibreError> {
+    fs::write(
+        output.join("feature-inventory.json"),
+        serde_json::to_string_pretty(&feature_inventory(connection, layers)?)? + "\n",
+    )?;
+    let manifest_path = output.join("pmtiles-manifest.json");
+    let mut manifest: serde_json::Value = serde_json::from_slice(&fs::read(&manifest_path)?)?;
+    manifest["featureInventory"] = json!("feature-inventory.json");
+    fs::write(
+        manifest_path,
+        serde_json::to_string_pretty(&manifest)? + "\n",
+    )?;
+    Ok(())
 }
 
 fn summarize_gpkg(
@@ -545,7 +603,11 @@ fn mercator_tile(x: f64, y: f64, z: u8) -> (u32, u32) {
     (tx, ty)
 }
 
-fn encode_tile(key: TileKey, layers: TileLayers) -> Result<Vec<u8>, MapLibreError> {
+fn encode_tile(
+    key: TileKey,
+    layers: TileLayers,
+    polygons: &PolygonIndex,
+) -> Result<Vec<u8>, MapLibreError> {
     let layers = layers
         .into_iter()
         .filter_map(|(name, features)| {
@@ -553,6 +615,7 @@ fn encode_tile(key: TileKey, layers: TileLayers) -> Result<Vec<u8>, MapLibreErro
                 key,
                 name,
                 features.iter().map(Arc::as_ref).collect::<Vec<_>>(),
+                polygons,
             )
         })
         .collect();
@@ -564,11 +627,12 @@ fn encode_layer(
     key: TileKey,
     name: String,
     features: Vec<&ProjectedFeature>,
+    polygons: &PolygonIndex,
 ) -> Option<vector_tile::Layer> {
     let mut encoder = LayerEncoder::default();
     let encoded = features
         .into_iter()
-        .filter_map(|feature| encode_feature(key, feature, &mut encoder))
+        .filter_map(|feature| encode_feature(key, feature, &mut encoder, polygons))
         .collect::<Vec<_>>();
     if encoded.is_empty() {
         return None;
@@ -583,17 +647,35 @@ fn encode_layer(
     })
 }
 
-fn encode_feature(
+fn encode_feature_geometry(
     key: TileKey,
     input: &ProjectedFeature,
-    encoder: &mut LayerEncoder,
-) -> Option<vector_tile::Feature> {
+    polygons: &PolygonIndex,
+) -> Option<Vec<u32>> {
     let points = input
         .points
         .iter()
         .map(|point| tile_point(*point, key))
         .collect::<Vec<_>>();
-    let geometry = clipped_geometry(input.feature.geometry_kind, &points)?;
+    let tolerance = simplification::tolerance(key, input);
+    let simplified = (input.feature.geometry_kind == GeometryKind::Polygon
+        && tolerance > 0.0
+        && polygons.permits(input))
+    .then(|| simplification::polygon(&points, tolerance));
+    clipped_geometry(
+        input.feature.geometry_kind,
+        simplified.as_deref().unwrap_or(&points),
+        tolerance,
+    )
+}
+
+fn encode_feature(
+    key: TileKey,
+    input: &ProjectedFeature,
+    encoder: &mut LayerEncoder,
+    polygons: &PolygonIndex,
+) -> Option<vector_tile::Feature> {
+    let geometry = encode_feature_geometry(key, input, polygons)?;
     let mut tags = Vec::new();
     push_int(&mut tags, encoder, "USER_ID", input.user_id);
     push_int(&mut tags, encoder, "DMCODE", input.feature.dmcode);
@@ -745,13 +827,13 @@ fn round_away(value: f64) -> i32 {
     }
 }
 
-fn clipped_geometry(kind: GeometryKind, points: &[(i32, i32)]) -> Option<Vec<u32>> {
+fn clipped_geometry(kind: GeometryKind, points: &[(i32, i32)], tolerance: f64) -> Option<Vec<u32>> {
     let parts = match kind {
         GeometryKind::Point | GeometryKind::Text => {
             let point = *points.first()?;
             inside(point).then(|| vec![vec![point]])?
         }
-        GeometryKind::Line => clip_line(points),
+        GeometryKind::Line => clip_line(points, tolerance),
         GeometryKind::Polygon => {
             let ring = clip_polygon(points);
             if ring.len() < 3 || signed_area(&ring).abs() < f64::EPSILON {
@@ -793,7 +875,7 @@ fn inside(point: (i32, i32)) -> bool {
         && (-BUFFER..=EXTENT as i32 + BUFFER).contains(&point.1)
 }
 
-fn clip_line(points: &[(i32, i32)]) -> Vec<Vec<(i32, i32)>> {
+fn clip_line(points: &[(i32, i32)], tolerance: f64) -> Vec<Vec<(i32, i32)>> {
     let mut parts: Vec<Vec<(i32, i32)>> = Vec::new();
     for segment in points.windows(2) {
         let Some((start, end)) = clip_segment(segment[0], segment[1]) else {
@@ -811,7 +893,13 @@ fn clip_line(points: &[(i32, i32)]) -> Vec<Vec<(i32, i32)>> {
     }
     parts
         .into_iter()
-        .map(|part| simplify(&part, SIMPLIFY_TOLERANCE))
+        .map(|part| {
+            if tolerance > 0.0 {
+                simplify(&part, tolerance)
+            } else {
+                part
+            }
+        })
         .filter(|part| part.len() >= 2)
         .collect()
 }
@@ -950,7 +1038,9 @@ fn signed_area(ring: &[(i32, i32)]) -> f64 {
     ring.iter()
         .zip(ring.iter().cycle().skip(1))
         .take(ring.len())
-        .map(|(left, right)| f64::from(left.0 * right.1 - right.0 * left.1))
+        .map(|(left, right)| {
+            f64::from(left.0) * f64::from(right.1) - f64::from(right.0) * f64::from(left.1)
+        })
         .sum::<f64>()
         / 2.0
 }
@@ -1373,6 +1463,7 @@ fn write_pmtiles(
         .center_zoom(min_zoom)
         .metadata(&metadata)
         .create(file)?;
+    let polygons = PolygonIndex::read(source.connection, source.layers, source.projector)?;
     let candidate_count = keys.len();
     let mut tile_feature_layers = collect_tile_feature_layers(source, &keys)?;
     let total_tile_weight = total_pmtiles_tile_weight(&keys, &tile_feature_layers);
@@ -1388,7 +1479,7 @@ fn write_pmtiles(
     let encoded_tiles = tiles_to_encode
         .into_par_iter()
         .map(|(key, tile_layers)| {
-            let tile = encode_tile(key, tile_layers)?;
+            let tile = encode_tile(key, tile_layers, &polygons)?;
             let coord = TileCoord::new(key.z, key.x, key.y)?;
             Ok((key, coord, tile))
         })
@@ -1722,6 +1813,50 @@ mod tests {
     }
 
     #[test]
+    fn feature_inventory_keeps_levels_and_only_actual_generated_shapes() {
+        let connection = Connection::open_in_memory().unwrap();
+        connection.execute_batch(
+            "CREATE TABLE dm_1101_line_08_2500(DMCODE INTEGER);
+             INSERT INTO dm_1101_line_08_2500 VALUES (1101), (1101);
+             CREATE TABLE dm_1101_line_08_5000(DMCODE INTEGER);
+             INSERT INTO dm_1101_line_08_5000 VALUES (1101);
+             CREATE TABLE dm_1101_line_08_2500_deco_line(SRC_DMCODE INTEGER, DECORATION TEXT, SRC_LAYER TEXT);"
+        ).unwrap();
+        let base = GpkgLayer {
+            table_name: "dm_1101_line_08_2500".to_string(),
+            kind: GeometryKind::Line,
+            zone: 8,
+            level: 2500,
+            decoration: false,
+            bounds: [0.0; 4],
+        };
+        let coarse = GpkgLayer {
+            table_name: "dm_1101_line_08_5000".to_string(),
+            level: 5000,
+            ..base.clone()
+        };
+        let decoration = GpkgLayer {
+            table_name: "dm_1101_line_08_2500_deco_line".to_string(),
+            decoration: true,
+            ..base.clone()
+        };
+        let layers = vec![base, coarse, decoration];
+        let value = feature_inventory(&connection, &layers).unwrap();
+        let rows = value["entries"].as_array().unwrap();
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0]["count"], 2);
+        assert_eq!(rows[0]["level"], 2500);
+        assert_eq!(rows[1]["count"], 1);
+        assert_eq!(rows[1]["level"], 5000);
+        assert!(rows.iter().all(|row| row["decoration"].is_null()));
+        connection.execute_batch("INSERT INTO dm_1101_line_08_2500_deco_line VALUES (1101, 'bridge_end', 'dm_1101_line_08_2500');").unwrap();
+        let generated = feature_inventory(&connection, &layers).unwrap();
+        assert_eq!(generated["entries"][2]["decoration"], "bridge_end");
+        assert_eq!(generated["entries"][2]["count"], 1);
+        assert_eq!(feature_inventory(&connection, &layers[..2]).unwrap(), value);
+    }
+
+    #[test]
     fn writes_version_one_maplibre_manifest() {
         let output = tempfile::tempdir().unwrap();
         let summary = MapLibreSummary {
@@ -1895,6 +2030,7 @@ mod tests {
             },
             "dm_9999_point".to_string(),
             vec![&projected],
+            &PolygonIndex::default(),
         )
         .unwrap();
 
@@ -2187,6 +2323,38 @@ mod tests {
         assert!(summary.source_layers.contains("dm_annotation"));
         assert!(summary.source_layers.contains("dm_2100_line_deco_line"));
         assert!(summary.source_layers.contains("dm_4000_point_deco_point"));
+        let inventory: serde_json::Value =
+            serde_json::from_slice(&fs::read(output.join("feature-inventory.json")).unwrap())
+                .unwrap();
+        let entries = inventory["entries"].as_array().unwrap();
+        assert_eq!(inventory["version"], 1);
+        assert_eq!(entries.len(), 6);
+        assert_eq!(
+            entries
+                .iter()
+                .map(|entry| entry["count"].as_i64().unwrap())
+                .sum::<i64>(),
+            6
+        );
+        assert!(
+            entries
+                .iter()
+                .any(|entry| entry["sourceLayer"] == "dm_annotation"
+                    && entry["kind"] == "text"
+                    && entry["level"] == 2500)
+        );
+        assert!(
+            entries
+                .iter()
+                .any(|entry| entry["sourceLayer"] == "dm_4000_point_deco_point"
+                    && entry["dmCode"] == 4000
+                    && entry["decoration"] == "test_point"
+                    && entry["srcLayer"] == "dm_4000_point_08_2500")
+        );
+        let manifest: serde_json::Value =
+            serde_json::from_slice(&fs::read(output.join("pmtiles-manifest.json")).unwrap())
+                .unwrap();
+        assert_eq!(manifest["featureInventory"], "feature-inventory.json");
 
         let connection = Connection::open(&gpkg).unwrap();
         let layers = read_layers(&connection).unwrap();
@@ -2280,6 +2448,39 @@ mod tests {
     }
 
     #[test]
+    fn detailed_tiles_keep_line_vertices() {
+        let tile = TileKey {
+            z: 18,
+            x: 1 << 17,
+            y: 1 << 17,
+        };
+        let unit = 2.0 * WEB_MERCATOR_HALF / (4096.0 * 2_f64.powi(18));
+        let mut source = sample_feature();
+        source.geometry_kind = GeometryKind::Line;
+        let feature = ProjectedFeature {
+            feature: source,
+            user_id: 1,
+            points: [(100, 100), (200, 101), (300, 100)]
+                .into_iter()
+                .map(|(x, y)| Coordinate {
+                    x: f64::from(x) * unit,
+                    y: -f64::from(y) * unit,
+                    z: None,
+                })
+                .collect(),
+            decoration: None,
+        };
+        let layer = encode_layer(
+            tile,
+            "dm_2100_line".into(),
+            vec![&feature],
+            &PolygonIndex::default(),
+        )
+        .unwrap();
+        assert_eq!(layer.features[0].geometry.len(), 8);
+    }
+
+    #[test]
     fn exercises_projection_geometry_and_vector_tile_helpers() {
         let layer = GpkgLayer {
             table_name: "dm_2100_line_08_2500".to_string(),
@@ -2348,7 +2549,7 @@ mod tests {
         assert!(!inside((-BUFFER - 1, 0)));
         assert!(clip_segment((-100, 0), (100, 0)).is_some());
         assert!(clip_segment((-100, 0), (-90, 0)).is_none());
-        assert!(clip_line(&[(-100, 0), (-90, 0)]).is_empty());
+        assert!(clip_line(&[(-100, 0), (-90, 0)], 4.0).is_empty());
         assert_eq!(simplify(&[(0, 0), (1, 1)], 1.0), vec![(0, 0), (1, 1)]);
         assert_eq!(
             simplify(&[(0, 0), (1, 0), (2, 0)], 1.0),
@@ -2385,14 +2586,15 @@ mod tests {
         assert_eq!(encoded, vec![4, 5]);
         assert_eq!(zigzag(-2), 3);
 
-        assert!(clipped_geometry(GeometryKind::Point, &[(0, 0)]).is_some());
-        assert!(clipped_geometry(GeometryKind::Text, &[(0, 0)]).is_some());
+        assert!(clipped_geometry(GeometryKind::Point, &[(0, 0)], 0.0).is_some());
+        assert!(clipped_geometry(GeometryKind::Text, &[(0, 0)], 0.0).is_some());
         assert!(
-            clipped_geometry(GeometryKind::Point, &[(EXTENT as i32 + BUFFER + 1, 0)]).is_none()
+            clipped_geometry(GeometryKind::Point, &[(EXTENT as i32 + BUFFER + 1, 0)], 0.0)
+                .is_none()
         );
-        assert!(clipped_geometry(GeometryKind::Line, &[(-100, 0), (100, 0)]).is_some());
-        assert!(clipped_geometry(GeometryKind::Polygon, &polygon).is_some());
-        assert!(clipped_geometry(GeometryKind::Polygon, &[(0, 0), (1, 1), (2, 2)]).is_none());
+        assert!(clipped_geometry(GeometryKind::Line, &[(-100, 0), (100, 0)], 4.0).is_some());
+        assert!(clipped_geometry(GeometryKind::Polygon, &polygon, 0.0).is_some());
+        assert!(clipped_geometry(GeometryKind::Polygon, &[(0, 0), (1, 1), (2, 2)], 0.0).is_none());
         assert!(encode_geometry(GeometryKind::Point, &[vec![(1, 1)]]).is_some());
         assert!(encode_geometry(GeometryKind::Line, &[vec![(1, 1)]]).is_some());
         assert!(encode_geometry(GeometryKind::Polygon, &[]).is_none());
@@ -2429,7 +2631,11 @@ mod tests {
             value_key(&vector_tile::Value::default()),
             ValueKey::String(String::new())
         );
-        assert!(encode_tile(tile, BTreeMap::new()).unwrap().is_empty());
+        assert!(
+            encode_tile(tile, BTreeMap::new(), &PolygonIndex::default())
+                .unwrap()
+                .is_empty()
+        );
 
         let mut text = sample_feature();
         text.geometry_kind = GeometryKind::Text;

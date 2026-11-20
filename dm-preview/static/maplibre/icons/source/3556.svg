@@ -1,10 +1,12 @@
-<svg width="105.6mm" height="56.1mm" viewBox="-60.4 -60.4 1932.8 1026.8" xmlns="http://www.w3.org/2000/xlink" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" overflow="hidden">
-<g transform="translate(-631 -785)">
-<path d="M950.008 1671.87C948.422 1351.55 1206.81 1090.59 1527.13 1089.01 1847.45 1087.42 2108.41 1345.81 2109.99 1666.13 2110 1667.09 2110 1668.04 2110 1669Z" stroke="#000000" stroke-width="13.2mm" vector-effect="non-scaling-stroke" stroke-miterlimit="8" fill="none" fill-rule="evenodd"/>
-<path d="M0 0 319 2.75" stroke="#000000" stroke-width="13.2mm" vector-effect="non-scaling-stroke" stroke-miterlimit="8" fill="none" fill-rule="evenodd" transform="matrix(1 0 0 -1 2110 1669.75)"/>
-<path d="M631 1672 950.007 1672" stroke="#000000" stroke-width="13.2mm" vector-effect="non-scaling-stroke" stroke-miterlimit="8" fill="none" fill-rule="evenodd"/>
-<path d="M0 0 221.833 230.237" stroke="#000000" stroke-width="13.2mm" vector-effect="non-scaling-stroke" stroke-miterlimit="8" fill="none" fill-rule="evenodd" transform="matrix(1 0 0 -1 1964 1261.24)"/>
-<path d="M0 0 0.000360892 290.033" stroke="#000000" stroke-width="13.2mm" vector-effect="non-scaling-stroke" stroke-miterlimit="8" fill="none" fill-rule="evenodd" transform="matrix(1 0 0 -1 1541 1089.03)"/>
-<path d="M1117.45 1261.24 878 1031" stroke="#000000" stroke-width="13.2mm" vector-effect="non-scaling-stroke" stroke-miterlimit="8" fill="none" fill-rule="evenodd"/>
-</g>
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="-4 -4 8 8" data-dm-reference-stroke="0.2">
+<title>3556 揚・排水機場</title>
+<desc>座標単位mm。入力位置: 0,0。図式p.75。半円部の中央（500は基線上0.75mm、1000は0.5mm）</desc>
+<path d="M -1.5 0.75 C -1.5 -0.0784271246999999 -0.8284271246999999 -0.75 0 -0.75 C 0.8284271246999999 -0.75 1.5 -0.0784271246999999 1.5 0.75" fill="none" stroke="#000000" stroke-width="0.2"/>
+<path d="M -2.25 0.75 L 2.25 0.75" fill="none" stroke="#000000" stroke-width="0.2"/>
+<path d="M 0 -0.75 L 0 -1.55" fill="none" stroke="#000000" stroke-width="0.2"/>
+<path d="M -1.0606601717798212 -0.3106601717798212 L -1.6263455967290592 -0.8763455967290592" fill="none" stroke="#000000" stroke-width="0.2"/>
+<path d="M 1.0606601717798212 -0.3106601717798212 L 1.6263455967290592 -0.8763455967290592" fill="none" stroke="#000000" stroke-width="0.2"/>
+<path d="M 0 0.25 L 1.4142135623730951 0.25" fill="none" stroke="#000000" stroke-width="0.15"/>
+<path d="M 0 -0.25 L 1.118033988749895 -0.25" fill="none" stroke="#000000" stroke-width="0.15"/>
+<path d="M 0 -0.75 L 0 0.75" fill="none" stroke="#000000" stroke-width="0.2"/>
 </svg>

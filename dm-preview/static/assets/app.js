@@ -1,3 +1,4 @@
+import {startBrowserApp} from "./browser/inspect-app.js";
 import {createBrowserPreviewApp} from "./browser/browser-preview-app.js";
 import * as maplibregl from "../vendor/maplibre-gl.mjs";
 
@@ -24,6 +25,7 @@ const resolveElements = (document) => ({
   tabDmiInfo: document.getElementById("tab-dmi-info"),
   featureListPanel: document.getElementById("feature-list-content"),
   dmiInfoPanel: document.getElementById("dmi-info"),
+  styleInventory: document.getElementById("style-inventory"),
   dmiContent: document.getElementById("dmi-content"),
   tabStyleEditor: document.getElementById("tab-style-editor"),
   tabFeatureDetails: document.getElementById("tab-feature-details"),
@@ -52,6 +54,6 @@ const app = createBrowserPreviewApp({
   fetch: window.fetch.bind(window),
 });
 
-app.start().catch((error) => {
+startBrowserApp({app, document, fetch: window.fetch.bind(window), location, window}).catch((error) => {
   document.getElementById("status").textContent = String(error);
 });
