@@ -5525,6 +5525,61 @@
       }
     },
     {
+      "id": "dm-2425-polygon-500-line",
+      "source": "dm",
+      "metadata": {
+        "dm:style-origin": "individual",
+        "dm:size-reference-latitude": 36,
+        "dm:pen-original-mm": 0.14999969808434008,
+        "dm:pen-number": 3,
+        "dm:pen-level": 500,
+        "dm:pen-property": "line-width",
+        "dm:pen-pages": [
+          59
+        ],
+        "dm:pen-origin": "geometry-extension",
+        "dm:dash-mm": [
+          1,
+          0.5
+        ]
+      },
+      "source-layer": "dm_2425_polygon",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        500
+      ],
+      "type": "line",
+      "minzoom": 17,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          17,
+          0.15524251246763732,
+          24,
+          19.871041595857577
+        ],
+        "line-dasharray": [
+          6.666667,
+          3.333333
+        ]
+      },
+      "layout": {
+        "line-cap": "butt"
+      }
+    },
+    {
       "id": "dm-2426-line-500-line",
       "source": "dm",
       "metadata": {
@@ -5588,6 +5643,61 @@
         ]
       },
       "source-layer": "dm_2428_line",
+      "filter": [
+        "==",
+        [
+          "get",
+          "LEVEL"
+        ],
+        500
+      ],
+      "type": "line",
+      "minzoom": 17,
+      "paint": {
+        "line-color": "#000000",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            2
+          ],
+          [
+            "zoom"
+          ],
+          17,
+          0.15524251246763732,
+          24,
+          19.871041595857577
+        ],
+        "line-dasharray": [
+          6.666667,
+          3.333333
+        ]
+      },
+      "layout": {
+        "line-cap": "butt"
+      }
+    },
+    {
+      "id": "dm-2428-polygon-500-line",
+      "source": "dm",
+      "metadata": {
+        "dm:style-origin": "individual",
+        "dm:size-reference-latitude": 36,
+        "dm:pen-original-mm": 0.14999969808434008,
+        "dm:pen-number": 3,
+        "dm:pen-level": 500,
+        "dm:pen-property": "line-width",
+        "dm:pen-pages": [
+          59
+        ],
+        "dm:pen-origin": "geometry-extension",
+        "dm:dash-mm": [
+          1,
+          0.5
+        ]
+      },
+      "source-layer": "dm_2428_polygon",
       "filter": [
         "==",
         [

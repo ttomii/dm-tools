@@ -379,7 +379,7 @@ test("catalog renders 2421 plain circles at large map levels", async ({page}, te
   }
 });
 
-for (const code of [2425, 2428]) test(`catalog renders ${code} dashed lines at large map levels`, async ({page}, testInfo) => {
+for (const code of [2425, 2428]) test(`catalog renders ${code} dashed polygon outlines at large map levels`, async ({page}, testInfo) => {
   test.setTimeout(180000);
   await page.goto(url);
   await expect(page.locator("header #reference-scale")).toBeEnabled({timeout: 180000});
@@ -394,9 +394,9 @@ for (const code of [2425, 2428]) test(`catalog renders ${code} dashed lines at l
     await page.locator("#feature-code").selectOption(String(code));
     await expect(page.locator("#feature-navigation-status")).toContainText(`DMコード${code}・レベル${level}`, {timeout: 30000});
     await expect.poll(async () => page.evaluate(({level, code}) => [...new Set(window.tunnelTestMap.queryRenderedFeatures()
-      .filter(feature => feature.source === "dm" && feature.properties.LEVEL === level && feature.properties.DM_SOURCE_LAYER === `dm_${code}_line`)
+      .filter(feature => feature.source === "dm" && feature.properties.LEVEL === level && feature.properties.DM_SOURCE_LAYER === `dm_${code}_polygon`)
       .map(feature => feature.layer.type))], {level, code}), {timeout: 30000}).toEqual(["line"]);
-    expect(await page.evaluate(({level, code}) => window.tunnelTestMap.getStyle().layers.find(layer => layer.id === `dm-${code}-line-${level}-line-level-${level}`).paint["line-dasharray"], {level, code})).toEqual([6.666667, 3.333333]);
+    expect(await page.evaluate(({level, code}) => window.tunnelTestMap.getStyle().layers.find(layer => layer.id === `dm-${code}-polygon-${level}-line-level-${level}`).paint["line-dasharray"], {level, code})).toEqual([6.666667, 3.333333]);
     await page.locator("#map").screenshot({path: testInfo.outputPath(`${code}-${level}.png`)});
   }
 });
@@ -510,6 +510,7 @@ test.describe('water terrain patterns',()=>{
   const allLevels=new Set([4262,4265,5105,5202,5211]);
   const icons=new Set([5105,5106,5204,5219]);
   const dashed=new Set([5213,5214,5227,5235,5237]);
+  const dashedOutlines=new Set([5235,5237]);
   for(const code of codes)test(`code ${code} displays the specified geometry and figure classes`,async({page},testInfo)=>{
     test.setTimeout(240000);
     const errors=[];page.on('pageerror',e=>errors.push(e.message));
@@ -526,9 +527,23 @@ test.describe('water terrain patterns',()=>{
         expect(auxiliary.length).toBeGreaterThan(0);
         await expect.poll(async()=>page.evaluate(({code,level})=>new Set(window.waterTerrainMap.queryRenderedFeatures().filter(f=>f.source==='dm'&&f.properties.DMCODE===code&&f.properties.LEVEL===level&&f.properties.DM_SOURCE_LAYER?.includes('_deco_')).map(f=>`${f.properties.DM_TABLE}:${f.properties.fid}`)).size,{code,level}),{timeout:45000}).toBe(auxiliary.length);
       }else{
-        const layer=`dm_${code}_${icons.has(code)?'point':'line'}`;
-        const expected=selected.filter(f=>f.properties.DM_SOURCE_LAYER===layer).length;expect(expected).toBeGreaterThan(0);
-        await expect.poll(async()=>page.evaluate(({layer,level})=>new Set(window.waterTerrainMap.queryRenderedFeatures().filter(f=>f.source==='dm'&&f.properties.LEVEL===level&&f.properties.DM_SOURCE_LAYER===layer).map(f=>`${f.properties.DM_TABLE}:${f.properties.fid}`)).size,{layer,level}),{timeout:45000}).toBe(expected);
+        const outline = dashedOutlines.has(code);
+        const kind = icons.has(code) ? 'point' : outline ? 'polygon' : 'line';
+        const layer = `dm_${code}_${kind}`;
+        const expected = selected.filter(feature => feature.properties.DM_SOURCE_LAYER === layer).length;
+        expect(expected).toBeGreaterThan(0);
+        await expect.poll(() => page.evaluate(({layer, level, outline}) => {
+          const features = window.waterTerrainMap.queryRenderedFeatures().filter(feature =>
+            feature.source === 'dm' && feature.properties.LEVEL === level &&
+            feature.properties.DM_SOURCE_LAYER === layer && (!outline || feature.layer.type === 'line'));
+          return new Set(features.map(feature => `${feature.properties.DM_TABLE}:${feature.fid}`)).size;
+        }, {layer, level, outline}), {timeout:45000}).toBe(expected);
+        if (outline) {
+          const dash = await page.evaluate(({code, level}) => window.waterTerrainMap.getStyle().layers.find(
+            layer => layer.id === `dm-${code}-polygon-${level}-line-level-${level}`
+          )?.paint?.['line-dasharray'], {code, level});
+          expect(dash).toEqual(expect.arrayContaining([expect.any(Number), expect.any(Number)]));
+        }
       }
       if([5211,5212,5226,5231,6101,6102,6110,6111,6112,6113].includes(code)){
         const originals=new Map(selected.filter(f=>f.properties.DM_SOURCE_LAYER===`dm_${code}_line`).map(f=>[`${f.properties.DM_TABLE}:${f.properties.USER_ID}`,f]));
