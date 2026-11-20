@@ -515,5 +515,4 @@ PMTilesのインデックスとファイル内オフセットは再構築する�
 MapLibre出力時はDMIの有無にかかわらず `feature-inventory.json` を生成し、
 manifestの `featureInventory` から参照します。地図情報レベル・DMコード・形状と、
 実際に生成された補助図形の種別・生成元・件数を記録します。
-スタイルの個別定義有無はpreviewで現在のStyleから判定します。
 形式は[manifest・DMI情報JSON仕様](../../docs/pmtiles-manifest-specification.md#地物内訳json)を参照してください。

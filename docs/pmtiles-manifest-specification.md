@@ -152,7 +152,7 @@ DMI情報は元の変換出力に保持し、previewは `/preview/api/dmi-info` 
 
 MapLibre変換時にGeoPackageの出力対象レイヤを集計し、`feature-inventory.json`へ保存します。
 DMIの分類一覧や生成ルールの対応コードではなく、実際に存在する地物を対象にします。
-Styleの定義有無は保存せず、previewが現在のStyleと照合します。
+この内訳にはStyleの定義有無を保存しません。
 
 トップレベルは `version: 1` と `entries` 配列です。各項目は次のとおりです。
 

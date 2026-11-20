@@ -1,5 +1,4 @@
 import {diagnosticStyle, applyInspectMode} from "../core/inspect-style.js";
-import {createInventoryView} from "./style-inventory.js";
 import {loadDmiInfo} from "./dmi-info.js";
 import {
   editableColorProperties,
@@ -50,7 +49,6 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
     selectedFeature: undefined,
     currentFeaturePage: 1,
     currentBaseStyle: undefined,
-    inventoryView: undefined,
     styleEditorState: {writable: false, editableLayers: []},
     spriteState: undefined,
     spriteRevision: 0,
@@ -99,7 +97,6 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
   };
 
   const renderStyleEditor = () => {
-    state.inventoryView?.setStyle(state.currentBaseStyle);
     const layers = state.styleEditorState.editableLayers ?? [];
     elements.styleLayerSelect.replaceChildren(...layers.map((layer) => {
       const option = document.createElement("option");
@@ -121,7 +118,6 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
   };
 
   const markStyleDirty = () => {
-    state.inventoryView?.setStyle(state.currentBaseStyle);
     state.styleDirty = true;
     elements.styleSave.disabled = !canSaveStyle(state.styleEditorState, state.styleDirty);
     elements.styleEditorStatus.textContent = "未保存の変更があります";
@@ -298,7 +294,6 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
         editableKinds: editableKinds(state.currentBaseStyle), editableLayers: editableLayers(state.currentBaseStyle)};
       renderStyleEditor();
     }
-    state.inventoryView?.setStyle(state.currentBaseStyle);
     const displayStyle = state.inspection?.mode === "original" || state.inspection?.mode === "generated"
       ? diagnosticStyle(manifest) : state.currentBaseStyle;
     const runtimeStyle = createRuntimeStyle(applyInspectMode(displayStyle, state.inspection), manifest, {
@@ -452,8 +447,7 @@ export const createBrowserPreviewApp = ({elements, location, history, maplibregl
     }
     const manifest = await api.manifest();
     state.manifest = manifest;
-    state.inventoryView = createInventoryView(elements.styleInventory, manifest);
-    await Promise.all([loadDmiInfo(elements.dmiContent, manifest, api), state.inventoryView.load(api)]);
+    await loadDmiInfo(elements.dmiContent, manifest, api);
     const previousStyle = elements.select.value;
     elements.select.replaceChildren();
     const styles = (manifest.styles ?? ["automatic"]).filter((style) => !state.inspection?.formalOnly || style !== "diagnostic");

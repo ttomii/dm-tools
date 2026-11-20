@@ -25,7 +25,6 @@ const resolveElements = (document) => ({
   tabDmiInfo: document.getElementById("tab-dmi-info"),
   featureListPanel: document.getElementById("feature-list-content"),
   dmiInfoPanel: document.getElementById("dmi-info"),
-  styleInventory: document.getElementById("style-inventory"),
   dmiContent: document.getElementById("dmi-content"),
   tabStyleEditor: document.getElementById("tab-style-editor"),
   tabFeatureDetails: document.getElementById("tab-feature-details"),
