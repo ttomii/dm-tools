@@ -11,12 +11,7 @@ DMファイルをGeoPackageまたはMapLibre向けPMTilesへ変換するRust CLI
 dm-converter convert input.dm output.gpkg --input-datum jgd2000
 ```
 
-GeoPackageには座標値をそのまま格納し、指定した測地系と入力の平面直角座標系番号を設定します。
-JGD2000はEPSG:2443～2461、JGD2011・JGD2024はEPSG:6669～6687です。
-JGD2011とJGD2024は水平座標の定義とEPSGコードが共通で、選択した名称を座標系名に記録します。
-測地系間の座標補正や標高変換は行いません。
-PMTiles出力にも適用します。GeoPackage入力時は保存済みのCRSを使い、このオプションは無視します。
-
+出力先ごとの扱いとEPSGコードは [変換仕様の入力DMの測地系](docs/conversion-specification.md#入力dmの測地系) を参照してください。
 
 ## 既存PMTilesの部分更新
 
